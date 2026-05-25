@@ -1,0 +1,14 @@
+.dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.timeline-list { display: flex; flex-direction: column; gap: 10px; }
+.timeline-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 1px solid #1a1a2e; }
+.timeline-item:last-child { border-bottom: none; }
+.timeline-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); margin-top: 5px; flex-shrink: 0; }
+.timeline-content { flex: 1; }
+.timeline-title { font-size: 13px; font-weight: 500; }
+.timeline-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.followup-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #1a1a2e; }
+.followup-item:last-child { border-bottom: none; }
+.followup-lead { font-size: 13px; font-weight: 500; }
+.followup-time { font-size: 12px; color: var(--text-muted); }
+.followup-note { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+@media (max-width: 860px) { .dashboard-grid { grid-template-columns: 1fr; } }

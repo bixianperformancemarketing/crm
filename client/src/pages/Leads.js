@@ -1,0 +1,348 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import Layout from '../components/layout/Layout';
+import Pagination from '../components/common/Pagination';
+import UpgradeModal from '../components/common/UpgradeModal';
+import ConfirmModal from '../components/common/ConfirmModal';
+import { leadsAPI, usersAPI } from '../services/api';
+import { formatDateTime, getStatusColor, getPriorityColor, getInitials, ENUMS } from '../utils/helpers';
+import { useAuth } from '../context/AuthContext';
+import './Leads.css';
+
+const Leads = () => {
+  const { user, org, hasFeature } = useAuth();
+  const [leads, setLeads] = useState([]);
+  const [pagination, setPagination] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [agents, setAgents] = useState([]);
+  const [showCreate, setShowCreate] = useState(false);
+  const [showImport, setShowImport] = useState(false);
+  const [upgradeModal, setUpgradeModal] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [filters, setFilters] = useState({ search: '', status: '', source: '', priority: '', assignedTo: '', page: 1 });
+  const [form, setForm] = useState({ name: '', phone: '', email: '', source: 'Website', priority: 'Medium', status: 'New', assignedTo: '', campaign: '', clientAddress: '', clientType: 'Other' });
+  const [importing, setImporting] = useState(false);
+  const [importResults, setImportResults] = useState(null);
+
+  // bulk assign state
+  const [selected, setSelected] = useState(new Set());
+  const [bulkAssignTo, setBulkAssignTo] = useState('');
+  const [bulkAssigning, setBulkAssigning] = useState(false);
+
+  const loadLeads = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = { ...filters };
+      Object.keys(params).forEach((k) => { if (!params[k]) delete params[k]; });
+      const { data } = await leadsAPI.getAll(params);
+      setLeads(data.data || []);
+      setPagination(data.pagination);
+    } catch (err) {
+      toast.error('Failed to load leads');
+    } finally {
+      setLoading(false);
+    }
+  }, [filters]);
+
+  useEffect(() => { loadLeads(); }, [loadLeads]);
+
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      usersAPI.getAll({ role: 'employee', limit: 100 }).then(({ data }) => setAgents(data.data || [])).catch(() => {});
+    }
+  }, [user]);
+
+  // clear selection when page/filters change
+  useEffect(() => { setSelected(new Set()); }, [filters]);
+
+  const handleCreate = async (e) => {
+    e.preventDefault();
+    try {
+      const payload = { ...form };
+      if (!payload.assignedTo) delete payload.assignedTo;
+      const { data } = await leadsAPI.create(payload);
+      if (data.upgradeRequired) { setUpgradeModal(data); return; }
+      toast.success(data.isDuplicate ? 'Duplicate lead detected' : 'Lead created!');
+      setShowCreate(false);
+      setForm({ name: '', phone: '', email: '', source: 'Website', priority: 'Medium', status: 'New', assignedTo: '', campaign: '', clientAddress: '', clientType: 'Other' });
+      loadLeads();
+    } catch (err) {
+      const d = err.response?.data;
+      if (d?.upgradeRequired) { setUpgradeModal(d); return; }
+      toast.error(d?.message || 'Failed to create lead');
+    }
+  };
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await leadsAPI.delete(confirmDelete.id);
+      toast.success('Lead deleted');
+      setConfirmDelete(null);
+      loadLeads();
+    } catch { toast.error('Failed to delete lead'); }
+    finally { setDeleting(false); }
+  };
+
+  const handleCSVImport = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImporting(true);
+    setImportResults(null);
+    try {
+      const { data } = await leadsAPI.importCSV(file);
+      if (data.upgradeRequired) { setUpgradeModal(data); return; }
+      setImportResults(data);
+      toast.success(`Imported ${data.created} leads`);
+      loadLeads();
+    } catch (err) {
+      const d = err.response?.data;
+      if (d?.upgradeRequired) { setUpgradeModal(d); return; }
+      toast.error(d?.message || 'Import failed');
+    } finally { setImporting(false); e.target.value = ''; }
+  };
+
+  const updateFilter = (key, val) => setFilters((f) => ({ ...f, [key]: val, page: 1 }));
+
+  // selection helpers
+  const allSelected = leads.length > 0 && leads.every((l) => selected.has(l.id));
+  const someSelected = leads.some((l) => selected.has(l.id));
+
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setSelected((s) => { const n = new Set(s); leads.forEach((l) => n.delete(l.id)); return n; });
+    } else {
+      setSelected((s) => { const n = new Set(s); leads.forEach((l) => n.add(l.id)); return n; });
+    }
+  };
+
+  const toggleSelect = (id) => {
+    setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  };
+
+  const handleBulkAssign = async () => {
+    if (!bulkAssignTo) { toast.error('Please select an employee'); return; }
+    if (selected.size === 0) return;
+    setBulkAssigning(true);
+    try {
+      const { data } = await leadsAPI.bulkAssign([...selected], Number(bulkAssignTo));
+      toast.success(data.message);
+      setSelected(new Set());
+      setBulkAssignTo('');
+      loadLeads();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Bulk assign failed');
+    } finally {
+      setBulkAssigning(false);
+    }
+  };
+
+  return (
+    <Layout title="Leads">
+      <div className="page-header">
+        <div>
+          <div className="page-title">All Leads</div>
+          <div className="page-subtitle">{pagination?.total || 0} total leads</div>
+        </div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          {hasFeature('canUseCSVImport') && (
+            <button className="btn btn-ghost" onClick={() => setShowImport((s) => !s)}>📁 Import CSV</button>
+          )}
+          <button className="btn btn-primary" onClick={() => setShowCreate(true)}>+ New Lead</button>
+        </div>
+      </div>
+
+      {showImport && (
+        <div className="card" style={{ marginBottom: 20 }}>
+          <h3 style={{ marginBottom: 16 }}>📁 Import Leads from CSV</h3>
+          <label className="import-area" htmlFor="csv-upload">
+            {importing ? <span>⏳ Importing...</span> : <span>📎 Click to select CSV file or drag & drop<br /><small style={{ color: 'var(--text-muted)' }}>Headers: name, phone, email, city, source, campaign (and any custom fields)</small></span>}
+          </label>
+          <input id="csv-upload" type="file" accept=".csv" style={{ display: 'none' }} onChange={handleCSVImport} disabled={importing} />
+          {importResults && (
+            <div className="import-results">
+              <div>✅ Created: <strong>{importResults.created}</strong> | Duplicates: <strong>{importResults.duplicates}</strong> | Skipped: <strong>{importResults.skipped}</strong></div>
+              {importResults.errors?.map((e, i) => <div key={i} className="error">Error: {e}</div>)}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="filters-bar">
+        <input className="search-input" placeholder="🔍 Search name, phone, email..." value={filters.search} onChange={(e) => updateFilter('search', e.target.value)} />
+        <select className="filter-select" value={filters.status} onChange={(e) => updateFilter('status', e.target.value)}>
+          <option value="">All Statuses</option>
+          {ENUMS.LEAD_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+        </select>
+        <select className="filter-select" value={filters.priority} onChange={(e) => updateFilter('priority', e.target.value)}>
+          <option value="">All Priorities</option>
+          {ENUMS.LEAD_PRIORITIES.map((p) => <option key={p} value={p}>{p}</option>)}
+        </select>
+        <select className="filter-select" value={filters.source} onChange={(e) => updateFilter('source', e.target.value)}>
+          <option value="">All Sources</option>
+          {ENUMS.LEAD_SOURCES.map((s) => <option key={s} value={s}>{s}</option>)}
+        </select>
+        {user?.role === 'admin' && agents.length > 0 && (
+          <select className="filter-select" value={filters.assignedTo} onChange={(e) => updateFilter('assignedTo', e.target.value)}>
+            <option value="">All Agents</option>
+            {agents.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+          </select>
+        )}
+      </div>
+
+      {/* bulk action bar — only visible for admins with selection */}
+      {user?.role === 'admin' && someSelected && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 12,
+          background: 'var(--surface)', border: '1px solid var(--border)',
+          borderRadius: 10, padding: '10px 16px', marginBottom: 12,
+        }}>
+          <span style={{ fontSize: 13, color: 'var(--text-muted)', minWidth: 120 }}>
+            {selected.size} lead{selected.size !== 1 ? 's' : ''} selected
+          </span>
+          <select
+            className="filter-select"
+            value={bulkAssignTo}
+            onChange={(e) => setBulkAssignTo(e.target.value)}
+            style={{ minWidth: 180 }}
+          >
+            <option value="">Assign to employee...</option>
+            {agents.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+          </select>
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={handleBulkAssign}
+            disabled={!bulkAssignTo || bulkAssigning}
+          >
+            {bulkAssigning ? 'Assigning...' : 'Assign'}
+          </button>
+          <button
+            className="btn btn-ghost btn-sm"
+            onClick={() => setSelected(new Set())}
+            style={{ marginLeft: 'auto' }}
+          >
+            Clear
+          </button>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="loading-spinner"><div className="spinner" /></div>
+      ) : leads.length === 0 ? (
+        <div className="empty-state"><div className="empty-icon">👥</div><div className="empty-title">No leads found</div><div className="empty-desc">Create your first lead or adjust your filters</div></div>
+      ) : (
+        <>
+          <div className="leads-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  {user?.role === 'admin' && (
+                    <th style={{ width: 36 }}>
+                      <input
+                        type="checkbox"
+                        checked={allSelected}
+                        onChange={toggleSelectAll}
+                        title={allSelected ? 'Deselect all' : 'Select all'}
+                        style={{ cursor: 'pointer' }}
+                      />
+                    </th>
+                  )}
+                  <th>Lead</th><th>Phone</th><th>Source</th><th>Priority</th><th>Status</th><th>Agent</th><th>Created</th><th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {leads.map((lead) => (
+                  <tr key={lead.id} style={selected.has(lead.id) ? { background: 'rgba(99,102,241,0.06)' } : {}}>
+                    {user?.role === 'admin' && (
+                      <td>
+                        <input
+                          type="checkbox"
+                          checked={selected.has(lead.id)}
+                          onChange={() => toggleSelect(lead.id)}
+                          style={{ cursor: 'pointer' }}
+                        />
+                      </td>
+                    )}
+                    <td>
+                      <div className="lead-name-cell">
+                        <div className="lead-avatar">{getInitials(lead.name)}</div>
+                        <div>
+                          <Link to={`/leads/${lead.id}`} style={{ color: 'var(--text)', textDecoration: 'none', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                            {lead.name}
+                            {lead.isHot && <span style={{ fontSize: 10, background: 'rgba(239,68,68,0.15)', color: '#ef4444', padding: '1px 6px', borderRadius: 20, fontWeight: 700 }}>HOT</span>}
+                          </Link>
+                          {lead.email && <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{lead.email}</div>}
+                        </div>
+                      </div>
+                    </td>
+                    <td style={{ color: 'var(--text-muted)', fontSize: 13 }}>{lead.phone || '—'}</td>
+                    <td style={{ fontSize: 12 }}>{lead.source}</td>
+                    <td>
+                      <span style={{ background: `rgba(${getPriorityColor(lead.priority).slice(1).match(/.{2}/g).map((x) => parseInt(x, 16)).join(',')},0.15)`, color: getPriorityColor(lead.priority), padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 700 }}>
+                        {lead.priority}
+                      </span>
+                    </td>
+                    <td>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span className="status-dot" style={{ background: getStatusColor(lead.status) }} />
+                        <span style={{ fontSize: 12 }}>{lead.status}</span>
+                      </span>
+                    </td>
+                    <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>{lead.assignedAgent?.name || '—'}</td>
+                    <td style={{ fontSize: 11, color: 'var(--text-muted)' }}>{formatDateTime(lead.createdAt)}</td>
+                    <td>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <Link to={`/leads/${lead.id}`} className="btn btn-ghost btn-sm">View</Link>
+                        {user?.role === 'admin' && <button className="btn btn-sm" style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444', border: 'none' }} onClick={() => setConfirmDelete(lead)}>Del</button>}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <Pagination pagination={pagination} onPageChange={(p) => setFilters((f) => ({ ...f, page: p }))} />
+        </>
+      )}
+
+      {showCreate && (
+        <div className="modal-overlay" onClick={() => setShowCreate(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h3>New Lead</h3>
+            <button className="modal-close" onClick={() => setShowCreate(false)}>×</button>
+            <form onSubmit={handleCreate}>
+              <div className="form-row">
+                <div className="form-group"><label className="form-label">Name *</label><input className="form-control" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required /></div>
+                <div className="form-group"><label className="form-label">Phone</label><input className="form-control" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
+              </div>
+              <div className="form-row">
+                <div className="form-group"><label className="form-label">Email</label><input className="form-control" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
+                <div className="form-group"><label className="form-label">Campaign</label><input className="form-control" value={form.campaign} onChange={(e) => setForm({ ...form, campaign: e.target.value })} /></div>
+              </div>
+              <div className="form-row">
+                <div className="form-group"><label className="form-label">Source</label><select className="form-control" value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })}>{ENUMS.LEAD_SOURCES.map((s) => <option key={s}>{s}</option>)}</select></div>
+                <div className="form-group"><label className="form-label">Priority</label><select className="form-control" value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })}>{ENUMS.LEAD_PRIORITIES.map((p) => <option key={p}>{p}</option>)}</select></div>
+              </div>
+              <div className="form-row">
+                <div className="form-group"><label className="form-label">Client Type</label><select className="form-control" value={form.clientType} onChange={(e) => setForm({ ...form, clientType: e.target.value })}>{ENUMS.CLIENT_TYPES.map((t) => <option key={t}>{t}</option>)}</select></div>
+                {user?.role === 'admin' && agents.length > 0 && <div className="form-group"><label className="form-label">Assign To</label><select className="form-control" value={form.assignedTo} onChange={(e) => setForm({ ...form, assignedTo: e.target.value })}><option value="">Auto Assign</option>{agents.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></div>}
+              </div>
+              <div className="form-group"><label className="form-label">Address</label><textarea className="form-control" rows={2} value={form.clientAddress} onChange={(e) => setForm({ ...form, clientAddress: e.target.value })} /></div>
+              <div className="modal-actions">
+                <button type="button" className="btn btn-ghost" onClick={() => setShowCreate(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Create Lead</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {upgradeModal && <UpgradeModal message={upgradeModal.message} limitType={upgradeModal.limitType} plan={org?.plan} onClose={() => setUpgradeModal(null)} />}
+      {confirmDelete && <ConfirmModal title="Delete Lead" message={`Delete ${confirmDelete.name}? This cannot be undone.`} confirmText="Delete" confirmClass="btn-danger" loading={deleting} onConfirm={handleDelete} onCancel={() => setConfirmDelete(null)} />}
+    </Layout>
+  );
+};
+
+export default Leads;

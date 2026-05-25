@@ -1,0 +1,9 @@
+.leads-table-wrap { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.lead-name-cell { display: flex; align-items: center; gap: 8px; }
+.lead-avatar { width: 30px; height: 30px; border-radius: 50%; background: #1e1e3a; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: var(--accent2); flex-shrink: 0; }
+.priority-badge { padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 700; letter-spacing: 0.5px; }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+.import-area { border: 2px dashed var(--border); border-radius: 10px; padding: 30px; text-align: center; cursor: pointer; transition: border-color 0.15s; }
+.import-area:hover { border-color: var(--accent); }
+.import-results { background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.2); border-radius: 10px; padding: 16px; margin-top: 16px; }
+.import-results .error { color: var(--danger); font-size: 12px; margin-top: 8px; }

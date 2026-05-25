@@ -1,0 +1,19 @@
+# Production overrides — use with:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#
+# Changes from dev:
+#   - MySQL port not exposed externally (internal Docker network only)
+#   - Server bound to 127.0.0.1:5000 (only host Nginx can reach it)
+#   - Client bound to 127.0.0.1:3000 (only host Nginx can reach it)
+
+services:
+  mysql:
+    ports: !reset []
+
+  server:
+    ports:
+      - "127.0.0.1:5000:5000"
+
+  client:
+    ports:
+      - "127.0.0.1:3000:80"

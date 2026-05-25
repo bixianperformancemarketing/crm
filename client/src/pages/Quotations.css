@@ -1,0 +1,94 @@
+/* ── Quotations Yellow Theme ─────────────────────────────────────────────── */
+:root {
+  --q-gold: #f59e0b;
+  --q-gold-light: rgba(245, 158, 11, 0.12);
+  --q-gold-border: rgba(245, 158, 11, 0.25);
+  --q-gold-dark: #d97706;
+}
+
+.quotation-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.quotation-card {
+  background: var(--surface);
+  border: 1px solid var(--q-gold-border);
+  border-radius: 12px;
+  padding: 18px 20px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.quotation-card:hover {
+  border-color: var(--q-gold);
+  box-shadow: 0 0 0 2px var(--q-gold-light);
+}
+
+.quotation-number {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--q-gold);
+  font-family: monospace;
+  letter-spacing: 0.5px;
+}
+
+.items-table { width: 100%; border-collapse: collapse; }
+.items-table th {
+  background: var(--q-gold-light);
+  border-bottom: 2px solid var(--q-gold-border);
+  padding: 9px 11px;
+  text-align: left;
+  font-size: 11px;
+  color: var(--q-gold);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.items-table td {
+  padding: 8px 11px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.items-table tr:last-child td { border-bottom: none; }
+.items-table td input {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text);
+  padding: 4px 6px;
+  border-radius: 4px;
+  font-size: 13px;
+  width: 100%;
+}
+.items-table td input:focus {
+  border-color: var(--q-gold);
+  outline: none;
+  background: rgba(245, 158, 11, 0.05);
+}
+
+.totals-box {
+  background: var(--q-gold-light);
+  border: 1px solid var(--q-gold-border);
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 16px;
+}
+.total-row { display: flex; justify-content: space-between; padding: 5px 0; font-size: 13px; }
+.total-row.grand {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--q-gold);
+  border-top: 2px solid var(--q-gold-border);
+  padding-top: 10px;
+  margin-top: 5px;
+}
+
+.q-status-draft    { background: rgba(107,114,128,0.15); color: #9ca3af; }
+.q-status-sent     { background: rgba(245,158,11,0.15);  color: #f59e0b; }
+.q-status-approved { background: rgba(16,185,129,0.15);  color: #10b981; }
+.q-status-rejected { background: rgba(239,68,68,0.15);   color: #ef4444; }

@@ -1,0 +1,64 @@
+/* ── Invoices Yellow Theme ────────────────────────────────────────────────── */
+/* Shared badge style also used in Quotations */
+.quotation-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+:root {
+  --inv-gold: #f59e0b;
+  --inv-gold-light: rgba(245, 158, 11, 0.1);
+  --inv-gold-border: rgba(245, 158, 11, 0.22);
+}
+
+.invoice-status-bar { display: flex; gap: 4px; margin-bottom: 20px; flex-wrap: wrap; }
+
+.invoice-card {
+  background: var(--surface);
+  border: 1px solid var(--inv-gold-border);
+  border-radius: 12px;
+  padding: 18px 20px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.invoice-card:hover {
+  border-color: var(--inv-gold);
+  box-shadow: 0 0 0 2px var(--inv-gold-light);
+}
+
+.invoice-number {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--inv-gold);
+  font-family: monospace;
+  letter-spacing: 0.5px;
+}
+
+.invoice-amount-due {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--inv-gold);
+}
+
+.inv-status-unpaid  { background: rgba(239,68,68,0.12);  color: #ef4444; }
+.inv-status-partial { background: rgba(245,158,11,0.12); color: #f59e0b; }
+.inv-status-paid    { background: rgba(16,185,129,0.12); color: #10b981; }
+.inv-status-overdue { background: rgba(239,68,68,0.2);   color: #ef4444; border: 1px solid rgba(239,68,68,0.3); }
+
+.pay-progress-bar {
+  height: 5px;
+  background: var(--border);
+  border-radius: 3px;
+  margin-top: 6px;
+  overflow: hidden;
+}
+.pay-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--inv-gold), #d97706);
+  border-radius: 3px;
+  transition: width 0.4s;
+}

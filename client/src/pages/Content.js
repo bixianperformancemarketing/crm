@@ -1,0 +1,325 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import toast from 'react-hot-toast';
+import Layout from '../components/layout/Layout';
+import Pagination from '../components/common/Pagination';
+import UpgradeModal from '../components/common/UpgradeModal';
+import { contentAPI, usersAPI } from '../services/api';
+import { formatDate, ENUMS } from '../utils/helpers';
+import { useAuth } from '../context/AuthContext';
+import './Content.css';
+
+const STATUS_COLORS = { 'Pending': '#6b7280', 'In Progress': '#0ea5e9', 'Review': '#f59e0b', 'Done': '#22c55e', 'Cancelled': '#ef4444' };
+const CHIP_CLASS = { 'Pending': '', 'In Progress': 'status-in-progress', 'Review': 'status-review', 'Done': 'status-done', 'Cancelled': '' };
+
+const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+const emptyForm = () => ({ title: '', type: 'Post', platform: 'Instagram', dueDate: '', assignedTo: '', priority: 'Medium', notes: '' });
+
+const Content = () => {
+  const { org, isRole } = useAuth();
+  const [tasks, setTasks] = useState([]);
+  const [calTasks, setCalTasks] = useState([]);
+  const [pagination, setPagination] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [view, setView] = useState('list');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [calYear, setCalYear] = useState(new Date().getFullYear());
+  const [calMonth, setCalMonth] = useState(new Date().getMonth() + 1);
+  const [showCreate, setShowCreate] = useState(false);
+  const [showTask, setShowTask] = useState(null);
+  const [form, setForm] = useState(emptyForm());
+  const [saving, setSaving] = useState(false);
+  const [users, setUsers] = useState([]);
+  const [upgradeModal, setUpgradeModal] = useState(null);
+
+  const loadList = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = { page };
+      if (statusFilter) params.status = statusFilter;
+      const { data } = await contentAPI.getAll(params);
+      setTasks(data.data || []);
+      setPagination(data.pagination);
+    } catch { toast.error('Failed to load tasks'); }
+    finally { setLoading(false); }
+  }, [page, statusFilter]);
+
+  const loadCal = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { data } = await contentAPI.getCalendar({ year: calYear, month: calMonth });
+      setCalTasks(data.tasks || []);
+    } catch { toast.error('Failed to load calendar'); }
+    finally { setLoading(false); }
+  }, [calYear, calMonth]);
+
+  useEffect(() => {
+    if (view === 'list') loadList();
+    else loadCal();
+  }, [view, loadList, loadCal]);
+
+  useEffect(() => {
+    usersAPI.getAll().then(({ data }) => setUsers(data.data || [])).catch(() => {});
+  }, []);
+
+  const handleCreate = async (e) => {
+    e.preventDefault();
+    if (!form.title || !form.dueDate) return toast.error('Title and due date required');
+    setSaving(true);
+    try {
+      const { data } = await contentAPI.create(form);
+      if (data.upgradeRequired) { setUpgradeModal(data); return; }
+      toast.success('Task created');
+      setShowCreate(false);
+      setForm(emptyForm());
+      view === 'list' ? loadList() : loadCal();
+    } catch (err) {
+      const d = err.response?.data;
+      if (d?.upgradeRequired) { setUpgradeModal(d); return; }
+      toast.error(d?.message || 'Failed to create task');
+    } finally { setSaving(false); }
+  };
+
+  const handleStatusChange = async (id, status) => {
+    try {
+      await contentAPI.update(id, { status });
+      toast.success('Status updated');
+      view === 'list' ? loadList() : loadCal();
+      if (showTask) setShowTask({ ...showTask, status });
+    } catch { toast.error('Failed to update'); }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Delete this task?')) return;
+    try {
+      await contentAPI.delete(id);
+      toast.success('Deleted');
+      setShowTask(null);
+      view === 'list' ? loadList() : loadCal();
+    } catch { toast.error('Failed to delete'); }
+  };
+
+  const prevMonth = () => {
+    if (calMonth === 1) { setCalMonth(12); setCalYear(y => y - 1); }
+    else setCalMonth(m => m - 1);
+  };
+  const nextMonth = () => {
+    if (calMonth === 12) { setCalMonth(1); setCalYear(y => y + 1); }
+    else setCalMonth(m => m + 1);
+  };
+
+  const buildCalCells = () => {
+    const firstDay = new Date(calYear, calMonth - 1, 1).getDay();
+    const daysInMonth = new Date(calYear, calMonth, 0).getDate();
+    const daysInPrev = new Date(calYear, calMonth - 1, 0).getDate();
+    const today = new Date();
+    const cells = [];
+
+    for (let i = firstDay - 1; i >= 0; i--) {
+      cells.push({ day: daysInPrev - i, current: false, date: null });
+    }
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = `${calYear}-${String(calMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      const isToday = today.getFullYear() === calYear && today.getMonth() + 1 === calMonth && today.getDate() === d;
+      cells.push({ day: d, current: true, date: dateStr, isToday });
+    }
+    const remaining = 42 - cells.length;
+    for (let d = 1; d <= remaining; d++) {
+      cells.push({ day: d, current: false, date: null });
+    }
+    return cells;
+  };
+
+  const tasksByDate = calTasks.reduce((acc, t) => {
+    const d = t.dueDate?.split('T')[0];
+    if (!acc[d]) acc[d] = [];
+    acc[d].push(t);
+    return acc;
+  }, {});
+
+  const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const cells = buildCalCells();
+
+  const canManage = isRole('owner') || isRole('admin');
+
+  return (
+    <Layout title="Tasks">
+      <div className="page-header">
+        <div className="page-title">Tasks</div>
+        <div className="content-toolbar">
+          <div className="view-toggle">
+            <button className={view === 'list' ? 'active' : ''} onClick={() => setView('list')}>List</button>
+            <button className={view === 'cal' ? 'active' : ''} onClick={() => setView('cal')}>Calendar</button>
+          </div>
+          {canManage && <button className="btn btn-primary" onClick={() => setShowCreate(true)}>+ New Task</button>}
+        </div>
+      </div>
+
+      {view === 'list' && (
+        <>
+          <div className="content-filter-bar" style={{ marginBottom: 16 }}>
+            {['', 'Pending', 'In Progress', 'Review', 'Done', 'Cancelled'].map((s) => (
+              <button key={s || 'all'} onClick={() => { setStatusFilter(s); setPage(1); }}
+                style={{ padding: '5px 12px', borderRadius: 7, background: statusFilter === s ? 'var(--accent)' : 'var(--card-bg)', border: '1px solid var(--border)', color: statusFilter === s ? '#fff' : 'var(--text-muted)', fontSize: 12, cursor: 'pointer' }}>
+                {s || 'All'}
+              </button>
+            ))}
+          </div>
+          {loading ? <div className="loading-spinner"><div className="spinner" /></div> : tasks.length === 0 ? (
+            <div className="empty-state"><div className="empty-icon">📅</div><div className="empty-title">No content tasks</div></div>
+          ) : (
+            <>
+              <div className="table-wrap">
+                <table>
+                  <thead><tr><th>Title</th><th>Type</th><th>Platform</th><th>Assigned To</th><th>Due Date</th><th>Priority</th><th>Status</th><th>Actions</th></tr></thead>
+                  <tbody>
+                    {tasks.map((t) => (
+                      <tr key={t.id} style={{ cursor: 'pointer' }} onClick={() => setShowTask(t)}>
+                        <td style={{ fontWeight: 500 }}>{t.title}</td>
+                        <td><span className="task-type-badge">{t.type}</span></td>
+                        <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t.platform}</td>
+                        <td style={{ fontSize: 12 }}>{t.assignee?.name || '—'}</td>
+                        <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t.dueDate ? formatDate(t.dueDate) : '—'}</td>
+                        <td><span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: t.priority === 'High' ? 'rgba(239,68,68,0.15)' : t.priority === 'Medium' ? 'rgba(245,158,11,0.15)' : 'rgba(107,114,128,0.15)', color: t.priority === 'High' ? '#ef4444' : t.priority === 'Medium' ? '#f59e0b' : '#6b7280' }}>{t.priority}</span></td>
+                        <td><span className="task-status-badge" style={{ background: `${STATUS_COLORS[t.status]}22`, color: STATUS_COLORS[t.status] }}>{t.status}</span></td>
+                        <td onClick={(e) => e.stopPropagation()}>
+                          {canManage && (
+                            <select value={t.status} onChange={(e) => handleStatusChange(t.id, e.target.value)}
+                              style={{ fontSize: 11, background: 'var(--card-bg)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 4, padding: '2px 4px', cursor: 'pointer' }}>
+                              {['Pending', 'In Progress', 'Review', 'Done', 'Cancelled'].map(s => <option key={s}>{s}</option>)}
+                            </select>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <Pagination pagination={pagination} onPageChange={setPage} />
+            </>
+          )}
+        </>
+      )}
+
+      {view === 'cal' && (
+        <div className="content-calendar">
+          <div className="cal-header">
+            <div className="cal-nav">
+              <button onClick={prevMonth}>&#8249;</button>
+              <div className="cal-month-label">{MONTH_NAMES[calMonth - 1]} {calYear}</div>
+              <button onClick={nextMonth}>&#8250;</button>
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{calTasks.length} tasks this month</div>
+          </div>
+          <div className="cal-grid">
+            {DAY_LABELS.map(d => <div key={d} className="cal-day-label">{d}</div>)}
+            {cells.map((cell, idx) => {
+              const dayTasks = cell.date ? (tasksByDate[cell.date] || []) : [];
+              const visible = dayTasks.slice(0, 3);
+              const extra = dayTasks.length - visible.length;
+              return (
+                <div key={idx} className={`cal-cell${!cell.current ? ' other-month' : ''}${cell.isToday ? ' today' : ''}`}>
+                  <div className="cal-date">{cell.day}</div>
+                  {visible.map(t => (
+                    <div key={t.id} className={`cal-task-chip ${CHIP_CLASS[t.status] || ''}`} onClick={() => setShowTask(t)} title={t.title}>
+                      {t.title}
+                    </div>
+                  ))}
+                  {extra > 0 && <div className="cal-more">+{extra} more</div>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {showTask && (
+        <div className="modal-overlay" onClick={() => setShowTask(null)}>
+          <div className="modal" style={{ maxWidth: 500 }} onClick={e => e.stopPropagation()}>
+            <h3>Task Details</h3>
+            <button className="modal-close" onClick={() => setShowTask(null)}>×</button>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+              <span className="task-type-badge">{showTask.type}</span>
+              <span className="task-status-badge" style={{ background: `${STATUS_COLORS[showTask.status]}22`, color: STATUS_COLORS[showTask.status] }}>{showTask.status}</span>
+            </div>
+            <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 12 }}>{showTask.title}</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', fontSize: 13, marginBottom: 16 }}>
+              <div><span style={{ color: 'var(--text-muted)' }}>Platform:</span> {showTask.platform}</div>
+              <div><span style={{ color: 'var(--text-muted)' }}>Priority:</span> {showTask.priority}</div>
+              <div><span style={{ color: 'var(--text-muted)' }}>Due Date:</span> {showTask.dueDate ? formatDate(showTask.dueDate) : '—'}</div>
+              <div><span style={{ color: 'var(--text-muted)' }}>Assigned To:</span> {showTask.assignee?.name || '—'}</div>
+            </div>
+            {showTask.notes && <div style={{ background: '#0a0a17', borderRadius: 8, padding: 12, fontSize: 13, marginBottom: 16, color: 'var(--text-muted)' }}>{showTask.notes}</div>}
+            {canManage && (
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+                {['Pending', 'In Progress', 'Review', 'Done'].filter(s => s !== showTask.status).map(s => (
+                  <button key={s} className="btn btn-ghost btn-sm" onClick={() => handleStatusChange(showTask.id, s)}>
+                    → {s}
+                  </button>
+                ))}
+              </div>
+            )}
+            {canManage && (
+              <div className="modal-actions">
+                <button className="btn btn-ghost" style={{ color: 'var(--danger)' }} onClick={() => handleDelete(showTask.id)}>Delete</button>
+                <button className="btn btn-ghost" onClick={() => setShowTask(null)}>Close</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {showCreate && (
+        <div className="modal-overlay" onClick={() => setShowCreate(false)}>
+          <div className="modal" style={{ maxWidth: 520 }} onClick={e => e.stopPropagation()}>
+            <h3>New Content Task</h3>
+            <button className="modal-close" onClick={() => setShowCreate(false)}>×</button>
+            <form onSubmit={handleCreate}>
+              <div className="form-group"><label className="form-label">Title *</label><input className="form-control" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Post title or description" /></div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">Type</label>
+                  <select className="form-control" value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>
+                    {(ENUMS.CONTENT_TYPES || ['Post', 'Reel', 'Story', 'Video', 'Blog', 'Ad', 'Email', 'Other']).map(t => <option key={t}>{t}</option>)}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Platform</label>
+                  <select className="form-control" value={form.platform} onChange={e => setForm({ ...form, platform: e.target.value })}>
+                    {(ENUMS.CONTENT_PLATFORMS || ['Instagram', 'Facebook', 'LinkedIn', 'Twitter', 'YouTube', 'Website', 'Email', 'Other']).map(p => <option key={p}>{p}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="form-row">
+                <div className="form-group"><label className="form-label">Due Date *</label><input className="form-control" type="date" value={form.dueDate} onChange={e => setForm({ ...form, dueDate: e.target.value })} /></div>
+                <div className="form-group">
+                  <label className="form-label">Priority</label>
+                  <select className="form-control" value={form.priority} onChange={e => setForm({ ...form, priority: e.target.value })}>
+                    {['Low', 'Medium', 'High'].map(p => <option key={p}>{p}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Assign To</label>
+                <select className="form-control" value={form.assignedTo} onChange={e => setForm({ ...form, assignedTo: e.target.value })}>
+                  <option value="">— Unassigned —</option>
+                  {users.map(u => <option key={u.id} value={u.id}>{u.name} ({u.role})</option>)}
+                </select>
+              </div>
+              <div className="form-group"><label className="form-label">Notes</label><textarea className="form-control" rows={2} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Additional notes..." /></div>
+              <div className="modal-actions">
+                <button type="button" className="btn btn-ghost" onClick={() => setShowCreate(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Creating...' : 'Create Task'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {upgradeModal && <UpgradeModal message={upgradeModal.message} limitType={upgradeModal.limitType} plan={org?.plan} onClose={() => setUpgradeModal(null)} />}
+    </Layout>
+  );
+};
+
+export default Content;
