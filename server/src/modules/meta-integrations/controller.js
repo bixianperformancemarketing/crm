@@ -177,4 +177,14 @@ const updateFormRoutes = async (req, res) => {
   }
 };
 
-module.exports = { list, connect, update, disconnect, manualSync, getForms, updateFormRoutes };
+const backfillNames = async (req, res) => {
+  try {
+    const result = await metaSyncService.backfillMetaLeadNames(req.user.organizationId);
+    res.json({ success: true, ...result, message: `Updated ${result.updated} of ${result.total} Unknown leads` });
+  } catch (err) {
+    console.error('backfillNames error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+module.exports = { list, connect, update, disconnect, manualSync, getForms, updateFormRoutes, backfillNames };

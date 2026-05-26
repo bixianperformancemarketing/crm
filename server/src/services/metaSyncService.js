@@ -144,4 +144,37 @@ const syncAllIntegrations = async () => {
   }
 };
 
-module.exports = { syncOneIntegration, syncAllIntegrations };
+const backfillMetaLeadNames = async (organizationId) => {
+  const { Lead } = require('../config/models');
+  const leads = await Lead.findAll({
+    where: { organizationId, source: 'Meta Ads', name: 'Unknown' },
+  });
+
+  let updated = 0;
+  for (const lead of leads) {
+    const rawFields = lead.metadata?.rawFields || {};
+    // rawFields is stored as {fieldName: value} — search case-insensitively
+    const lower = {};
+    for (const [k, v] of Object.entries(rawFields)) {
+      lower[k.toLowerCase()] = v;
+    }
+    let name = lower['full_name'] || lower['name'] || '';
+    if (!name) {
+      const first = lower['first_name'] || '';
+      const last = lower['last_name'] || '';
+      name = `${first} ${last}`.trim();
+    }
+    if (!name) {
+      const entry = Object.entries(lower).find(([k, v]) => /name/i.test(k) && v);
+      if (entry) name = entry[1];
+    }
+    if (name) {
+      await lead.update({ name });
+      updated++;
+    }
+  }
+
+  return { total: leads.length, updated };
+};
+
+module.exports = { syncOneIntegration, syncAllIntegrations, backfillMetaLeadNames };
