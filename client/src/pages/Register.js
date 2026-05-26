@@ -142,7 +142,7 @@ const Register = () => {
                   type="tel"
                   placeholder="+91 98765 43210"
                   value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/[^0-9+]/g, '') })}
                   required
                 />
               </div>

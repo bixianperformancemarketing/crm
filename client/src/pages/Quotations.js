@@ -48,6 +48,10 @@ const Quotations = () => {
 
   const handleCreate = async (e) => {
     e.preventDefault();
+    if (!form.clientName.trim()) return toast.error('Client name is required');
+    if (!form.clientPhone.trim()) return toast.error('Phone number is required');
+    if (!form.clientEmail.trim()) return toast.error('Email is required');
+    if (!form.clientAddress.trim()) return toast.error('Address is required');
     setSaving(true);
     try {
       const { data } = await quotationsAPI.create({ ...form, items: form.items.filter((i) => i.description) });
@@ -114,13 +118,14 @@ const Quotations = () => {
                     <td><span className="quotation-number">{q.quotationNumber}</span></td>
                     <td><div style={{ fontWeight: 500 }}>{q.clientName}</div><div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{q.clientEmail}</div></td>
                     <td style={{ fontWeight: 700, color: '#f59e0b' }}>{formatCurrency(q.totalAmount)}</td>
-                    <td><span className={`quotation-badge q-status-${q.status?.toLowerCase()}`}>{q.status}</span></td>
+                    <td><span className={`quotation-badge q-status-${q.status?.toLowerCase().replace(/\s+/g, '-')}`}>{q.status}</span></td>
                     <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>{q.validUntil ? formatDate(q.validUntil) : '—'}</td>
                     <td>
                       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                         {q.status === 'Draft' && <button className="btn btn-ghost btn-sm" onClick={() => handleStatus(q.id, 'Sent')}>Mark as Sent</button>}
                         {q.status === 'Sent' && <button className="btn btn-success btn-sm" onClick={() => handleStatus(q.id, 'Approved')}>Client Accepted</button>}
                         {q.status === 'Sent' && <button className="btn btn-ghost btn-sm" onClick={() => handleStatus(q.id, 'Rejected')}>Client Declined</button>}
+                        {q.status === 'Sent' && <button className="btn btn-ghost btn-sm" style={{ color: '#a78bfa' }} onClick={() => handleStatus(q.id, 'Not Responding')}>Not Responding</button>}
                         {hasFeature('canUsePDF') && <button className="btn btn-ghost btn-sm" onClick={() => handlePDF(q.id, q.quotationNumber)}>📄 PDF</button>}
                         {hasFeature('canUsePDF') && q.clientEmail && <button className="btn btn-ghost btn-sm" onClick={() => handleEmail(q.id)}>✉️</button>}
                       </div>
@@ -141,18 +146,18 @@ const Quotations = () => {
             <button className="modal-close" onClick={() => setShowCreate(false)}>×</button>
             <form onSubmit={handleCreate}>
               <div className="form-row">
-                <div className="form-group"><label className="form-label">Client Name</label><input className="form-control" value={form.clientName} onChange={(e) => setForm({ ...form, clientName: e.target.value })} /></div>
-                <div className="form-group"><label className="form-label">Client Email</label><input className="form-control" type="email" value={form.clientEmail} onChange={(e) => setForm({ ...form, clientEmail: e.target.value })} /></div>
+                <div className="form-group"><label className="form-label">Client Name *</label><input className="form-control" value={form.clientName} onChange={(e) => setForm({ ...form, clientName: e.target.value })} /></div>
+                <div className="form-group"><label className="form-label">Client Email *</label><input className="form-control" type="email" value={form.clientEmail} onChange={(e) => setForm({ ...form, clientEmail: e.target.value })} /></div>
               </div>
               <div className="form-row">
-                <div className="form-group"><label className="form-label">Phone</label><input className="form-control" value={form.clientPhone} onChange={(e) => setForm({ ...form, clientPhone: e.target.value })} /></div>
+                <div className="form-group"><label className="form-label">Phone *</label><input className="form-control" value={form.clientPhone} onChange={(e) => setForm({ ...form, clientPhone: e.target.value.replace(/[^0-9+]/g, '') })} placeholder="+91 9876543210" /></div>
                 <div className="form-group"><label className="form-label">GST</label><input className="form-control" value={form.clientGST} onChange={(e) => setForm({ ...form, clientGST: e.target.value })} /></div>
               </div>
-              <div className="form-group"><label className="form-label">Address</label><textarea className="form-control" rows={2} value={form.clientAddress} onChange={(e) => setForm({ ...form, clientAddress: e.target.value })} /></div>
+              <div className="form-group"><label className="form-label">Address *</label><textarea className="form-control" rows={2} value={form.clientAddress} onChange={(e) => setForm({ ...form, clientAddress: e.target.value })} /></div>
 
               <h4 style={{ margin: '16px 0 10px', fontSize: 13, color: 'var(--text-muted)' }}>Line Items</h4>
               <table className="items-table">
-                <thead><tr><th>Description</th><th style={{ width: 70 }}>Qty</th><th style={{ width: 110 }}>Unit Price</th><th style={{ width: 110 }}>Total</th><th style={{ width: 40 }}></th></tr></thead>
+                <thead><tr><th>Description</th><th style={{ width: 110 }}>Qty</th><th style={{ width: 130 }}>Unit Price</th><th style={{ width: 130 }}>Total</th><th style={{ width: 40 }}></th></tr></thead>
                 <tbody>
                   {form.items.map((item, i) => (
                     <tr key={i}>

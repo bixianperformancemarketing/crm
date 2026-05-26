@@ -170,6 +170,7 @@ export const contentAPI = {
 // ─── REPORTS ──────────────────────────────────────────────────────────────
 export const reportsAPI = {
   getDashboard: () => api.get('/reports/dashboard'),
+  getLoginSummary: () => api.get('/reports/login-summary'),
   getAdvanced: (params) => api.get('/reports/advanced', { params }),
 };
 

@@ -7,6 +7,7 @@ const ctrl = require('./controller');
 router.use(authenticate, scopeTenant, requireWorkspace);
 
 router.get('/dashboard', ctrl.getDashboard);
+router.get('/login-summary', ctrl.getLoginSummary);
 router.get('/advanced', checkFeature('canUseAdvancedReports'), requireRole('admin', 'owner'), ctrl.getAdvancedReports);
 
 module.exports = router;

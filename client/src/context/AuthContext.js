@@ -10,6 +10,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   const logout = useCallback(() => {
+    sessionStorage.clear();
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('workspaceId');

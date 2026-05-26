@@ -9,6 +9,31 @@ import './LeadDetail.css';
 
 const ACTIVITY_ICONS = { created: '🌱', call_logged: '📞', whatsapp_sent: '💬', email_sent: '✉️', status_changed: '🔄', note_added: '📝', quotation_created: '📋', invoice_generated: '🧾', payment_received: '💰', followup_set: '⏰', duplicate_detected: '⚠️', assigned: '👤', csv_imported: '📁', webhook_received: '🔗' };
 
+const SYSTEM_META_KEYS = new Set([
+  'metaLeadId', 'metaFormId', 'metaFormName', 'metaPageId', 'rawFields', 'createdTime',
+  'meta_page_id', 'meta_form_id', 'meta_ad_id', 'meta_leadgen_id',
+  'google_gclid', 'google_campaign', 'google_adgroup', 'google_form', 'google_adid',
+  'waMessageId', 'initialMessage',
+]);
+const STANDARD_FIELDS = new Set([
+  'full_name', 'first_name', 'last_name', 'name', 'phone_number', 'phone', 'mobile', 'mobile_number', 'email',
+]);
+
+const formatFieldKey = (key) =>
+  key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+
+const getFormAnswers = (lead) => {
+  const meta = lead.metadata || {};
+  if (meta.rawFields && typeof meta.rawFields === 'object') {
+    return Object.entries(meta.rawFields).filter(([k, v]) =>
+      !STANDARD_FIELDS.has(k.toLowerCase()) && v && String(v).trim()
+    );
+  }
+  return Object.entries(meta).filter(([k, v]) =>
+    !SYSTEM_META_KEYS.has(k) && !STANDARD_FIELDS.has(k.toLowerCase()) && v && String(v).trim()
+  );
+};
+
 const LeadDetail = () => {
   const { id } = useParams();
   const { user } = useAuth();
@@ -38,7 +63,7 @@ const LeadDetail = () => {
   };
 
   useEffect(() => { loadLead(); }, [id]);
-  useEffect(() => { if (user?.role === 'admin') usersAPI.getAll({ role: 'employee', limit: 100 }).then(({ data }) => setAgents(data.data || [])).catch(() => {}); }, [user]);
+  useEffect(() => { if (user?.role === 'admin') usersAPI.getAll({ role: 'employee', assignType: 'leads', limit: 100 }).then(({ data }) => setAgents(data.data || [])).catch(() => {}); }, [user]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -151,7 +176,7 @@ const LeadDetail = () => {
               <h4 style={{ marginBottom: 16 }}>Edit Lead</h4>
               <div className="form-row">
                 <div className="form-group"><label className="form-label">Name</label><input className="form-control" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} /></div>
-                <div className="form-group"><label className="form-label">Phone</label><input className="form-control" value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} /></div>
+                <div className="form-group"><label className="form-label">Phone</label><input className="form-control" value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value.replace(/[^0-9+]/g, '') })} placeholder="+91 9876543210" /></div>
               </div>
               <div className="form-row">
                 <div className="form-group"><label className="form-label">Email</label><input className="form-control" value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} /></div>
@@ -207,16 +232,22 @@ const LeadDetail = () => {
             </div>
           </div>
 
-          {Object.keys(lead.metadata || {}).length > 0 && (
-            <div className="card" style={{ marginBottom: 20 }}>
-              <div className="info-section">
-                <h4>Custom Information</h4>
-                {Object.entries(lead.metadata).map(([k, v]) => (
-                  v && <div className="info-row" key={k}><span className="info-key" style={{ textTransform: 'none' }}>{k}</span><span className="info-val">{String(v)}</span></div>
-                ))}
+          {(() => {
+            const formAnswers = getFormAnswers(lead);
+            return formAnswers.length > 0 ? (
+              <div className="card" style={{ marginBottom: 20 }}>
+                <div className="info-section">
+                  <h4>Form Responses</h4>
+                  {formAnswers.map(([k, v]) => (
+                    <div className="info-row" key={k}>
+                      <span className="info-key" style={{ textTransform: 'none' }}>{formatFieldKey(k)}</span>
+                      <span className="info-val">{String(v)}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            ) : null;
+          })()}
 
           {lead.quotations?.length > 0 && (
             <div className="card" style={{ marginBottom: 20 }}>

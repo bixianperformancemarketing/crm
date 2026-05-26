@@ -57,10 +57,38 @@ const createQuotation = async (req, res) => {
     const { user, workspaceId } = req;
     const { leadId, clientName, clientEmail, clientPhone, clientAddress, clientGST, items = [], gstPercent = 18, terms, notes, validUntil } = req.body;
 
+    if (!clientName?.trim()) return res.status(400).json({ success: false, message: 'Client name is required' });
+    if (!clientPhone?.trim()) return res.status(400).json({ success: false, message: 'Phone number is required' });
+    if (!clientEmail?.trim()) return res.status(400).json({ success: false, message: 'Email is required' });
+    if (!clientAddress?.trim()) return res.status(400).json({ success: false, message: 'Address is required' });
     if (!items.length) return res.status(400).json({ success: false, message: 'At least one item is required' });
 
     let lead = null;
-    if (leadId) lead = await Lead.findOne({ where: { id: leadId, organizationId: user.organizationId, workspaceId } });
+    if (leadId) {
+      lead = await Lead.findOne({ where: { id: leadId, organizationId: user.organizationId, workspaceId } });
+    } else {
+      // Check if a lead already exists with matching phone or email
+      const existing = await Lead.findOne({
+        where: {
+          organizationId: user.organizationId, workspaceId,
+          [Op.or]: [
+            ...(clientPhone?.trim() ? [{ phone: clientPhone.trim() }] : []),
+            ...(clientEmail?.trim() ? [{ email: clientEmail.trim() }] : []),
+          ],
+        },
+      });
+      if (existing) {
+        lead = existing;
+      } else {
+        lead = await Lead.create({
+          organizationId: user.organizationId, workspaceId,
+          name: clientName.trim(), phone: clientPhone.trim(),
+          email: clientEmail.trim(), address: clientAddress.trim(),
+          source: 'Quotation', status: 'Quotation',
+          createdBy: user.id,
+        });
+      }
+    }
 
     const subtotal = items.reduce((sum, item) => sum + parseFloat(item.quantity || 1) * parseFloat(item.unitPrice || 0), 0);
     const gstAmount = (subtotal * parseFloat(gstPercent)) / 100;
@@ -70,7 +98,7 @@ const createQuotation = async (req, res) => {
 
     const q = await Quotation.create({
       organizationId: user.organizationId, workspaceId,
-      quotationNumber, leadId: leadId || null, createdBy: user.id,
+      quotationNumber, leadId: lead?.id || null, createdBy: user.id,
       clientName: clientName || lead?.name, clientEmail: clientEmail || lead?.email,
       clientPhone: clientPhone || lead?.phone, clientAddress: clientAddress || lead?.clientAddress,
       clientGST: clientGST || lead?.clientGST,
@@ -86,9 +114,9 @@ const createQuotation = async (req, res) => {
     }));
     await QuotationItem.bulkCreate(itemsData);
 
-    if (leadId) {
+    if (lead?.id) {
       await LeadActivity.create({
-        leadId, organizationId: user.organizationId, workspaceId,
+        leadId: lead.id, organizationId: user.organizationId, workspaceId,
         userId: user.id, type: 'quotation_created',
         description: `Quotation ${quotationNumber} created (₹${totalAmount.toLocaleString('en-IN')})`,
         metadata: { quotationId: q.id },

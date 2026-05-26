@@ -780,7 +780,7 @@ document.getElementById('crmForm').addEventListener('submit', function(e) {
                     </div>
                     <div className="form-group" style={{ margin: 0 }}>
                       <label className="form-label">Phone *</label>
-                      <input className="form-control" placeholder="9876543210" value={testForm.phone} onChange={e => setTestForm({ ...testForm, phone: e.target.value })} required />
+                      <input className="form-control" placeholder="9876543210" value={testForm.phone} onChange={e => setTestForm({ ...testForm, phone: e.target.value.replace(/[^0-9+]/g, '') })} required />
                     </div>
                     <div className="form-group" style={{ margin: 0 }}>
                       <label className="form-label">Email</label>
@@ -951,7 +951,7 @@ const Settings = () => {
               <div className="form-group"><label className="form-label">GST Number</label><input className="form-control" value={orgSettings.companyGST} onChange={e => setOrgSettings({ ...orgSettings, companyGST: e.target.value })} placeholder="22AAAAA0000A1Z5" /></div>
             </div>
             <div className="form-row">
-              <div className="form-group"><label className="form-label">Phone</label><input className="form-control" value={orgSettings.companyPhone} onChange={e => setOrgSettings({ ...orgSettings, companyPhone: e.target.value })} /></div>
+              <div className="form-group"><label className="form-label">Phone</label><input className="form-control" value={orgSettings.companyPhone} onChange={e => setOrgSettings({ ...orgSettings, companyPhone: e.target.value.replace(/[^0-9+]/g, '') })} placeholder="+91 9876543210" /></div>
               <div className="form-group"><label className="form-label">Email</label><input className="form-control" type="email" value={orgSettings.companyEmail} onChange={e => setOrgSettings({ ...orgSettings, companyEmail: e.target.value })} /></div>
             </div>
             <div className="form-group"><label className="form-label">Website</label><input className="form-control" value={orgSettings.companyWebsite} onChange={e => setOrgSettings({ ...orgSettings, companyWebsite: e.target.value })} placeholder="https://yourwebsite.com" /></div>

@@ -116,6 +116,24 @@ const processLead = async (leadData, org, workspace, source) => {
   return { success: true, isDuplicate: false, lead };
 };
 
+const extractNameFromFields = (fieldList) => {
+  let firstName = '', lastName = '', fullName = '';
+  fieldList.forEach(({ field_name, values }) => {
+    const val = (values?.[0] || '').trim();
+    if (!field_name || !val) return;
+    if (/^full_name$/i.test(field_name) || /^name$/i.test(field_name)) {
+      fullName = fullName || val;
+    } else if (/^first_name$/i.test(field_name)) {
+      firstName = val;
+    } else if (/^last_name$/i.test(field_name)) {
+      lastName = val;
+    } else if (/name/i.test(field_name)) {
+      fullName = fullName || val;
+    }
+  });
+  return fullName || `${firstName} ${lastName}`.trim() || '';
+};
+
 const parseMeta = (body) => {
   const data = { metadata: {} };
   if (body.entry) {
@@ -128,23 +146,30 @@ const parseMeta = (body) => {
       const formId = value?.form_id;
       const adId = value?.ad_id;
       const fieldData = value?.field_data || [];
+      const nameVal = extractNameFromFields(fieldData);
+      if (nameVal) data.name = nameVal;
       fieldData.forEach(({ field_name, values }) => {
         const val = values?.[0] || '';
-        if (/name/i.test(field_name)) data.name = val;
-        else if (/phone|mobile|contact/i.test(field_name)) data.phone = val;
+        if (/^full_name$|^first_name$|^last_name$|^name$/i.test(field_name)) return;
+        if (/name/i.test(field_name)) return;
+        if (/phone|mobile|contact/i.test(field_name)) data.phone = val;
         else if (/email/i.test(field_name)) data.email = val;
         else if (/city|address|location/i.test(field_name)) data.clientAddress = val;
         else data.metadata[field_name] = val;
       });
+      if (leadgenId) data.metadata.meta_leadgen_id = leadgenId;
       if (pageId) data.metadata.meta_page_id = pageId;
       if (formId) { data.metadata.meta_form_id = formId; data.campaign = `FB Form - ${formId}`; }
       if (adId) data.metadata.meta_ad_id = adId;
     } catch {}
   } else if (body.field_data) {
+    const nameVal = extractNameFromFields(body.field_data);
+    if (nameVal) data.name = nameVal;
     body.field_data.forEach(({ field_name, values }) => {
       const val = values?.[0] || '';
-      if (/name/i.test(field_name)) data.name = val;
-      else if (/phone|mobile/i.test(field_name)) data.phone = val;
+      if (/^full_name$|^first_name$|^last_name$|^name$/i.test(field_name)) return;
+      if (/name/i.test(field_name)) return;
+      if (/phone|mobile/i.test(field_name)) data.phone = val;
       else if (/email/i.test(field_name)) data.email = val;
       else data.metadata[field_name] = val;
     });

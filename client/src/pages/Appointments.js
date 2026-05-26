@@ -43,7 +43,7 @@ const Appointments = () => {
   }, [month, year]);
 
   useEffect(() => { if (view === 'list') loadList(); else loadCalendar(); }, [view, loadList, loadCalendar]);
-  useEffect(() => { if (user?.role === 'admin') usersAPI.getAll({ role: 'employee', limit: 100 }).then(({ data }) => setAgents(data.data || [])).catch(() => {}); }, [user]);
+  useEffect(() => { if (user?.role === 'admin') usersAPI.getAll({ role: 'employee', assignType: 'leads', limit: 100 }).then(({ data }) => setAgents(data.data || [])).catch(() => {}); }, [user]);
 
   const handleCreate = async (e) => {
     e.preventDefault();

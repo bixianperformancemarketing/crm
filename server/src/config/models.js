@@ -89,7 +89,8 @@ const User = sequelize.define('User', {
     type: DataTypes.ENUM('superadmin', 'owner', 'admin', 'agent', 'designer', 'employee'),
     defaultValue: 'employee',
   },
-  label: { type: DataTypes.STRING(50), allowNull: true },
+  label: { type: DataTypes.STRING(100), allowNull: true },
+  assignType: { type: DataTypes.ENUM('leads', 'tasks'), allowNull: true },
   canUseContentCalendar: { type: DataTypes.BOOLEAN, defaultValue: false },
   phone: { type: DataTypes.STRING(20) },
   avatar: { type: DataTypes.STRING(255) },
@@ -118,8 +119,8 @@ const Lead = sequelize.define('Lead', {
   email: { type: DataTypes.STRING(255) },
   source: {
     type: DataTypes.ENUM(
-      'Meta Ads', 'Google Ads', 'Website', 'WhatsApp', 'Reference',
-      'Telecalling', 'Social Media', 'CSV Import', 'Instagram DM', 'Other'
+      'Meta Ads', 'Google Ads', 'Website', 'WhatsApp', 'Reference', 'Justdial',
+      'Telecalling', 'Social Media', 'CSV Import', 'Instagram DM', 'Quotation', 'Other'
     ),
     defaultValue: 'Other',
   },
@@ -275,7 +276,7 @@ const Quotation = sequelize.define('Quotation', {
   clientAddress: { type: DataTypes.TEXT },
   clientGST: { type: DataTypes.STRING(20) },
   status: {
-    type: DataTypes.ENUM('Draft', 'Sent', 'Approved', 'Rejected'),
+    type: DataTypes.ENUM('Draft', 'Sent', 'Approved', 'Rejected', 'Not Responding'),
     defaultValue: 'Draft',
   },
   subtotal: { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
@@ -567,7 +568,10 @@ const syncDatabase = async () => {
         await qi.addColumn('users', 'passwordResetExpiry', { type: DataTypes.DATE, allowNull: true });
       }
       if (!userColumns.label) {
-        await qi.addColumn('users', 'label', { type: DataTypes.STRING(50), allowNull: true });
+        await qi.addColumn('users', 'label', { type: DataTypes.STRING(100), allowNull: true });
+      }
+      if (!userColumns.assignType) {
+        await qi.addColumn('users', 'assignType', { type: DataTypes.ENUM('leads', 'tasks'), allowNull: true });
       }
       if (!userColumns.canUseContentCalendar) {
         await qi.addColumn('users', 'canUseContentCalendar', { type: DataTypes.BOOLEAN, defaultValue: false });
@@ -596,6 +600,16 @@ const syncDatabase = async () => {
           await EmployeeLabel.bulkCreate(DEFAULT_LABELS.map(l => ({ ...l, organizationId: org.id, isDefault: true })));
         }
       }
+    } catch (e) { /* ignore */ }
+
+    // Expand quotations status ENUM to include 'Not Responding'
+    try {
+      await sequelize.query(`ALTER TABLE quotations MODIFY status ENUM('Draft','Sent','Approved','Rejected','Not Responding') NOT NULL DEFAULT 'Draft'`);
+    } catch (e) { /* ignore */ }
+
+    // Expand leads source ENUM to include 'Quotation'
+    try {
+      await sequelize.query(`ALTER TABLE leads MODIFY source ENUM('Meta Ads','Google Ads','Website','WhatsApp','Reference','Telecalling','Social Media','CSV Import','Instagram DM','Quotation','Justdial','Other') DEFAULT 'Other'`);
     } catch (e) { /* ignore */ }
 
     // Auto-generate tokens for workspaces that don't have one

@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { SocketProvider, useSocket } from './context/SocketContext';
 import FollowupReminderModal from './components/common/FollowupReminderModal';
+import LoginSummaryModal from './components/common/LoginSummaryModal';
 
 // Eager-load auth page
 import Login from './pages/Login';
@@ -50,12 +51,13 @@ const Spinner = () => (
 );
 
 // Guards
-const PrivateRoute = ({ children, roles }) => {
+const PrivateRoute = ({ children, roles, assignTypes }) => {
   const { user, loading } = useAuth();
   const location = useLocation();
   if (loading) return <Spinner />;
   if (!user) return <Navigate to="/login" state={{ from: location }} replace />;
   if (roles && !roles.includes(user.role)) return <Navigate to="/dashboard" replace />;
+  if (assignTypes && user.role === 'employee' && user.assignType && !assignTypes.includes(user.assignType)) return <Navigate to="/dashboard" replace />;
   return children;
 };
 
@@ -82,15 +84,15 @@ const AppRoutes = () => (
 
       {/* Employee / Admin shared routes */}
       <Route path="/dashboard" element={<PrivateRoute roles={['admin', 'employee']}><Dashboard /></PrivateRoute>} />
-      <Route path="/leads" element={<PrivateRoute roles={['admin', 'employee']}><Leads /></PrivateRoute>} />
-      <Route path="/leads/:id" element={<PrivateRoute roles={['admin', 'employee']}><LeadDetail /></PrivateRoute>} />
-      <Route path="/pipeline" element={<PrivateRoute roles={['admin', 'employee']}><Pipeline /></PrivateRoute>} />
-      <Route path="/followups" element={<PrivateRoute roles={['admin', 'employee']}><Followups /></PrivateRoute>} />
-      <Route path="/appointments" element={<PrivateRoute roles={['admin', 'employee']}><Appointments /></PrivateRoute>} />
-      <Route path="/quotations" element={<PrivateRoute roles={['admin', 'employee']}><Quotations /></PrivateRoute>} />
-      <Route path="/invoices" element={<PrivateRoute roles={['admin', 'employee']}><Invoices /></PrivateRoute>} />
-      <Route path="/payments" element={<PrivateRoute roles={['admin', 'employee']}><Payments /></PrivateRoute>} />
-      <Route path="/content" element={<PrivateRoute roles={['admin', 'employee']}><Content /></PrivateRoute>} />
+      <Route path="/leads" element={<PrivateRoute roles={['admin', 'employee']} assignTypes={['leads']}><Leads /></PrivateRoute>} />
+      <Route path="/leads/:id" element={<PrivateRoute roles={['admin', 'employee']} assignTypes={['leads']}><LeadDetail /></PrivateRoute>} />
+      <Route path="/pipeline" element={<PrivateRoute roles={['admin', 'employee']} assignTypes={['leads']}><Pipeline /></PrivateRoute>} />
+      <Route path="/followups" element={<PrivateRoute roles={['admin', 'employee']} assignTypes={['leads']}><Followups /></PrivateRoute>} />
+      <Route path="/appointments" element={<PrivateRoute roles={['admin', 'employee']} assignTypes={['leads']}><Appointments /></PrivateRoute>} />
+      <Route path="/quotations" element={<PrivateRoute roles={['admin', 'employee']} assignTypes={['leads']}><Quotations /></PrivateRoute>} />
+      <Route path="/invoices" element={<PrivateRoute roles={['admin', 'employee']} assignTypes={['leads']}><Invoices /></PrivateRoute>} />
+      <Route path="/payments" element={<PrivateRoute roles={['admin', 'employee']} assignTypes={['leads']}><Payments /></PrivateRoute>} />
+      <Route path="/content" element={<PrivateRoute roles={['admin', 'employee']} assignTypes={['tasks']}><Content /></PrivateRoute>} />
       <Route path="/reports" element={<PrivateRoute roles={['admin']}><Reports /></PrivateRoute>} />
       <Route path="/notifications" element={<PrivateRoute roles={['admin', 'employee']}><Notifications /></PrivateRoute>} />
       <Route path="/users" element={<PrivateRoute roles={['admin', 'owner']}><Users /></PrivateRoute>} />
@@ -120,7 +122,12 @@ const AppRoutes = () => (
 
 const GlobalModals = () => {
   const { followupReminder, dismissFollowupReminder } = useSocket();
-  return <FollowupReminderModal reminder={followupReminder} onDismiss={dismissFollowupReminder} />;
+  return (
+    <>
+      <LoginSummaryModal />
+      <FollowupReminderModal reminder={followupReminder} onDismiss={dismissFollowupReminder} />
+    </>
+  );
 };
 
 const App = () => (

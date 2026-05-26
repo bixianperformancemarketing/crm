@@ -7,14 +7,18 @@ const META_BASE = 'https://graph.facebook.com/v19.0';
 const extractLeadFields = (fieldData) => {
   const fields = {};
   for (const f of fieldData || []) {
-    fields[f.name] = f.values?.[0] || '';
+    if (f.name) fields[f.name.toLowerCase()] = f.values?.[0] || '';
   }
   const firstName = fields['first_name'] || '';
   const lastName = fields['last_name'] || '';
-  const fullName = fields['full_name'] || fields['name'] || `${firstName} ${lastName}`.trim() || 'Unknown';
+  let fullName = fields['full_name'] || fields['name'] || `${firstName} ${lastName}`.trim();
+  if (!fullName) {
+    const nameEntry = Object.entries(fields).find(([k, v]) => /name/i.test(k) && v);
+    if (nameEntry) fullName = nameEntry[1];
+  }
   return {
-    name: fullName,
-    phone: fields['phone_number'] || fields['phone'] || '',
+    name: fullName || 'Unknown',
+    phone: fields['phone_number'] || fields['phone'] || fields['mobile'] || fields['mobile_number'] || '',
     email: fields['email'] || '',
     raw: fields,
   };

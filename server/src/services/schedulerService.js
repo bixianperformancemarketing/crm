@@ -217,7 +217,7 @@ const startScheduler = () => {
   setInterval(checkFollowupReminders, 60 * 1000);
   checkFollowupReminders();
   setInterval(runDailyJobs, 60 * 1000);
-  setInterval(metaSyncService.syncAllIntegrations, 5 * 60 * 1000);
+  setInterval(metaSyncService.syncAllIntegrations, 60 * 1000);
   console.log('[Scheduler] Background jobs started');
 };
 

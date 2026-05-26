@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import Layout from '../components/layout/Layout';
@@ -30,6 +30,8 @@ const Leads = () => {
   const [selected, setSelected] = useState(new Set());
   const [bulkAssignTo, setBulkAssignTo] = useState('');
   const [bulkAssigning, setBulkAssigning] = useState(false);
+  const lastClickedIndex = useRef(null);
+  const touchDragStart = useRef(null);
 
   const loadLeads = useCallback(async () => {
     setLoading(true);
@@ -50,7 +52,7 @@ const Leads = () => {
 
   useEffect(() => {
     if (user?.role === 'admin') {
-      usersAPI.getAll({ role: 'employee', limit: 100 }).then(({ data }) => setAgents(data.data || [])).catch(() => {});
+      usersAPI.getAll({ role: 'employee', assignType: 'leads', limit: 100 }).then(({ data }) => setAgents(data.data || [])).catch(() => {});
     }
   }, [user]);
 
@@ -104,13 +106,14 @@ const Leads = () => {
     } finally { setImporting(false); e.target.value = ''; }
   };
 
-  const updateFilter = (key, val) => setFilters((f) => ({ ...f, [key]: val, page: 1 }));
+  const updateFilter = (key, val) => { lastClickedIndex.current = null; setFilters((f) => ({ ...f, [key]: val, page: 1 })); };
 
   // selection helpers
   const allSelected = leads.length > 0 && leads.every((l) => selected.has(l.id));
   const someSelected = leads.some((l) => selected.has(l.id));
 
   const toggleSelectAll = () => {
+    lastClickedIndex.current = null;
     if (allSelected) {
       setSelected((s) => { const n = new Set(s); leads.forEach((l) => n.delete(l.id)); return n; });
     } else {
@@ -118,9 +121,31 @@ const Leads = () => {
     }
   };
 
-  const toggleSelect = (id) => {
-    setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const toggleSelect = (id, index, shiftKey = false) => {
+    if (shiftKey && lastClickedIndex.current !== null) {
+      const from = Math.min(lastClickedIndex.current, index);
+      const to = Math.max(lastClickedIndex.current, index);
+      setSelected((s) => { const n = new Set(s); leads.slice(from, to + 1).forEach((l) => n.add(l.id)); return n; });
+    } else {
+      setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+      lastClickedIndex.current = index;
+    }
   };
+
+  const handleTouchMove = useCallback((e) => {
+    if (touchDragStart.current === null) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    const el = document.elementFromPoint(touch.clientX, touch.clientY);
+    const row = el?.closest('tr[data-lead-index]');
+    if (!row) return;
+    const endIndex = parseInt(row.dataset.leadIndex, 10);
+    const from = Math.min(touchDragStart.current, endIndex);
+    const to = Math.max(touchDragStart.current, endIndex);
+    setSelected((s) => { const n = new Set(s); leads.slice(from, to + 1).forEach((l) => n.add(l.id)); return n; });
+  }, [leads]);
+
+  const handleTouchEnd = useCallback(() => { touchDragStart.current = null; }, []);
 
   const handleBulkAssign = async () => {
     if (!bulkAssignTo) { toast.error('Please select an employee'); return; }
@@ -252,16 +277,19 @@ const Leads = () => {
                   <th>Lead</th><th>Phone</th><th>Source</th><th>Priority</th><th>Status</th><th>Agent</th><th>Created</th><th>Actions</th>
                 </tr>
               </thead>
-              <tbody>
-                {leads.map((lead) => (
-                  <tr key={lead.id} style={selected.has(lead.id) ? { background: 'rgba(99,102,241,0.06)' } : {}}>
+              <tbody onTouchMove={user?.role === 'admin' ? handleTouchMove : undefined} onTouchEnd={user?.role === 'admin' ? handleTouchEnd : undefined}>
+                {leads.map((lead, index) => (
+                  <tr key={lead.id} data-lead-index={index} style={selected.has(lead.id) ? { background: 'rgba(99,102,241,0.06)' } : {}}>
                     {user?.role === 'admin' && (
                       <td>
                         <input
                           type="checkbox"
                           checked={selected.has(lead.id)}
-                          onChange={() => toggleSelect(lead.id)}
+                          onChange={() => {}}
+                          onClick={(e) => toggleSelect(lead.id, index, e.shiftKey)}
+                          onTouchStart={() => { touchDragStart.current = index; }}
                           style={{ cursor: 'pointer' }}
+                          title="Shift+click to select a range"
                         />
                       </td>
                     )}
@@ -315,7 +343,7 @@ const Leads = () => {
             <form onSubmit={handleCreate}>
               <div className="form-row">
                 <div className="form-group"><label className="form-label">Name *</label><input className="form-control" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required /></div>
-                <div className="form-group"><label className="form-label">Phone</label><input className="form-control" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
+                <div className="form-group"><label className="form-label">Phone</label><input className="form-control" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/[^0-9+]/g, '') })} placeholder="+91 9876543210" /></div>
               </div>
               <div className="form-row">
                 <div className="form-group"><label className="form-label">Email</label><input className="form-control" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
@@ -327,7 +355,7 @@ const Leads = () => {
               </div>
               <div className="form-row">
                 <div className="form-group"><label className="form-label">Client Type</label><select className="form-control" value={form.clientType} onChange={(e) => setForm({ ...form, clientType: e.target.value })}>{ENUMS.CLIENT_TYPES.map((t) => <option key={t}>{t}</option>)}</select></div>
-                {user?.role === 'admin' && agents.length > 0 && <div className="form-group"><label className="form-label">Assign To</label><select className="form-control" value={form.assignedTo} onChange={(e) => setForm({ ...form, assignedTo: e.target.value })}><option value="">Auto Assign</option>{agents.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></div>}
+                {user?.role === 'admin' && agents.length > 0 && <div className="form-group"><label className="form-label">Assign To</label><select className="form-control" value={form.assignedTo} onChange={(e) => setForm({ ...form, assignedTo: e.target.value })}><option value="">Unassigned</option>{agents.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></div>}
               </div>
               <div className="form-group"><label className="form-label">Address</label><textarea className="form-control" rows={2} value={form.clientAddress} onChange={(e) => setForm({ ...form, clientAddress: e.target.value })} /></div>
               <div className="modal-actions">

@@ -1,5 +1,5 @@
 export const ENUMS = {
-  LEAD_SOURCES: ['Meta Ads', 'Google Ads', 'Website', 'WhatsApp', 'Reference', 'Telecalling', 'Social Media', 'CSV Import', 'Instagram DM', 'Other'],
+  LEAD_SOURCES: ['Meta Ads', 'Google Ads', 'Website', 'WhatsApp', 'Reference', 'Telecalling', 'Social Media', 'CSV Import', 'Instagram DM', 'Justdial', 'Other'],
   LEAD_STATUSES: ['New', 'Discussion', 'Meeting', 'Quotation', 'Won', 'Lost'],
   LEAD_PRIORITIES: ['Low', 'Medium', 'High', 'Hot'],
   CLIENT_TYPES: ['Real Estate', 'Hospital', 'School', 'College', 'Personal Branding', 'Construction', 'Other'],

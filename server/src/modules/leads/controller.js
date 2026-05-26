@@ -7,20 +7,6 @@ const notificationService = require('../../services/notificationService');
 const emailService = require('../../services/emailService');
 const { logUsage } = require('../../middleware/entitlement');
 
-const findLeastLoadedAgent = async (workspaceId, organizationId) => {
-  const agents = await User.findAll({
-    where: { workspaceId, organizationId, role: { [Op.in]: ['employee', 'admin'] }, isActive: true },
-    attributes: ['id'],
-  });
-  if (!agents.length) return null;
-
-  const counts = await Promise.all(agents.map(async (a) => ({
-    id: a.id,
-    count: await Lead.count({ where: { assignedTo: a.id, status: { [Op.notIn]: ['Won', 'Lost'] } } }),
-  })));
-  counts.sort((a, b) => a.count - b.count);
-  return counts[0]?.id || null;
-};
 
 const getLeads = async (req, res) => {
   try {
@@ -118,16 +104,15 @@ const createLead = async (req, res) => {
       }
     }
 
-    const autoAssign = assignedTo || (user.role === 'employee' ? user.id : await findLeastLoadedAgent(workspaceId, user.organizationId));
-    const leadData = { organizationId: user.organizationId, workspaceId, name, phone, email, source, campaign, priority: priority || 'Medium', status: status || 'New', assignedTo: autoAssign, clientAddress, clientGST, clientType: clientType || 'Other', nextFollowup, lastCallNote: '', metadata };
+    const leadData = { organizationId: user.organizationId, workspaceId, name, phone, email, source, campaign, priority: priority || 'Medium', status: status || 'New', assignedTo: assignedTo || null, clientAddress, clientGST, clientType: clientType || 'Other', nextFollowup, lastCallNote: '', metadata };
     leadData.score = calculateLeadScore(leadData);
     leadData.isHot = isHotLead(leadData);
 
     const lead = await Lead.create(leadData);
     await LeadActivity.create({ leadId: lead.id, organizationId: user.organizationId, workspaceId, userId: user.id, type: 'created', description: `Lead created via ${source || 'manual entry'}`, metadata: {} });
 
-    if (autoAssign) {
-      const assignedUser = await User.findByPk(autoAssign, { attributes: ['id', 'name', 'email'] });
+    if (assignedTo) {
+      const assignedUser = await User.findByPk(assignedTo, { attributes: ['id', 'name', 'email'] });
       if (assignedUser) {
         await notificationService.notifyLeadAssigned({ lead, assignedUser, organizationId: user.organizationId, workspaceId });
       }
