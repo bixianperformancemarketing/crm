@@ -23,7 +23,11 @@ app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(compression());
 
 // ─── CORS ─────────────────────────────────────────────────────────────────
-const corsOptions = { origin: process.env.CLIENT_URL || 'http://localhost:3000', credentials: true };
+const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:3000').split(',').map(o => o.trim());
+const corsOptions = {
+  origin: (origin, cb) => (!origin || allowedOrigins.includes(origin) ? cb(null, true) : cb(new Error('Not allowed by CORS'))),
+  credentials: true,
+};
 app.use(cors(corsOptions));
 
 // ─── RATE LIMITING ────────────────────────────────────────────────────────
