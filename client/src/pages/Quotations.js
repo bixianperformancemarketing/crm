@@ -19,6 +19,7 @@ const Quotations = () => {
   const [showCreate, setShowCreate] = useState(false);
   const [upgradeModal, setUpgradeModal] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(null);
   const [form, setForm] = useState({ clientName: '', clientEmail: '', clientPhone: '', clientAddress: '', clientGST: '', gstPercent: 18, terms: '', notes: '', validUntil: '', items: [emptyItem()] });
 
   const load = useCallback(async () => {
@@ -87,6 +88,7 @@ const Quotations = () => {
   };
 
   const handleEmail = async (id) => {
+    setSendingEmail(id);
     try {
       await quotationsAPI.sendEmail(id);
       toast.success('Email sent!');
@@ -95,6 +97,8 @@ const Quotations = () => {
       const d = err.response?.data;
       if (d?.upgradeRequired) { setUpgradeModal(d); return; }
       toast.error('Failed to send email');
+    } finally {
+      setSendingEmail(null);
     }
   };
 
@@ -127,7 +131,7 @@ const Quotations = () => {
                         {q.status === 'Sent' && <button className="btn btn-ghost btn-sm" onClick={() => handleStatus(q.id, 'Rejected')}>Client Declined</button>}
                         {q.status === 'Sent' && <button className="btn btn-ghost btn-sm" style={{ color: '#a78bfa' }} onClick={() => handleStatus(q.id, 'Not Responding')}>Not Responding</button>}
                         {hasFeature('canUsePDF') && <button className="btn btn-ghost btn-sm" onClick={() => handlePDF(q.id, q.quotationNumber)}>📄 PDF</button>}
-                        {hasFeature('canUsePDF') && q.clientEmail && <button className="btn btn-ghost btn-sm" onClick={() => handleEmail(q.id)}>✉️</button>}
+                        {hasFeature('canUsePDF') && q.clientEmail && <button className="btn btn-ghost btn-sm" onClick={() => handleEmail(q.id)} disabled={sendingEmail === q.id} title="Email quotation to client">{sendingEmail === q.id ? '...' : '✉️'}</button>}
                       </div>
                     </td>
                   </tr>

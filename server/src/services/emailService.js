@@ -271,10 +271,46 @@ const sendPasswordResetEmail = async (toEmail, userName, resetLink) => {
   });
 };
 
+const sendInvoiceEmail = async (invoice, items, pdfBuffer, orgSettings, smtpConfig) => {
+  const content = `
+    <h2>Invoice #${invoice.invoiceNumber}</h2>
+    <p>Dear ${invoice.clientName},</p>
+    <p>Please find your invoice attached. Here is a summary:</p>
+    <table class="items">
+      <thead><tr><th>Description</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr></thead>
+      <tbody>
+        ${items.map((i) => `
+          <tr>
+            <td>${i.description}</td>
+            <td>${i.quantity}</td>
+            <td>₹${parseFloat(i.unitPrice).toLocaleString('en-IN')}</td>
+            <td>₹${parseFloat(i.totalPrice).toLocaleString('en-IN')}</td>
+          </tr>`).join('')}
+        <tr class="total-row"><td colspan="3">Subtotal</td><td>₹${parseFloat(invoice.subtotal).toLocaleString('en-IN')}</td></tr>
+        <tr class="total-row"><td colspan="3">GST (${invoice.gstPercent}%)</td><td>₹${parseFloat(invoice.gstAmount).toLocaleString('en-IN')}</td></tr>
+        <tr class="total-row"><td colspan="3">Total Amount</td><td>₹${parseFloat(invoice.totalAmount).toLocaleString('en-IN')}</td></tr>
+        <tr class="total-row"><td colspan="3">Amount Due</td><td>₹${parseFloat(invoice.dueAmount).toLocaleString('en-IN')}</td></tr>
+      </tbody>
+    </table>
+    ${invoice.dueDate ? `<p>Payment due by <strong>${moment(invoice.dueDate).tz(IST).format('DD MMM YYYY')}</strong>.</p>` : ''}
+    ${invoice.terms ? `<p><strong>Terms:</strong> ${invoice.terms}</p>` : ''}
+    <p>For any queries, please contact us.</p>
+  `;
+  return sendEmail({
+    to: invoice.clientEmail,
+    subject: `Invoice #${invoice.invoiceNumber} from ${orgSettings?.branding?.companyName || 'Us'}`,
+    html: baseTemplate(`Invoice #${invoice.invoiceNumber}`, content, orgSettings),
+    attachments: pdfBuffer ? [{ filename: `${invoice.invoiceNumber}.pdf`, content: pdfBuffer, contentType: 'application/pdf' }] : [],
+    smtpConfig,
+    orgSettings,
+  });
+};
+
 module.exports = {
   sendEmail,
   sendLeadAcknowledgement,
   sendQuotationEmail,
+  sendInvoiceEmail,
   sendInvoiceDueReminder,
   sendFollowupReminderEmail,
   sendAppointmentReminder,

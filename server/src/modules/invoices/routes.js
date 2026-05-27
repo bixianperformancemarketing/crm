@@ -11,5 +11,6 @@ router.get('/:id', ctrl.getInvoice);
 router.post('/', ctrl.createInvoice);
 router.put('/:id', ctrl.updateInvoice);
 router.get('/:id/pdf', checkFeature('canUsePDF'), ctrl.downloadPDF);
+router.post('/:id/send-email', checkFeature('canUsePDF'), ctrl.sendEmail);
 
 module.exports = router;

@@ -329,6 +329,16 @@ const Invoice = sequelize.define('Invoice', {
   terms: { type: DataTypes.TEXT },
 }, { tableName: 'invoices' });
 
+// ─── INVOICE ITEM ─────────────────────────────────────────────────────────
+const InvoiceItem = sequelize.define('InvoiceItem', {
+  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  invoiceId: { type: DataTypes.INTEGER, allowNull: false },
+  description: { type: DataTypes.STRING(255), allowNull: false },
+  quantity: { type: DataTypes.DECIMAL(10, 2), defaultValue: 1 },
+  unitPrice: { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
+  totalPrice: { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
+}, { tableName: 'invoice_items' });
+
 // ─── PAYMENT ──────────────────────────────────────────────────────────────
 const Payment = sequelize.define('Payment', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
@@ -498,6 +508,9 @@ Lead.hasMany(Invoice, { foreignKey: 'leadId', as: 'invoices' });
 Invoice.belongsTo(Lead, { foreignKey: 'leadId', as: 'lead' });
 Invoice.belongsTo(User, { foreignKey: 'createdBy', as: 'creator' });
 
+Invoice.hasMany(InvoiceItem, { foreignKey: 'invoiceId', as: 'items', onDelete: 'CASCADE' });
+InvoiceItem.belongsTo(Invoice, { foreignKey: 'invoiceId', as: 'invoice' });
+
 Invoice.hasMany(Payment, { foreignKey: 'invoiceId', as: 'payments' });
 Payment.belongsTo(Invoice, { foreignKey: 'invoiceId', as: 'invoice' });
 Payment.belongsTo(User, { foreignKey: 'receivedBy', as: 'receiver' });
@@ -607,9 +620,9 @@ const syncDatabase = async () => {
       await sequelize.query(`ALTER TABLE quotations MODIFY status ENUM('Draft','Sent','Approved','Rejected','Not Responding') NOT NULL DEFAULT 'Draft'`);
     } catch (e) { /* ignore */ }
 
-    // Expand leads source ENUM to include 'Quotation'
+    // Expand leads source ENUM to include 'Quotation' and 'Invoice'
     try {
-      await sequelize.query(`ALTER TABLE leads MODIFY source ENUM('Meta Ads','Google Ads','Website','WhatsApp','Reference','Telecalling','Social Media','CSV Import','Instagram DM','Quotation','Justdial','Other') DEFAULT 'Other'`);
+      await sequelize.query(`ALTER TABLE leads MODIFY source ENUM('Meta Ads','Google Ads','Website','WhatsApp','Reference','Telecalling','Social Media','CSV Import','Instagram DM','Quotation','Justdial','Invoice','Other') DEFAULT 'Other'`);
     } catch (e) { /* ignore */ }
 
     // Auto-generate tokens for workspaces that don't have one
@@ -642,6 +655,7 @@ module.exports = {
   Quotation,
   QuotationItem,
   Invoice,
+  InvoiceItem,
   Payment,
   ContentTask,
   Notification,

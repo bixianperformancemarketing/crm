@@ -1,7 +1,8 @@
 const { Op } = require('sequelize');
-const { Invoice, Payment, Lead, User, LeadActivity, Organization } = require('../../config/models');
+const { Invoice, InvoiceItem, Payment, Lead, User, LeadActivity, Organization } = require('../../config/models');
 const { getNextNumber, paginate, paginateResponse } = require('../../utils/helpers');
 const { generateInvoicePDF } = require('../../services/pdfService');
+const emailService = require('../../services/emailService');
 const { logUsage } = require('../../middleware/entitlement');
 
 const getInvoices = async (req, res) => {
@@ -35,6 +36,7 @@ const getInvoice = async (req, res) => {
     const inv = await Invoice.findOne({
       where: { id, organizationId: user.organizationId, workspaceId },
       include: [
+        { model: InvoiceItem, as: 'items', required: false },
         { model: Payment, as: 'payments', include: [{ model: User, as: 'receiver', attributes: ['id', 'name'], required: false }] },
         { model: Lead, as: 'lead', attributes: ['id', 'name', 'phone', 'email'], required: false },
         { model: User, as: 'creator', attributes: ['id', 'name'], required: false },
@@ -50,26 +52,62 @@ const getInvoice = async (req, res) => {
 const createInvoice = async (req, res) => {
   try {
     const { user, workspaceId } = req;
-    const { leadId, clientName, clientEmail, clientPhone, clientAddress, clientGST, subtotal, gstPercent = 18, notes, terms, dueDate } = req.body;
-    if (!subtotal) return res.status(400).json({ success: false, message: 'Subtotal is required' });
+    const { leadId, clientName, clientEmail, clientPhone, clientAddress, clientGST, items = [], gstPercent = 18, notes, terms, dueDate } = req.body;
 
-    const gstAmount = (parseFloat(subtotal) * parseFloat(gstPercent)) / 100;
-    const totalAmount = parseFloat(subtotal) + gstAmount;
+    if (!clientName?.trim()) return res.status(400).json({ success: false, message: 'Client name is required' });
+    if (!clientPhone?.trim()) return res.status(400).json({ success: false, message: 'Phone number is required' });
+    if (!items.length) return res.status(400).json({ success: false, message: 'At least one item is required' });
+
+    // Find or create lead
+    let lead = null;
+    if (leadId) {
+      lead = await Lead.findOne({ where: { id: leadId, organizationId: user.organizationId, workspaceId } });
+    } else {
+      const orClauses = [{ phone: clientPhone.trim() }];
+      if (clientEmail?.trim()) orClauses.push({ email: clientEmail.trim() });
+      const existing = await Lead.findOne({
+        where: { organizationId: user.organizationId, workspaceId, [Op.or]: orClauses },
+      });
+      if (existing) {
+        lead = existing;
+      } else {
+        lead = await Lead.create({
+          organizationId: user.organizationId, workspaceId,
+          name: clientName.trim(), phone: clientPhone.trim(),
+          email: clientEmail?.trim() || null, address: clientAddress?.trim() || null,
+          source: 'Invoice', status: 'Won', createdBy: user.id,
+        });
+      }
+    }
+
+    const subtotal = items.reduce((sum, i) => sum + parseFloat(i.quantity || 1) * parseFloat(i.unitPrice || 0), 0);
+    const gstAmount = (subtotal * parseFloat(gstPercent)) / 100;
+    const totalAmount = subtotal + gstAmount;
     const invNumber = await getNextNumber(Invoice, 'invoiceNumber', 'INV-', workspaceId, user.organizationId);
 
     const inv = await Invoice.create({
       organizationId: user.organizationId, workspaceId, invoiceNumber: invNumber,
-      leadId: leadId || null, createdBy: user.id,
-      clientName, clientEmail, clientPhone, clientAddress, clientGST,
-      subtotal: parseFloat(subtotal), gstPercent, gstAmount, totalAmount,
+      leadId: lead?.id || null, createdBy: user.id,
+      clientName: clientName.trim(), clientEmail: clientEmail?.trim() || null,
+      clientPhone: clientPhone.trim(), clientAddress: clientAddress?.trim() || null, clientGST,
+      subtotal, gstPercent, gstAmount, totalAmount,
       paidAmount: 0, dueAmount: totalAmount, status: 'Unpaid', notes, terms,
       dueDate: dueDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
     });
 
-    if (leadId) {
+    const itemsData = items.map((i) => ({
+      invoiceId: inv.id,
+      description: i.description,
+      quantity: parseFloat(i.quantity) || 1,
+      unitPrice: parseFloat(i.unitPrice) || 0,
+      totalPrice: parseFloat(i.quantity || 1) * parseFloat(i.unitPrice || 0),
+    }));
+    await InvoiceItem.bulkCreate(itemsData);
+
+    if (lead?.id) {
       await LeadActivity.create({
-        leadId, organizationId: user.organizationId, workspaceId, userId: user.id,
-        type: 'invoice_generated', description: `Invoice ${invNumber} created`,
+        leadId: lead.id, organizationId: user.organizationId, workspaceId, userId: user.id,
+        type: 'invoice_generated', description: `Invoice ${invNumber} created (₹${totalAmount.toLocaleString('en-IN')})`,
         metadata: { invoiceId: inv.id },
       });
     }
@@ -100,10 +138,13 @@ const downloadPDF = async (req, res) => {
   try {
     const { id } = req.params;
     const { user, workspaceId } = req;
-    const inv = await Invoice.findOne({ where: { id, organizationId: user.organizationId, workspaceId } });
+    const inv = await Invoice.findOne({
+      where: { id, organizationId: user.organizationId, workspaceId },
+      include: [{ model: InvoiceItem, as: 'items', required: false }],
+    });
     if (!inv) return res.status(404).json({ success: false, message: 'Invoice not found' });
     const org = await Organization.findByPk(user.organizationId, { attributes: ['settings'] });
-    const pdf = await generateInvoicePDF(inv, org?.settings);
+    const pdf = await generateInvoicePDF(inv, org?.settings, inv.items);
     await logUsage(user.organizationId, workspaceId, 'pdf_generated');
     res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': `attachment; filename="${inv.invoiceNumber}.pdf"` });
     res.send(pdf);
@@ -113,4 +154,30 @@ const downloadPDF = async (req, res) => {
   }
 };
 
-module.exports = { getInvoices, getInvoice, createInvoice, updateInvoice, downloadPDF };
+const sendEmail = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { user, workspaceId } = req;
+    const inv = await Invoice.findOne({
+      where: { id, organizationId: user.organizationId, workspaceId },
+      include: [{ model: InvoiceItem, as: 'items', required: false }],
+    });
+    if (!inv) return res.status(404).json({ success: false, message: 'Invoice not found' });
+    if (!inv.clientEmail) return res.status(400).json({ success: false, message: 'Client email not set on this invoice' });
+
+    const org = await Organization.findByPk(user.organizationId, { attributes: ['settings'] });
+    const pdf = await generateInvoicePDF(inv, org?.settings, inv.items);
+    const result = await emailService.sendInvoiceEmail(inv, inv.items || [], pdf, org?.settings, org?.settings?.smtpConfig);
+
+    if (result.success) {
+      res.json({ success: true, message: 'Invoice email sent' });
+    } else {
+      res.status(500).json({ success: false, message: 'Failed to send email', error: result.error });
+    }
+  } catch (err) {
+    console.error('sendInvoiceEmail error:', err);
+    res.status(500).json({ success: false, message: 'Failed to send invoice email' });
+  }
+};
+
+module.exports = { getInvoices, getInvoice, createInvoice, updateInvoice, downloadPDF, sendEmail };

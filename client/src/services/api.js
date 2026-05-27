@@ -148,6 +148,7 @@ export const invoicesAPI = {
   create: (data) => api.post('/invoices', data),
   update: (id, data) => api.put(`/invoices/${id}`, data),
   downloadPDF: (id) => api.get(`/invoices/${id}/pdf`, { responseType: 'blob' }),
+  sendEmail: (id) => api.post(`/invoices/${id}/send-email`),
 };
 
 // ─── PAYMENTS ─────────────────────────────────────────────────────────────

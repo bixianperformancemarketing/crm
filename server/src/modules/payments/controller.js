@@ -42,6 +42,9 @@ const addPayment = async (req, res) => {
     const inv = await Invoice.findOne({ where: { id: invoiceId, organizationId: user.organizationId, workspaceId } });
     if (!inv) return res.status(404).json({ success: false, message: 'Invoice not found' });
     if (inv.status === 'Paid') return res.status(400).json({ success: false, message: 'Invoice is already fully paid' });
+    if (parseFloat(amount) > parseFloat(inv.dueAmount)) {
+      return res.status(400).json({ success: false, message: `Amount exceeds balance due (₹${parseFloat(inv.dueAmount).toLocaleString('en-IN')})` });
+    }
 
     const payment = await Payment.create({
       organizationId: user.organizationId, workspaceId,

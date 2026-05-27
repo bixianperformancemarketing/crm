@@ -114,11 +114,6 @@ const addTotals = (doc, data, startY) => {
   y += 8;
   addTotalRow('TOTAL:', data.totalAmount, true, PRIMARY_DARK);
 
-  if (data.paidAmount !== undefined) {
-    addTotalRow('Paid:', data.paidAmount);
-    y += 4;
-    addTotalRow('Balance Due:', data.dueAmount, true, PRIMARY_DARK);
-  }
 
   return y + 10;
 };
@@ -163,7 +158,7 @@ const generateQuotationPDF = (quotation, items, orgSettings) =>
     doc.end();
   });
 
-const generateInvoicePDF = (invoice, orgSettings) =>
+const generateInvoicePDF = (invoice, orgSettings, invoiceItems) =>
   new Promise((resolve, reject) => {
     const chunks = [];
     const doc = new PDFDocument({ margin: 0, size: 'A4' });
@@ -171,9 +166,9 @@ const generateInvoicePDF = (invoice, orgSettings) =>
     doc.on('end', () => resolve(Buffer.concat(chunks)));
     doc.on('error', reject);
 
-    const items = [
-      { description: 'Professional Services', quantity: 1, unitPrice: invoice.subtotal, totalPrice: invoice.subtotal },
-    ];
+    const items = invoiceItems && invoiceItems.length
+      ? invoiceItems
+      : [{ description: 'Professional Services', quantity: 1, unitPrice: invoice.subtotal, totalPrice: invoice.subtotal }];
 
     addHeader(doc, orgSettings, 'Invoice');
     const clientY = addClientSection(doc, {
