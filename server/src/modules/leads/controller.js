@@ -7,6 +7,19 @@ const notificationService = require('../../services/notificationService');
 const emailService = require('../../services/emailService');
 const { logUsage } = require('../../middleware/entitlement');
 
+const findLeastLoadedAgent = async (workspaceId, organizationId) => {
+  const agents = await User.findAll({
+    where: { workspaceId, organizationId, role: { [Op.in]: ['employee', 'admin'] }, isActive: true },
+    attributes: ['id'],
+  });
+  if (!agents.length) return null;
+  const counts = await Promise.all(agents.map(async (a) => ({
+    id: a.id,
+    count: await Lead.count({ where: { assignedTo: a.id, status: { [Op.notIn]: ['Won', 'Lost'] } } }),
+  })));
+  counts.sort((a, b) => a.count - b.count);
+  return counts[0]?.id || null;
+};
 
 const getLeads = async (req, res) => {
   try {
