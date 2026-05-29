@@ -1,4 +1,7 @@
 const { Op } = require('sequelize');
+const path = require('path');
+const fs = require('fs');
+const { v4: uuidv4 } = require('uuid');
 const { Invoice, InvoiceItem, Payment, Lead, User, LeadActivity, Organization } = require('../../config/models');
 const { getNextNumber, paginate, paginateResponse } = require('../../utils/helpers');
 const { generateInvoicePDF } = require('../../services/pdfService');
@@ -124,12 +127,53 @@ const updateInvoice = async (req, res) => {
     const { user, workspaceId } = req;
     const inv = await Invoice.findOne({ where: { id, organizationId: user.organizationId, workspaceId } });
     if (!inv) return res.status(404).json({ success: false, message: 'Invoice not found' });
-    const allowed = ['clientName', 'clientEmail', 'clientPhone', 'clientAddress', 'clientGST', 'notes', 'terms', 'dueDate'];
+
+    const hasPayments = parseFloat(inv.paidAmount) > 0;
     const updates = {};
-    for (const k of allowed) { if (req.body[k] !== undefined) updates[k] = req.body[k]; }
+
+    if (hasPayments) {
+      // Payment recorded — only allow non-financial fields
+      if (req.body.terms !== undefined) updates.terms = req.body.terms;
+      if (req.body.notes !== undefined) updates.notes = req.body.notes;
+      if (req.body.dueDate !== undefined) updates.dueDate = req.body.dueDate;
+    } else {
+      // No payments — allow full edit including items and amounts
+      const { items, gstPercent, clientName, clientEmail, clientPhone, clientAddress, clientGST, notes, terms, dueDate } = req.body;
+      if (clientName !== undefined) updates.clientName = clientName;
+      if (clientEmail !== undefined) updates.clientEmail = clientEmail;
+      if (clientPhone !== undefined) updates.clientPhone = clientPhone;
+      if (clientAddress !== undefined) updates.clientAddress = clientAddress;
+      if (clientGST !== undefined) updates.clientGST = clientGST;
+      if (notes !== undefined) updates.notes = notes;
+      if (terms !== undefined) updates.terms = terms;
+      if (dueDate !== undefined) updates.dueDate = dueDate;
+
+      if (items && items.length) {
+        const subtotal = items.reduce((sum, i) => sum + parseFloat(i.quantity || 1) * parseFloat(i.unitPrice || 0), 0);
+        const gst = parseFloat(gstPercent || inv.gstPercent);
+        const gstAmount = (subtotal * gst) / 100;
+        const totalAmount = subtotal + gstAmount;
+        updates.subtotal = subtotal;
+        updates.gstPercent = gst;
+        updates.gstAmount = gstAmount;
+        updates.totalAmount = totalAmount;
+        updates.dueAmount = totalAmount;
+
+        await InvoiceItem.destroy({ where: { invoiceId: id } });
+        await InvoiceItem.bulkCreate(items.map((i) => ({
+          invoiceId: id,
+          description: i.description,
+          quantity: parseFloat(i.quantity) || 1,
+          unitPrice: parseFloat(i.unitPrice) || 0,
+          totalPrice: (parseFloat(i.quantity) || 1) * (parseFloat(i.unitPrice) || 0),
+        })));
+      }
+    }
+
     await inv.update(updates);
     res.json({ success: true, message: 'Invoice updated', invoice: inv });
   } catch (err) {
+    console.error('updateInvoice error:', err);
     res.status(500).json({ success: false, message: 'Failed to update invoice' });
   }
 };
@@ -180,4 +224,30 @@ const sendEmail = async (req, res) => {
   }
 };
 
-module.exports = { getInvoices, getInvoice, createInvoice, updateInvoice, downloadPDF, sendEmail };
+const whatsappShare = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { user, workspaceId } = req;
+    const inv = await Invoice.findOne({
+      where: { id, organizationId: user.organizationId, workspaceId },
+      include: [{ model: InvoiceItem, as: 'items', required: false }],
+    });
+    if (!inv) return res.status(404).json({ success: false, message: 'Invoice not found' });
+
+    const org = await Organization.findByPk(user.organizationId, { attributes: ['settings'] });
+    const pdf = await generateInvoicePDF(inv, org?.settings, inv.items);
+
+    const sharedDir = path.join(__dirname, '..', '..', '..', 'uploads', 'shared');
+    fs.mkdirSync(sharedDir, { recursive: true });
+
+    const fileName = `${uuidv4()}.pdf`;
+    fs.writeFileSync(path.join(sharedDir, fileName), pdf);
+
+    res.json({ success: true, fileName, phone: inv.clientPhone, clientName: inv.clientName, number: inv.invoiceNumber, totalAmount: inv.totalAmount, dueAmount: inv.dueAmount });
+  } catch (err) {
+    console.error('whatsappShare invoice error:', err);
+    res.status(500).json({ success: false, message: 'Failed to generate share link' });
+  }
+};
+
+module.exports = { getInvoices, getInvoice, createInvoice, updateInvoice, downloadPDF, sendEmail, whatsappShare };

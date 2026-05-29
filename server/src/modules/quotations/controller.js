@@ -1,5 +1,8 @@
 const { Op } = require('sequelize');
-const { Quotation, QuotationItem, Invoice, Lead, User, LeadActivity, Organization } = require('../../config/models');
+const path = require('path');
+const fs = require('fs');
+const { v4: uuidv4 } = require('uuid');
+const { Quotation, QuotationItem, Invoice, InvoiceItem, Lead, User, LeadActivity, Organization } = require('../../config/models');
 const { getNextNumber, paginate, paginateResponse } = require('../../utils/helpers');
 const { generateQuotationPDF } = require('../../services/pdfService');
 const emailService = require('../../services/emailService');
@@ -203,6 +206,16 @@ const updateStatus = async (req, res) => {
         dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       });
 
+      if (q.items && q.items.length) {
+        await InvoiceItem.bulkCreate(q.items.map((item) => ({
+          invoiceId: inv.id,
+          description: item.description,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          totalPrice: item.totalPrice,
+        })));
+      }
+
       if (q.leadId) {
         await LeadActivity.create({
           leadId: q.leadId, organizationId: user.organizationId, workspaceId,
@@ -269,4 +282,30 @@ const sendEmail = async (req, res) => {
   }
 };
 
-module.exports = { getQuotations, getQuotation, createQuotation, updateQuotation, updateStatus, downloadPDF, sendEmail };
+const whatsappShare = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { user, workspaceId } = req;
+    const q = await Quotation.findOne({
+      where: { id, organizationId: user.organizationId, workspaceId },
+      include: [{ model: QuotationItem, as: 'items' }],
+    });
+    if (!q) return res.status(404).json({ success: false, message: 'Quotation not found' });
+
+    const org = await Organization.findByPk(user.organizationId, { attributes: ['settings'] });
+    const pdf = await generateQuotationPDF(q, q.items, org?.settings);
+
+    const sharedDir = path.join(__dirname, '..', '..', '..', 'uploads', 'shared');
+    fs.mkdirSync(sharedDir, { recursive: true });
+
+    const fileName = `${uuidv4()}.pdf`;
+    fs.writeFileSync(path.join(sharedDir, fileName), pdf);
+
+    res.json({ success: true, fileName, phone: q.clientPhone, clientName: q.clientName, number: q.quotationNumber, totalAmount: q.totalAmount });
+  } catch (err) {
+    console.error('whatsappShare quotation error:', err);
+    res.status(500).json({ success: false, message: 'Failed to generate share link' });
+  }
+};
+
+module.exports = { getQuotations, getQuotation, createQuotation, updateQuotation, updateStatus, downloadPDF, sendEmail, whatsappShare };

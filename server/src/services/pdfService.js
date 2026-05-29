@@ -166,9 +166,7 @@ const generateInvoicePDF = (invoice, orgSettings, invoiceItems) =>
     doc.on('end', () => resolve(Buffer.concat(chunks)));
     doc.on('error', reject);
 
-    const items = invoiceItems && invoiceItems.length
-      ? invoiceItems
-      : [{ description: 'Professional Services', quantity: 1, unitPrice: invoice.subtotal, totalPrice: invoice.subtotal }];
+    const items = invoiceItems || [];
 
     addHeader(doc, orgSettings, 'Invoice');
     const clientY = addClientSection(doc, {

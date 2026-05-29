@@ -26,6 +26,9 @@ const Invoices = () => {
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState(emptyForm());
   const [sendingEmail, setSendingEmail] = useState(null);
+  const [sendingWhatsapp, setSendingWhatsapp] = useState(null);
+  const [editInvoice, setEditInvoice] = useState(null);
+  const [editForm, setEditForm] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -50,9 +53,22 @@ const Invoices = () => {
     setForm({ ...form, items });
   };
 
+  const updateEditItem = (i, field, val) => {
+    const items = [...editForm.items];
+    items[i] = { ...items[i], [field]: val };
+    if (field === 'quantity' || field === 'unitPrice') {
+      items[i].totalPrice = parseFloat(items[i].quantity || 0) * parseFloat(items[i].unitPrice || 0);
+    }
+    setEditForm({ ...editForm, items });
+  };
+
   const subtotal = form.items.reduce((s, i) => s + parseFloat(i.totalPrice || 0), 0);
   const gstAmount = (subtotal * parseFloat(form.gstPercent || 0)) / 100;
   const total = subtotal + gstAmount;
+
+  const editSubtotal = editForm ? editForm.items.reduce((s, i) => s + parseFloat(i.totalPrice || 0), 0) : 0;
+  const editGstAmount = editForm ? (editSubtotal * parseFloat(editForm.gstPercent || 0)) / 100 : 0;
+  const editTotal = editSubtotal + editGstAmount;
 
   const handleCreate = async (e) => {
     e.preventDefault();
@@ -75,6 +91,55 @@ const Invoices = () => {
     } finally { setSaving(false); }
   };
 
+  const openEdit = async (inv) => {
+    try {
+      const { data } = await invoicesAPI.get(inv.id);
+      const invData = data.invoice;
+      setEditForm({
+        clientName: invData.clientName || '',
+        clientEmail: invData.clientEmail || '',
+        clientPhone: invData.clientPhone || '',
+        clientAddress: invData.clientAddress || '',
+        clientGST: invData.clientGST || '',
+        gstPercent: invData.gstPercent || 18,
+        terms: invData.terms || '',
+        notes: invData.notes || '',
+        dueDate: invData.dueDate ? invData.dueDate.slice(0, 10) : '',
+        items: invData.items?.length
+          ? invData.items.map((i) => ({ description: i.description, quantity: i.quantity, unitPrice: i.unitPrice, totalPrice: i.totalPrice }))
+          : [emptyItem()],
+      });
+      setEditInvoice(inv);
+    } catch {
+      toast.error('Failed to load invoice details');
+    }
+  };
+
+  const closeEdit = () => { setEditInvoice(null); setEditForm(null); };
+
+  const handleEdit = async (e) => {
+    e.preventDefault();
+    const hasPayments = parseFloat(editInvoice.paidAmount) > 0;
+    if (!hasPayments) {
+      if (!editForm.clientName.trim()) return toast.error('Client name is required');
+      if (!editForm.clientPhone.trim()) return toast.error('Phone number is required');
+      const validItems = editForm.items.filter((i) => i.description?.trim());
+      if (!validItems.length) return toast.error('At least one item with a description is required');
+    }
+    setSaving(true);
+    try {
+      const payload = hasPayments
+        ? { terms: editForm.terms, notes: editForm.notes, dueDate: editForm.dueDate }
+        : { ...editForm, items: editForm.items.filter((i) => i.description?.trim()) };
+      await invoicesAPI.update(editInvoice.id, payload);
+      toast.success('Invoice updated');
+      closeEdit();
+      load();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update invoice');
+    } finally { setSaving(false); }
+  };
+
   const handlePDF = async (id, num) => {
     try {
       const { data } = await invoicesAPI.downloadPDF(id);
@@ -83,6 +148,25 @@ const Invoices = () => {
       const d = err.response?.data;
       if (d?.upgradeRequired) { setUpgradeModal(d); return; }
       toast.error('Failed to download PDF');
+    }
+  };
+
+  const handleWhatsapp = async (inv) => {
+    setSendingWhatsapp(inv.id);
+    try {
+      const { data } = await invoicesAPI.whatsappShare(inv.id);
+      const API_URL = process.env.REACT_APP_API_URL || window.location.origin;
+      const fileUrl = `${API_URL}/uploads/shared/${data.fileName}`;
+      const phone = data.phone.replace(/\D/g, '');
+      const wa = phone.length === 10 ? `91${phone}` : phone;
+      const msg = `Hi ${data.clientName}, your invoice ${data.number} for ${formatCurrency(data.totalAmount)} is ready.\n\nDownload it here: ${fileUrl}\n\nAmount due: ${formatCurrency(data.dueAmount)}`;
+      window.open(`https://wa.me/${wa}?text=${encodeURIComponent(msg)}`, '_blank');
+    } catch (err) {
+      const d = err.response?.data;
+      if (d?.upgradeRequired) { setUpgradeModal(d); return; }
+      toast.error('Failed to generate WhatsApp link');
+    } finally {
+      setSendingWhatsapp(null);
     }
   };
 
@@ -152,11 +236,21 @@ const Invoices = () => {
                     <td style={{ fontSize: 12, color: inv.status === 'Overdue' ? '#ef4444' : 'var(--text-muted)' }}>{inv.dueDate ? formatDate(inv.dueDate) : '—'}</td>
                     <td>
                       <div style={{ display: 'flex', gap: 6 }}>
+                        <button className="btn btn-ghost btn-sm" onClick={() => openEdit(inv)}>✏️ Edit</button>
                         {inv.status !== 'Paid' && <button className="btn btn-success btn-sm" onClick={() => { setShowPayment(inv); setPayForm({ ...payForm, amount: inv.dueAmount }); }}>💰 Record Payment</button>}
                         {hasFeature('canUsePDF') && <button className="btn btn-ghost btn-sm" onClick={() => handlePDF(inv.id, inv.invoiceNumber)}>📄</button>}
                         {hasFeature('canUsePDF') && inv.clientEmail && (
                           <button className="btn btn-ghost btn-sm" onClick={() => handleEmail(inv.id)} disabled={sendingEmail === inv.id} title="Email invoice to client">
                             {sendingEmail === inv.id ? '...' : '✉️'}
+                          </button>
+                        )}
+                        {hasFeature('canUsePDF') && inv.clientPhone && (
+                          <button className="btn btn-ghost btn-sm" onClick={() => handleWhatsapp(inv)} disabled={sendingWhatsapp === inv.id} title="Send via WhatsApp" style={{ color: '#25d366', display: 'inline-flex', alignItems: 'center' }}>
+                            {sendingWhatsapp === inv.id ? '...' : (
+                              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                              </svg>
+                            )}
                           </button>
                         )}
                       </div>
@@ -187,7 +281,6 @@ const Invoices = () => {
               </div>
               <div className="form-group"><label className="form-label">Address</label><input className="form-control" value={form.clientAddress} onChange={(e) => setForm({ ...form, clientAddress: e.target.value })} placeholder="Client address..." /></div>
 
-              {/* Line Items */}
               <div style={{ margin: '16px 0 8px', fontWeight: 600, fontSize: 13 }}>Line Items</div>
               <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 8 }}>
                 <thead>
@@ -215,7 +308,6 @@ const Invoices = () => {
               </table>
               <button type="button" className="btn btn-ghost btn-sm" onClick={() => setForm({ ...form, items: [...form.items, emptyItem()] })}>+ Add Item</button>
 
-              {/* Totals */}
               <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '16px 0' }}>
                 <div style={{ minWidth: 260, background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 8, padding: '12px 16px', fontSize: 13 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}><span>Subtotal</span><strong>{formatCurrency(subtotal)}</strong></div>
@@ -245,6 +337,94 @@ const Invoices = () => {
           </div>
         </div>
       )}
+
+      {/* Edit Invoice Modal */}
+      {editInvoice && editForm && (() => {
+        const hasPayments = parseFloat(editInvoice.paidAmount) > 0;
+        return (
+          <div className="modal-overlay" onClick={closeEdit}>
+            <div className="modal" style={{ maxWidth: 720 }} onClick={(e) => e.stopPropagation()}>
+              <h3>Edit Invoice — {editInvoice.invoiceNumber}</h3>
+              <button className="modal-close" onClick={closeEdit}>×</button>
+
+              {hasPayments && (
+                <div style={{ marginBottom: 16, padding: '12px 16px', background: 'rgba(239,68,68,0.08)', borderRadius: 8, border: '1px solid rgba(239,68,68,0.3)', fontSize: 13, color: '#ef4444' }}>
+                  <strong>Payment recorded on this invoice.</strong> Items and amounts are locked. You can only update terms, notes, and due date.
+                </div>
+              )}
+
+              <form onSubmit={handleEdit}>
+                {!hasPayments && (
+                  <>
+                    <div className="form-row">
+                      <div className="form-group"><label className="form-label">Client Name *</label><input className="form-control" value={editForm.clientName} onChange={(e) => setEditForm({ ...editForm, clientName: e.target.value })} /></div>
+                      <div className="form-group"><label className="form-label">Phone *</label><input className="form-control" value={editForm.clientPhone} onChange={(e) => setEditForm({ ...editForm, clientPhone: e.target.value })} /></div>
+                    </div>
+                    <div className="form-row">
+                      <div className="form-group"><label className="form-label">Email</label><input className="form-control" type="email" value={editForm.clientEmail} onChange={(e) => setEditForm({ ...editForm, clientEmail: e.target.value })} /></div>
+                      <div className="form-group"><label className="form-label">GST Number</label><input className="form-control" value={editForm.clientGST} onChange={(e) => setEditForm({ ...editForm, clientGST: e.target.value })} /></div>
+                    </div>
+                    <div className="form-group"><label className="form-label">Address</label><input className="form-control" value={editForm.clientAddress} onChange={(e) => setEditForm({ ...editForm, clientAddress: e.target.value })} /></div>
+
+                    <div style={{ margin: '16px 0 8px', fontWeight: 600, fontSize: 13 }}>Line Items</div>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 8 }}>
+                      <thead>
+                        <tr style={{ background: 'var(--card-bg)', borderBottom: '1px solid var(--border)' }}>
+                          <th style={{ padding: '8px 6px', textAlign: 'left', fontSize: 12, fontWeight: 600 }}>Description</th>
+                          <th style={{ padding: '8px 6px', textAlign: 'right', fontSize: 12, fontWeight: 600, width: 70 }}>Qty</th>
+                          <th style={{ padding: '8px 6px', textAlign: 'right', fontSize: 12, fontWeight: 600, width: 110 }}>Unit Price</th>
+                          <th style={{ padding: '8px 6px', textAlign: 'right', fontSize: 12, fontWeight: 600, width: 110 }}>Total</th>
+                          <th style={{ width: 32 }} />
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {editForm.items.map((item, i) => (
+                          <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
+                            <td style={{ padding: '4px 4px' }}><input className="form-control" style={{ margin: 0 }} value={item.description} onChange={(e) => updateEditItem(i, 'description', e.target.value)} placeholder="Service / item description..." /></td>
+                            <td style={{ padding: '4px 4px' }}><input className="form-control" style={{ margin: 0, textAlign: 'right' }} type="number" min="1" value={item.quantity} onChange={(e) => updateEditItem(i, 'quantity', e.target.value)} /></td>
+                            <td style={{ padding: '4px 4px' }}><input className="form-control" style={{ margin: 0, textAlign: 'right' }} type="number" min="0" step="0.01" value={item.unitPrice} onChange={(e) => updateEditItem(i, 'unitPrice', e.target.value)} /></td>
+                            <td style={{ padding: '4px 8px', textAlign: 'right', fontSize: 13, fontWeight: 500 }}>{formatCurrency(item.totalPrice || 0)}</td>
+                            <td style={{ padding: '4px 2px' }}>
+                              {editForm.items.length > 1 && <button type="button" style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 16, padding: '0 4px' }} onClick={() => setEditForm({ ...editForm, items: editForm.items.filter((_, j) => j !== i) })}>×</button>}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditForm({ ...editForm, items: [...editForm.items, emptyItem()] })}>+ Add Item</button>
+
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '16px 0' }}>
+                      <div style={{ minWidth: 260, background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 8, padding: '12px 16px', fontSize: 13 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}><span>Subtotal</span><strong>{formatCurrency(editSubtotal)}</strong></div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, alignItems: 'center', gap: 8 }}>
+                          <span>GST</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <input type="number" min="0" max="100" step="0.01" value={editForm.gstPercent} onChange={(e) => setEditForm({ ...editForm, gstPercent: e.target.value })} style={{ width: 55, textAlign: 'right', padding: '2px 6px', border: '1px solid var(--border)', borderRadius: 4, background: 'var(--input-bg)', color: 'var(--text)', fontSize: 12 }} />
+                            <span>%</span>
+                            <strong>{formatCurrency(editGstAmount)}</strong>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: 15, borderTop: '1px solid var(--border)', paddingTop: 8 }}><span>Total</span><span style={{ color: '#f59e0b' }}>{formatCurrency(editTotal)}</span></div>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                <div className="form-row">
+                  <div className="form-group"><label className="form-label">Due Date</label><input className="form-control" type="date" value={editForm.dueDate} onChange={(e) => setEditForm({ ...editForm, dueDate: e.target.value })} /></div>
+                  <div className="form-group"><label className="form-label">Terms</label><input className="form-control" value={editForm.terms} onChange={(e) => setEditForm({ ...editForm, terms: e.target.value })} placeholder="Payment terms..." /></div>
+                </div>
+                <div className="form-group"><label className="form-label">Notes</label><input className="form-control" value={editForm.notes} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} placeholder="Internal notes..." /></div>
+
+                <div className="modal-actions">
+                  <button type="button" className="btn btn-ghost" onClick={closeEdit}>Cancel</button>
+                  <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Record Payment Modal */}
       {showPayment && (

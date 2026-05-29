@@ -139,6 +139,7 @@ export const quotationsAPI = {
   updateStatus: (id, data) => api.put(`/quotations/${id}/status`, data),
   downloadPDF: (id) => api.get(`/quotations/${id}/pdf`, { responseType: 'blob' }),
   sendEmail: (id) => api.post(`/quotations/${id}/send-email`),
+  whatsappShare: (id) => api.post(`/quotations/${id}/whatsapp-share`),
 };
 
 // ─── INVOICES ─────────────────────────────────────────────────────────────
@@ -149,6 +150,7 @@ export const invoicesAPI = {
   update: (id, data) => api.put(`/invoices/${id}`, data),
   downloadPDF: (id) => api.get(`/invoices/${id}/pdf`, { responseType: 'blob' }),
   sendEmail: (id) => api.post(`/invoices/${id}/send-email`),
+  whatsappShare: (id) => api.post(`/invoices/${id}/whatsapp-share`),
 };
 
 // ─── PAYMENTS ─────────────────────────────────────────────────────────────
