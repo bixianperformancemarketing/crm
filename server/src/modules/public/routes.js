@@ -1,4 +1,6 @@
 const express = require('express');
+const path = require('path');
+const fs = require('fs');
 const router = express.Router();
 const { Plan } = require('../../config/models');
 const emailService = require('../../services/emailService');
@@ -30,6 +32,16 @@ router.post('/test-email', async (req, res) => {
   });
   if (result.success) return res.json({ success: true, message: 'Test email sent successfully' });
   res.status(500).json({ success: false, message: result.error });
+});
+
+router.get('/share/:token', (req, res) => {
+  const { token } = req.params;
+  if (!/^[a-f0-9-]{36}\.pdf$/.test(token)) return res.status(400).json({ success: false, message: 'Invalid token' });
+  const filePath = path.join(__dirname, '..', '..', '..', 'uploads', 'shared', token);
+  if (!fs.existsSync(filePath)) return res.status(404).json({ success: false, message: 'File not found or expired' });
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `inline; filename="${token}"`);
+  res.sendFile(filePath);
 });
 
 module.exports = router;

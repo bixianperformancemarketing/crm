@@ -153,7 +153,7 @@ const Quotations = () => {
     try {
       const { data } = await quotationsAPI.whatsappShare(q.id);
       const API_URL = process.env.REACT_APP_API_URL || window.location.origin;
-      const fileUrl = `${API_URL}/uploads/shared/${data.fileName}`;
+      const fileUrl = `${API_URL}/api/public/share/${data.fileName}`;
       const phone = data.phone.replace(/\D/g, '');
       const wa = phone.length === 10 ? `91${phone}` : phone;
       const msg = `Hi ${data.clientName}, your quotation ${data.number} for ${formatCurrency(data.totalAmount)} is ready.\n\nDownload it here: ${fileUrl}\n\nReply if you have any questions.`;
