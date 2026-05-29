@@ -262,7 +262,9 @@ const importCSV = async (req, res) => {
     const { user, workspaceId, org } = req;
     if (!req.file) return res.status(400).json({ success: false, message: 'CSV file required' });
 
-    const text = req.file.buffer.toString('utf8');
+    // Detect UTF-16 LE BOM (Meta Ads exports) and decode accordingly
+    const buf = req.file.buffer;
+    const text = (buf[0] === 0xFF && buf[1] === 0xFE) ? buf.toString('utf16le') : buf.toString('utf8');
     const { rows } = parseCSV(text);
 
     if (!rows.length) return res.status(400).json({ success: false, message: 'No data rows found in CSV' });

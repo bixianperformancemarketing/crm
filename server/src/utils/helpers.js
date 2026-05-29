@@ -108,7 +108,7 @@ const limitReachedResponse = (res, limitType, planName) =>
     message: `You have reached your ${limitType} limit on the ${planName} plan. Please upgrade to continue.`,
   });
 
-const parseCSVLine = (line) => {
+const parseCSVLine = (line, delimiter = ',') => {
   const result = [];
   let current = '';
   let inQuotes = false;
@@ -117,7 +117,7 @@ const parseCSVLine = (line) => {
     if (ch === '"') {
       if (inQuotes && line[i + 1] === '"') { current += '"'; i++; }
       else inQuotes = !inQuotes;
-    } else if (ch === ',' && !inQuotes) {
+    } else if (ch === delimiter && !inQuotes) {
       result.push(current.trim());
       current = '';
     } else {
@@ -129,11 +129,13 @@ const parseCSVLine = (line) => {
 };
 
 const parseCSV = (text) => {
-  const lines = text.split(/\r?\n/).filter((l) => l.trim());
+  const cleanText = text.replace(/^﻿/, ''); // strip UTF-8 and UTF-16 BOM
+  const lines = cleanText.split(/\r?\n/).filter((l) => l.trim());
   if (lines.length < 2) return { headers: [], rows: [] };
-  const headers = parseCSVLine(lines[0]).map((h) => h.toLowerCase().trim());
+  const delimiter = lines[0].includes('\t') ? '\t' : ','; // auto-detect TSV vs CSV
+  const headers = parseCSVLine(lines[0], delimiter).map((h) => h.toLowerCase().trim());
   const rows = lines.slice(1).map((line) => {
-    const values = parseCSVLine(line);
+    const values = parseCSVLine(line, delimiter);
     const row = {};
     headers.forEach((h, i) => { row[h] = (values[i] || '').trim(); });
     return row;
@@ -142,12 +144,12 @@ const parseCSV = (text) => {
 };
 
 const mapCSVFieldToLead = (headers, row) => {
-  const nameKeys = ['name', 'full name', 'fullname', 'customer name', 'client name'];
+  const nameKeys = ['name', 'full name', 'fullname', 'customer name', 'client name', 'full_name'];
   const phoneKeys = ['phone', 'mobile', 'phone number', 'contact', 'mobile number'];
   const emailKeys = ['email', 'email address', 'mail'];
   const addressKeys = ['city', 'address', 'location', 'client address'];
   const sourceKeys = ['source', 'lead source'];
-  const campaignKeys = ['campaign', 'campaign name'];
+  const campaignKeys = ['campaign', 'campaign name', 'campaign_name'];
 
   const findValue = (keys) => {
     for (const k of keys) {
@@ -166,9 +168,13 @@ const mapCSVFieldToLead = (headers, row) => {
     if (!usedKeys.has(k) && v !== '') metadata[k] = v;
   }
 
+  const rawPhone = findValue(phoneKeys);
+  // Strip "p:" prefix from Meta Ads exports (e.g. "p:+919177914144")
+  const phone = rawPhone ? rawPhone.replace(/^p:/i, '').trim() : null;
+
   return {
     name: findValue(nameKeys),
-    phone: findValue(phoneKeys),
+    phone,
     email: findValue(emailKeys),
     clientAddress: findValue(addressKeys),
     source: findValue(sourceKeys) || 'CSV Import',
