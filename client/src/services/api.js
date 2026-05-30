@@ -211,6 +211,7 @@ export const metaIntegrationAPI = {
   sync: (id) => api.post(`/meta-integrations/${id}/sync`),
   getForms: (id) => api.get(`/meta-integrations/${id}/forms`),
   updateFormRoutes: (id, formRoutes) => api.put(`/meta-integrations/${id}/form-routes`, { formRoutes }),
+  testConnection: (id) => api.get(`/meta-integrations/${id}/test`),
 };
 
 // ─── COMMUNICATION ────────────────────────────────────────────────────────

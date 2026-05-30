@@ -73,8 +73,10 @@ const processMetaLead = async (metaLead, form, integration) => {
 const syncOneIntegration = async (integration) => {
   await integration.update({ syncStatus: 'syncing' });
 
+  // Subtract 5-min overlap from lastSyncAt so leads at the boundary are never missed;
+  // metaLeadId dedup prevents duplicates from the overlap window
   const since = integration.lastSyncAt
-    ? Math.floor(new Date(integration.lastSyncAt).getTime() / 1000)
+    ? Math.floor((new Date(integration.lastSyncAt).getTime() - 5 * 60 * 1000) / 1000)
     : Math.floor((Date.now() - 7 * 24 * 60 * 60 * 1000) / 1000);
 
   try {
@@ -128,17 +130,25 @@ const syncAllIntegrations = async () => {
       where: { isActive: true, syncStatus: { [Op.ne]: 'syncing' } },
     });
 
+    if (integrations.length === 0) {
+      console.log('[MetaSync] No active integrations to sync');
+      return;
+    }
+
+    console.log(`[MetaSync] Starting sync for ${integrations.length} integration(s)`);
     let total = 0;
     for (const integration of integrations) {
       try {
+        console.log(`[MetaSync] Syncing page ${integration.fbPageId} (lastSyncAt: ${integration.lastSyncAt || 'never'})`);
         const count = await syncOneIntegration(integration);
+        console.log(`[MetaSync] Page ${integration.fbPageId}: ${count} new lead(s)`);
         total += count;
       } catch (err) {
         console.error(`[MetaSync] Error syncing page ${integration.fbPageId}:`, err.message);
       }
     }
 
-    if (total > 0) console.log(`[MetaSync] Synced ${total} new lead(s) from Meta`);
+    console.log(`[MetaSync] Sync complete. Total new leads: ${total}`);
   } catch (err) {
     console.error('[MetaSync] Fatal error:', err.message);
   }

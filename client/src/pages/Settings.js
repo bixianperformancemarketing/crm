@@ -386,6 +386,8 @@ const MetaAdsTab = ({ org }) => {
   const [loading, setLoading] = useState(true);
   const [showConnect, setShowConnect] = useState(false);
   const [syncing, setSyncing] = useState({});
+  const [testing, setTesting] = useState({});
+  const [testResults, setTestResults] = useState({});
   const [connectForm, setConnectForm] = useState({ fbPageId: '', fbPageName: '', accessToken: '', workspaceId: '' });
   const [connecting, setConnecting] = useState(false);
 
@@ -432,6 +434,17 @@ const MetaAdsTab = ({ org }) => {
       toast.error(err.response?.data?.message || 'Sync failed');
       setIntegrations(prev => prev.map(i => i.id === id ? { ...i, syncStatus: 'error' } : i));
     } finally { setSyncing(prev => ({ ...prev, [id]: false })); }
+  };
+
+  const handleTestConnection = async (id) => {
+    setTesting(prev => ({ ...prev, [id]: true }));
+    setTestResults(prev => ({ ...prev, [id]: null }));
+    try {
+      const { data } = await metaIntegrationAPI.testConnection(id);
+      setTestResults(prev => ({ ...prev, [id]: data }));
+    } catch (err) {
+      setTestResults(prev => ({ ...prev, [id]: { success: false, error: err.response?.data?.message || 'Request failed' } }));
+    } finally { setTesting(prev => ({ ...prev, [id]: false })); }
   };
 
   const handleDisconnect = async (id, name) => {
@@ -525,6 +538,10 @@ const MetaAdsTab = ({ org }) => {
                   </div>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                     {statusBadge(integration.syncStatus, integration.lastSyncError)}
+                    <button onClick={() => handleTestConnection(integration.id)} disabled={testing[integration.id]}
+                      style={{ padding: '5px 12px', fontSize: 12, background: 'var(--surface-2)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer' }}>
+                      {testing[integration.id] ? 'Testing...' : '🔍 Test Token'}
+                    </button>
                     <button onClick={() => handleSync(integration.id)} disabled={syncing[integration.id] || integration.syncStatus === 'syncing'}
                       style={{ padding: '5px 12px', fontSize: 12, background: 'var(--surface-2)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer' }}>
                       {syncing[integration.id] ? 'Syncing...' : '↻ Sync Now'}
@@ -544,6 +561,25 @@ const MetaAdsTab = ({ org }) => {
                     {integration.lastSyncError}
                   </div>
                 )}
+                {testResults[integration.id] && (() => {
+                  const r = testResults[integration.id];
+                  return r.tokenValid ? (
+                    <div style={{ marginTop: 8, padding: '8px 12px', background: 'rgba(16,185,129,0.07)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 6, fontSize: 12 }}>
+                      <strong style={{ color: '#10b981' }}>✓ Token valid</strong>
+                      <span style={{ color: 'var(--text-muted)', marginLeft: 12 }}>
+                        Page: <strong style={{ color: 'var(--text)' }}>{r.pageName}</strong>
+                        {' · '}{r.formCount} form(s)
+                        {' · '}<strong style={{ color: 'var(--text)' }}>{r.totalLeadsInMeta}</strong> total leads in Meta
+                      </span>
+                    </div>
+                  ) : (
+                    <div style={{ marginTop: 8, padding: '8px 12px', background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.15)', borderRadius: 6, fontSize: 12, color: '#ef4444' }}>
+                      <strong>✗ Token invalid</strong>
+                      {r.error && <span style={{ marginLeft: 8 }}>{r.error}</span>}
+                      {r.errorCode && <span style={{ marginLeft: 8, opacity: 0.7 }}>(code: {r.errorCode})</span>}
+                    </div>
+                  );
+                })()}
                 <FormRoutingPanel
                   integration={integration}
                   workspaces={workspaces}

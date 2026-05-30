@@ -10,6 +10,7 @@ router.delete('/:id', requireRole('owner'), ctrl.disconnect);
 router.post('/:id/sync', requireRole('owner', 'admin'), ctrl.manualSync);
 router.get('/:id/forms', requireRole('owner', 'admin'), ctrl.getForms);
 router.put('/:id/form-routes', requireRole('owner'), ctrl.updateFormRoutes);
+router.get('/:id/test', requireRole('owner', 'admin'), ctrl.testConnection);
 router.post('/backfill-names', requireRole('owner', 'admin'), ctrl.backfillNames);
 
 module.exports = router;

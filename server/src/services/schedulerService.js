@@ -1,7 +1,7 @@
 const { Op } = require('sequelize');
 const moment = require('moment-timezone');
 const {
-  Appointment, Followup, Invoice, Organization, User, Lead,
+  Appointment, Followup, Invoice, Organization, User, Lead, MetaIntegration,
 } = require('../config/models');
 const { emitToUser } = require('../sockets');
 const notificationService = require('./notificationService');
@@ -213,6 +213,15 @@ const checkPlanExpiry = async () => {
 };
 
 const startScheduler = () => {
+  // On every startup: reset any integrations stuck in 'syncing' from a previous crash/restart,
+  // then run an immediate sync so leads from the downtime window aren't delayed 60 seconds.
+  MetaIntegration.update({ syncStatus: 'idle' }, { where: { syncStatus: 'syncing' } })
+    .then(([count]) => {
+      if (count > 0) console.log(`[Scheduler] Reset ${count} stuck Meta integration(s) to idle`);
+      return metaSyncService.syncAllIntegrations();
+    })
+    .catch(err => console.error('[Scheduler] Startup Meta sync error:', err.message));
+
   setInterval(checkAppointmentReminders, 60 * 1000);
   setInterval(checkFollowupReminders, 60 * 1000);
   checkFollowupReminders();

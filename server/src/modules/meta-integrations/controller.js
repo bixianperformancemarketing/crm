@@ -187,4 +187,46 @@ const backfillNames = async (req, res) => {
   }
 };
 
-module.exports = { list, connect, update, disconnect, manualSync, getForms, updateFormRoutes, backfillNames };
+const testConnection = async (req, res) => {
+  try {
+    const integration = await MetaIntegration.findOne({
+      where: { id: req.params.id, organizationId: req.user.organizationId },
+    });
+    if (!integration) return res.status(404).json({ success: false, message: 'Integration not found' });
+
+    const pageRes = await axios.get(`${META_BASE}/${integration.fbPageId}`, {
+      params: { access_token: integration.accessToken, fields: 'id,name' },
+      timeout: 10000,
+    });
+
+    const formsRes = await axios.get(`${META_BASE}/${integration.fbPageId}/leadgen_forms`, {
+      params: { access_token: integration.accessToken, fields: 'id,name,leads_count', limit: 100 },
+      timeout: 10000,
+    });
+
+    const forms = formsRes.data?.data || [];
+    const totalLeadsInMeta = forms.reduce((sum, f) => sum + (f.leads_count || 0), 0);
+
+    res.json({
+      success: true,
+      tokenValid: true,
+      pageName: pageRes.data?.name,
+      formCount: forms.length,
+      totalLeadsInMeta,
+      syncStatus: integration.syncStatus,
+      lastSyncAt: integration.lastSyncAt,
+      lastSyncError: integration.lastSyncError,
+    });
+  } catch (err) {
+    const metaError = err.response?.data?.error;
+    res.json({
+      success: false,
+      tokenValid: false,
+      error: metaError?.message || err.message,
+      errorCode: metaError?.code,
+      syncStatus: null,
+    });
+  }
+};
+
+module.exports = { list, connect, update, disconnect, manualSync, getForms, updateFormRoutes, backfillNames, testConnection };
