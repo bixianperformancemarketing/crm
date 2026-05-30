@@ -28,7 +28,11 @@ const corsOptions = {
   origin: (origin, cb) => (!origin || allowedOrigins.includes(origin) ? cb(null, true) : cb(new Error('Not allowed by CORS'))),
   credentials: true,
 };
-app.use(cors(corsOptions));
+// Skip global CORS for /webhooks — they use open CORS (origin: '*') defined on the route itself
+app.use((req, res, next) => {
+  if (req.path.startsWith('/webhooks')) return next();
+  cors(corsOptions)(req, res, next);
+});
 
 // ─── RATE LIMITING ────────────────────────────────────────────────────────
 const apiLimiter = rateLimit({
