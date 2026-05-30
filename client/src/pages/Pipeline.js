@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import {
+  DragDropContext, Droppable, Draggable,
+  MouseSensor, TouchSensor, useSensor, useSensors,
+} from '@hello-pangea/dnd';
 import toast from 'react-hot-toast';
 import Layout from '../components/layout/Layout';
 import { leadsAPI } from '../services/api';
-import { getStatusColor, getPriorityColor, getInitials } from '../utils/helpers';
+import { getPriorityColor, getInitials } from '../utils/helpers';
 import './Pipeline.css';
 
 const COLUMNS = ['New', 'Discussion', 'Meeting', 'Quotation', 'Won', 'Lost'];
@@ -13,6 +16,13 @@ const COL_COLORS = { New: '#0ea5e9', Discussion: '#f59e0b', Meeting: '#7c3aed', 
 const Pipeline = () => {
   const [pipeline, setPipeline] = useState({});
   const [loading, setLoading] = useState(true);
+
+  // Require 10px movement on mouse (prevents accidental click-drags),
+  // and 250ms hold + 5px tolerance on touch (prevents scroll-drags).
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 10 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
+  );
 
   const loadPipeline = async () => {
     try {
@@ -52,10 +62,10 @@ const Pipeline = () => {
     <Layout title="Pipeline">
       <div className="page-header">
         <div className="page-title">Sales Pipeline</div>
-        <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Grab the ⠿ handle on a card to move it</div>
+        <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Drag cards to update status</div>
       </div>
 
-      <DragDropContext onDragEnd={onDragEnd}>
+      <DragDropContext onDragEnd={onDragEnd} sensors={sensors}>
         <div className="pipeline-board">
           {COLUMNS.map((col) => {
             const leads = pipeline[col] || [];
@@ -74,16 +84,12 @@ const Pipeline = () => {
                             <div
                               ref={provided.innerRef}
                               {...provided.draggableProps}
+                              {...provided.dragHandleProps}
                               className={`kanban-card${snapshot.isDragging ? ' dragging' : ''}`}
                               style={{ ...provided.draggableProps.style, borderLeft: `3px solid ${COL_COLORS[col]}` }}
                             >
                               <div className="kc-name">
-                                <span
-                                  {...provided.dragHandleProps}
-                                  style={{ cursor: 'grab', color: 'var(--text-muted)', fontSize: 14, marginRight: 6, userSelect: 'none', flexShrink: 0 }}
-                                  title="Drag to move"
-                                >⠿</span>
-                                <Link to={`/leads/${lead.id}`} style={{ color: 'inherit', textDecoration: 'none', flex: 1 }}>{lead.name}</Link>
+                                <Link to={`/leads/${lead.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>{lead.name}</Link>
                                 {lead.isHot && <span style={{ fontSize: 9, background: 'rgba(239,68,68,0.2)', color: '#ef4444', padding: '1px 5px', borderRadius: 10, fontWeight: 700 }}>HOT</span>}
                               </div>
                               {lead.phone && <div className="kc-phone">📞 {lead.phone}</div>}
