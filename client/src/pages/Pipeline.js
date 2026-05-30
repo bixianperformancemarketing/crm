@@ -13,7 +13,6 @@ const COL_COLORS = { New: '#0ea5e9', Discussion: '#f59e0b', Meeting: '#7c3aed', 
 const Pipeline = () => {
   const [pipeline, setPipeline] = useState({});
   const [loading, setLoading] = useState(true);
-  const [pendingMove, setPendingMove] = useState(null);
 
   const loadPipeline = async () => {
     try {
@@ -25,39 +24,27 @@ const Pipeline = () => {
 
   useEffect(() => { loadPipeline(); }, []);
 
-  const onDragEnd = (result) => {
+  const onDragEnd = async (result) => {
     const { source, destination, draggableId } = result;
     if (!destination || source.droppableId === destination.droppableId) return;
-
-    const newStatus = destination.droppableId;
-    const movedLead = (pipeline[source.droppableId] || [])[source.index];
-    setPendingMove({ draggableId, newStatus, source, destination, movedLead });
-  };
-
-  const confirmMove = async () => {
-    if (!pendingMove) return;
-    const { draggableId, newStatus, source, destination } = pendingMove;
 
     const newPipeline = { ...pipeline };
     const src = [...(newPipeline[source.droppableId] || [])];
     const dst = [...(newPipeline[destination.droppableId] || [])];
     const [moved] = src.splice(source.index, 1);
-    dst.splice(destination.index, 0, { ...moved, status: newStatus });
+    dst.splice(destination.index, 0, { ...moved, status: destination.droppableId });
     newPipeline[source.droppableId] = src;
     newPipeline[destination.droppableId] = dst;
     setPipeline(newPipeline);
-    setPendingMove(null);
 
     try {
-      await leadsAPI.update(draggableId, { status: newStatus });
-      toast.success(`Moved to ${newStatus}`);
+      await leadsAPI.update(draggableId, { status: destination.droppableId });
+      toast.success(`Moved to ${destination.droppableId}`);
     } catch {
       toast.error('Failed to update status');
       loadPipeline();
     }
   };
-
-  const cancelMove = () => setPendingMove(null);
 
   if (loading) return <Layout title="Pipeline"><div className="loading-spinner"><div className="spinner" /></div></Layout>;
 
@@ -65,7 +52,7 @@ const Pipeline = () => {
     <Layout title="Pipeline">
       <div className="page-header">
         <div className="page-title">Sales Pipeline</div>
-        <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Drag cards to update status</div>
+        <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Grab the ⠿ handle on a card to move it</div>
       </div>
 
       <DragDropContext onDragEnd={onDragEnd}>
@@ -84,9 +71,19 @@ const Pipeline = () => {
                       {leads.map((lead, index) => (
                         <Draggable key={String(lead.id)} draggableId={String(lead.id)} index={index}>
                           {(provided, snapshot) => (
-                            <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps} className={`kanban-card${snapshot.isDragging ? ' dragging' : ''}`} style={{ ...provided.draggableProps.style, borderLeft: `3px solid ${COL_COLORS[col]}` }}>
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              className={`kanban-card${snapshot.isDragging ? ' dragging' : ''}`}
+                              style={{ ...provided.draggableProps.style, borderLeft: `3px solid ${COL_COLORS[col]}` }}
+                            >
                               <div className="kc-name">
-                                <Link to={`/leads/${lead.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>{lead.name}</Link>
+                                <span
+                                  {...provided.dragHandleProps}
+                                  style={{ cursor: 'grab', color: 'var(--text-muted)', fontSize: 14, marginRight: 6, userSelect: 'none', flexShrink: 0 }}
+                                  title="Drag to move"
+                                >⠿</span>
+                                <Link to={`/leads/${lead.id}`} style={{ color: 'inherit', textDecoration: 'none', flex: 1 }}>{lead.name}</Link>
                                 {lead.isHot && <span style={{ fontSize: 9, background: 'rgba(239,68,68,0.2)', color: '#ef4444', padding: '1px 5px', borderRadius: 10, fontWeight: 700 }}>HOT</span>}
                               </div>
                               {lead.phone && <div className="kc-phone">📞 {lead.phone}</div>}
@@ -116,22 +113,6 @@ const Pipeline = () => {
           })}
         </div>
       </DragDropContext>
-
-      {pendingMove && (
-        <div className="modal-overlay" onClick={cancelMove}>
-          <div className="modal" style={{ maxWidth: 400 }} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ marginBottom: 12 }}>Move Lead</h3>
-            <p style={{ color: 'var(--text-muted)', marginBottom: 20, fontSize: 14 }}>
-              Move <strong style={{ color: 'var(--text)' }}>{pendingMove.movedLead?.name || 'this lead'}</strong> to{' '}
-              <strong style={{ color: COL_COLORS[pendingMove.newStatus] }}>{pendingMove.newStatus}</strong>?
-            </p>
-            <div className="modal-actions">
-              <button className="btn btn-ghost" onClick={cancelMove}>Cancel</button>
-              <button className="btn btn-primary" onClick={confirmMove}>Confirm</button>
-            </div>
-          </div>
-        </div>
-      )}
     </Layout>
   );
 };
