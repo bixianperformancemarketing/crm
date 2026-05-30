@@ -13,6 +13,7 @@ const COL_COLORS = { New: '#0ea5e9', Discussion: '#f59e0b', Meeting: '#7c3aed', 
 const Pipeline = () => {
   const [pipeline, setPipeline] = useState({});
   const [loading, setLoading] = useState(true);
+  const [pendingMove, setPendingMove] = useState(null);
 
   const loadPipeline = async () => {
     try {
@@ -24,28 +25,28 @@ const Pipeline = () => {
 
   useEffect(() => { loadPipeline(); }, []);
 
-  const onDragEnd = async (result) => {
+  const onDragEnd = (result) => {
     const { source, destination, draggableId } = result;
-    if (!destination || (source.droppableId === destination.droppableId && source.index === destination.index)) return;
+    if (!destination || source.droppableId === destination.droppableId) return;
+
+    const newStatus = destination.droppableId;
+    const movedLead = (pipeline[source.droppableId] || [])[source.index];
+    setPendingMove({ draggableId, newStatus, source, destination, movedLead });
+  };
+
+  const confirmMove = async () => {
+    if (!pendingMove) return;
+    const { draggableId, newStatus, source, destination } = pendingMove;
 
     const newPipeline = { ...pipeline };
     const src = [...(newPipeline[source.droppableId] || [])];
-    const dst = source.droppableId === destination.droppableId ? src : [...(newPipeline[destination.droppableId] || [])];
-
+    const dst = [...(newPipeline[destination.droppableId] || [])];
     const [moved] = src.splice(source.index, 1);
-    const newStatus = destination.droppableId;
-    const updatedLead = { ...moved, status: newStatus };
-
-    if (source.droppableId === destination.droppableId) {
-      src.splice(destination.index, 0, updatedLead);
-      newPipeline[source.droppableId] = src;
-    } else {
-      dst.splice(destination.index, 0, updatedLead);
-      newPipeline[source.droppableId] = src;
-      newPipeline[destination.droppableId] = dst;
-    }
-
+    dst.splice(destination.index, 0, { ...moved, status: newStatus });
+    newPipeline[source.droppableId] = src;
+    newPipeline[destination.droppableId] = dst;
     setPipeline(newPipeline);
+    setPendingMove(null);
 
     try {
       await leadsAPI.update(draggableId, { status: newStatus });
@@ -55,6 +56,8 @@ const Pipeline = () => {
       loadPipeline();
     }
   };
+
+  const cancelMove = () => setPendingMove(null);
 
   if (loading) return <Layout title="Pipeline"><div className="loading-spinner"><div className="spinner" /></div></Layout>;
 
@@ -113,6 +116,22 @@ const Pipeline = () => {
           })}
         </div>
       </DragDropContext>
+
+      {pendingMove && (
+        <div className="modal-overlay" onClick={cancelMove}>
+          <div className="modal" style={{ maxWidth: 400 }} onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ marginBottom: 12 }}>Move Lead</h3>
+            <p style={{ color: 'var(--text-muted)', marginBottom: 20, fontSize: 14 }}>
+              Move <strong style={{ color: 'var(--text)' }}>{pendingMove.movedLead?.name || 'this lead'}</strong> to{' '}
+              <strong style={{ color: COL_COLORS[pendingMove.newStatus] }}>{pendingMove.newStatus}</strong>?
+            </p>
+            <div className="modal-actions">
+              <button className="btn btn-ghost" onClick={cancelMove}>Cancel</button>
+              <button className="btn btn-primary" onClick={confirmMove}>Confirm</button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 };
