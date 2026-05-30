@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  DragDropContext, Droppable, Draggable,
-  MouseSensor, TouchSensor, useSensor, useSensors,
-} from '@hello-pangea/dnd';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import toast from 'react-hot-toast';
 import Layout from '../components/layout/Layout';
 import { leadsAPI } from '../services/api';
@@ -16,13 +13,6 @@ const COL_COLORS = { New: '#0ea5e9', Discussion: '#f59e0b', Meeting: '#7c3aed', 
 const Pipeline = () => {
   const [pipeline, setPipeline] = useState({});
   const [loading, setLoading] = useState(true);
-
-  // Require 10px movement on mouse (prevents accidental click-drags),
-  // and 250ms hold + 5px tolerance on touch (prevents scroll-drags).
-  const sensors = useSensors(
-    useSensor(MouseSensor, { activationConstraint: { distance: 10 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
-  );
 
   const loadPipeline = async () => {
     try {
@@ -65,7 +55,7 @@ const Pipeline = () => {
         <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Drag cards to update status</div>
       </div>
 
-      <DragDropContext onDragEnd={onDragEnd} sensors={sensors}>
+      <DragDropContext onDragEnd={onDragEnd}>
         <div className="pipeline-board">
           {COLUMNS.map((col) => {
             const leads = pipeline[col] || [];
