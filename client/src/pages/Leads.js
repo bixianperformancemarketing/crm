@@ -10,6 +10,20 @@ import { formatDateTime, getStatusColor, getPriorityColor, getInitials, ENUMS } 
 import { useAuth } from '../context/AuthContext';
 import './Leads.css';
 
+const getLeadCity = (lead) => {
+  if (lead.city) return lead.city;
+  const meta = lead.metadata || {};
+  for (const k of Object.keys(meta)) {
+    if (/^city$/i.test(k) && meta[k]) return meta[k];
+  }
+  if (meta.rawFields) {
+    for (const k of Object.keys(meta.rawFields)) {
+      if (/^city$/i.test(k) && meta.rawFields[k]) return meta.rawFields[k];
+    }
+  }
+  return null;
+};
+
 const Leads = () => {
   const { user, org, hasFeature } = useAuth();
   const [leads, setLeads] = useState([]);
@@ -21,8 +35,8 @@ const Leads = () => {
   const [upgradeModal, setUpgradeModal] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
-  const [filters, setFilters] = useState({ search: '', status: '', source: '', priority: '', assignedTo: '', page: 1 });
-  const [form, setForm] = useState({ name: '', phone: '', email: '', source: 'Website', priority: 'Medium', status: 'New', assignedTo: '', campaign: '', clientAddress: '', clientType: 'Other' });
+  const [filters, setFilters] = useState({ search: '', status: '', source: '', priority: '', assignedTo: '', city: '', page: 1 });
+  const [form, setForm] = useState({ name: '', phone: '', email: '', source: 'Website', priority: 'Medium', status: 'New', assignedTo: '', campaign: '', city: '', clientAddress: '', clientType: 'Other' });
   const [importing, setImporting] = useState(false);
   const [importResults, setImportResults] = useState(null);
 
@@ -68,7 +82,7 @@ const Leads = () => {
       if (data.upgradeRequired) { setUpgradeModal(data); return; }
       toast.success(data.isDuplicate ? 'Duplicate lead detected' : 'Lead created!');
       setShowCreate(false);
-      setForm({ name: '', phone: '', email: '', source: 'Website', priority: 'Medium', status: 'New', assignedTo: '', campaign: '', clientAddress: '', clientType: 'Other' });
+      setForm({ name: '', phone: '', email: '', source: 'Website', priority: 'Medium', status: 'New', assignedTo: '', campaign: '', city: '', clientAddress: '', clientType: 'Other' });
       loadLeads();
     } catch (err) {
       const d = err.response?.data;
@@ -209,6 +223,7 @@ const Leads = () => {
           <option value="">All Sources</option>
           {ENUMS.LEAD_SOURCES.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
+        <input className="search-input" placeholder="🏙 Filter by city..." value={filters.city} onChange={(e) => updateFilter('city', e.target.value)} style={{ maxWidth: 160 }} />
         {user?.role === 'admin' && agents.length > 0 && (
           <select className="filter-select" value={filters.assignedTo} onChange={(e) => updateFilter('assignedTo', e.target.value)}>
             <option value="">All Agents</option>
@@ -274,7 +289,7 @@ const Leads = () => {
                       />
                     </th>
                   )}
-                  <th>Lead</th><th>Phone</th><th>Source</th><th>Priority</th><th>Status</th><th>Agent</th><th>Created</th><th>Actions</th>
+                  <th>Lead</th><th>Phone</th><th>City</th><th>Source</th><th>Priority</th><th>Status</th><th>Agent</th><th>Created</th><th>Actions</th>
                 </tr>
               </thead>
               <tbody onTouchMove={user?.role === 'admin' ? handleTouchMove : undefined} onTouchEnd={user?.role === 'admin' ? handleTouchEnd : undefined}>
@@ -306,6 +321,7 @@ const Leads = () => {
                       </div>
                     </td>
                     <td style={{ color: 'var(--text-muted)', fontSize: 13 }}>{lead.phone || '—'}</td>
+                    <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>{getLeadCity(lead) || '—'}</td>
                     <td style={{ fontSize: 12 }}>{lead.source}</td>
                     <td>
                       <span style={{ background: `rgba(${getPriorityColor(lead.priority).slice(1).match(/.{2}/g).map((x) => parseInt(x, 16)).join(',')},0.15)`, color: getPriorityColor(lead.priority), padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 700 }}>
@@ -357,7 +373,10 @@ const Leads = () => {
                 <div className="form-group"><label className="form-label">Client Type</label><select className="form-control" value={form.clientType} onChange={(e) => setForm({ ...form, clientType: e.target.value })}>{ENUMS.CLIENT_TYPES.map((t) => <option key={t}>{t}</option>)}</select></div>
                 {user?.role === 'admin' && agents.length > 0 && <div className="form-group"><label className="form-label">Assign To</label><select className="form-control" value={form.assignedTo} onChange={(e) => setForm({ ...form, assignedTo: e.target.value })}><option value="">Unassigned</option>{agents.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></div>}
               </div>
-              <div className="form-group"><label className="form-label">Address</label><textarea className="form-control" rows={2} value={form.clientAddress} onChange={(e) => setForm({ ...form, clientAddress: e.target.value })} /></div>
+              <div className="form-row">
+                <div className="form-group"><label className="form-label">City</label><input className="form-control" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} placeholder="e.g. Mumbai" /></div>
+                <div className="form-group"><label className="form-label">Address</label><textarea className="form-control" rows={2} value={form.clientAddress} onChange={(e) => setForm({ ...form, clientAddress: e.target.value })} /></div>
+              </div>
               <div className="modal-actions">
                 <button type="button" className="btn btn-ghost" onClick={() => setShowCreate(false)}>Cancel</button>
                 <button type="submit" className="btn btn-primary">Create Lead</button>

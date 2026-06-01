@@ -88,7 +88,7 @@ const processLead = async (leadData, org, workspace, source) => {
   const newLead = {
     organizationId: org.id, workspaceId: workspace.id,
     name: leadData.name || 'Unknown Lead', phone: leadData.phone, email: leadData.email,
-    source, campaign: leadData.campaign, priority: 'Medium', status: 'New',
+    source, campaign: leadData.campaign, city: leadData.city || null, priority: 'Medium', status: 'New',
     assignedTo, metadata: leadData.metadata || {},
   };
   newLead.score = calculateLeadScore(newLead);
@@ -154,7 +154,8 @@ const parseMeta = (body) => {
         if (/name/i.test(field_name)) return;
         if (/phone|mobile|contact/i.test(field_name)) data.phone = val;
         else if (/email/i.test(field_name)) data.email = val;
-        else if (/city|address|location/i.test(field_name)) data.clientAddress = val;
+        else if (/^city$/i.test(field_name)) data.city = val;
+        else if (/address|location/i.test(field_name)) data.clientAddress = val;
         else data.metadata[field_name] = val;
       });
       if (leadgenId) data.metadata.meta_leadgen_id = leadgenId;
@@ -247,7 +248,7 @@ const parseGoogle = (body) => {
     data.name = fullName || [firstName, lastName].filter(Boolean).join(' ') || 'Google Ads Lead';
     data.phone = phone || body.phone_number;
     data.email = email || body.email;
-    if (city) data.clientAddress = city;
+    if (city) data.city = city;
     data.campaign = body.campaign_name || body.ad_group_name || body.lead_form_name;
     data.metadata = {
       google_gclid: body.gclid,

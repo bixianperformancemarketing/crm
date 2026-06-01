@@ -137,6 +137,7 @@ const Lead = sequelize.define('Lead', {
   assignedTo: { type: DataTypes.INTEGER, allowNull: true },
   nextFollowup: { type: DataTypes.DATE },
   lastCallNote: { type: DataTypes.TEXT },
+  city: { type: DataTypes.STRING(100) },
   clientAddress: { type: DataTypes.TEXT },
   clientGST: { type: DataTypes.STRING(20) },
   clientType: {
@@ -623,6 +624,32 @@ const syncDatabase = async () => {
     // Expand leads source ENUM to include 'Quotation' and 'Invoice'
     try {
       await sequelize.query(`ALTER TABLE leads MODIFY source ENUM('Meta Ads','Google Ads','Website','WhatsApp','Reference','Telecalling','Social Media','CSV Import','Instagram DM','Quotation','Justdial','Invoice','Other') DEFAULT 'Other'`);
+    } catch (e) { /* ignore */ }
+
+    // Add city column to leads if missing
+    try {
+      const leadColumns = await qi.describeTable('leads');
+      if (!leadColumns.city) {
+        await qi.addColumn('leads', 'city', { type: DataTypes.STRING(100), allowNull: true });
+      }
+    } catch (e) { /* ignore */ }
+
+    // Backfill city column from metadata for existing leads
+    try {
+      const leadsWithoutCity = await Lead.findAll({ where: { city: null }, attributes: ['id', 'metadata'] });
+      for (const lead of leadsWithoutCity) {
+        const meta = lead.metadata || {};
+        let city = null;
+        for (const k of Object.keys(meta)) {
+          if (/^city$/i.test(k) && meta[k]) { city = meta[k]; break; }
+        }
+        if (!city && meta.rawFields) {
+          for (const k of Object.keys(meta.rawFields)) {
+            if (/^city$/i.test(k) && meta.rawFields[k]) { city = meta.rawFields[k]; break; }
+          }
+        }
+        if (city) await lead.update({ city });
+      }
     } catch (e) { /* ignore */ }
 
     // Auto-generate tokens for workspaces that don't have one

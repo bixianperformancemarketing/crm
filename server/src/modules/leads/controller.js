@@ -24,7 +24,7 @@ const findLeastLoadedAgent = async (workspaceId, organizationId) => {
 const getLeads = async (req, res) => {
   try {
     const { workspaceId, user } = req;
-    const { page = 1, limit = 20, search, status, source, priority, assignedTo, dateFrom, dateTo, sort = 'createdAt', order = 'DESC' } = req.query;
+    const { page = 1, limit = 20, search, status, source, priority, assignedTo, city, dateFrom, dateTo, sort = 'createdAt', order = 'DESC' } = req.query;
     const { limit: lim, offset } = paginate(page, limit);
 
     const where = { organizationId: user.organizationId, workspaceId };
@@ -40,6 +40,7 @@ const getLeads = async (req, res) => {
     if (source) where.source = source;
     if (priority) where.priority = priority;
     if (assignedTo) where.assignedTo = assignedTo;
+    if (city) where.city = { [Op.like]: `%${city}%` };
     if (dateFrom || dateTo) {
       where.createdAt = {};
       if (dateFrom) where.createdAt[Op.gte] = new Date(dateFrom);
@@ -97,7 +98,7 @@ const createLead = async (req, res) => {
     const { user, workspaceId, org } = req;
     const {
       name, phone, email, source, campaign, priority, status,
-      assignedTo, clientAddress, clientGST, clientType, nextFollowup,
+      assignedTo, city, clientAddress, clientGST, clientType, nextFollowup,
       metadata = {},
     } = req.body;
 
@@ -117,7 +118,7 @@ const createLead = async (req, res) => {
       }
     }
 
-    const leadData = { organizationId: user.organizationId, workspaceId, name, phone, email, source, campaign, priority: priority || 'Medium', status: status || 'New', assignedTo: assignedTo || null, clientAddress, clientGST, clientType: clientType || 'Other', nextFollowup, lastCallNote: '', metadata };
+    const leadData = { organizationId: user.organizationId, workspaceId, name, phone, email, source, campaign, priority: priority || 'Medium', status: status || 'New', assignedTo: assignedTo || null, city, clientAddress, clientGST, clientType: clientType || 'Other', nextFollowup, lastCallNote: '', metadata };
     leadData.score = calculateLeadScore(leadData);
     leadData.isHot = isHotLead(leadData);
 
@@ -157,7 +158,7 @@ const updateLead = async (req, res) => {
     if (!lead) return res.status(404).json({ success: false, message: 'Lead not found' });
 
     const prevStatus = lead.status;
-    const allowed = ['name', 'phone', 'email', 'source', 'campaign', 'priority', 'status', 'assignedTo', 'clientAddress', 'clientGST', 'clientType', 'nextFollowup', 'lastCallNote', 'metadata'];
+    const allowed = ['name', 'phone', 'email', 'source', 'campaign', 'priority', 'status', 'assignedTo', 'city', 'clientAddress', 'clientGST', 'clientType', 'nextFollowup', 'lastCallNote', 'metadata'];
     const updates = {};
     for (const key of allowed) {
       if (req.body[key] !== undefined) updates[key] = req.body[key];
@@ -306,7 +307,7 @@ const importCSV = async (req, res) => {
         const leadData = {
           organizationId: user.organizationId, workspaceId,
           name: data.name || 'Unknown', phone: data.phone, email: data.email,
-          source: 'CSV Import', campaign: data.campaign, clientAddress: data.clientAddress,
+          source: 'CSV Import', campaign: data.campaign, city: data.city, clientAddress: data.clientAddress,
           priority: 'Medium', status: 'New', assignedTo: autoAgentId, metadata: data.metadata || {},
         };
         leadData.score = calculateLeadScore(leadData);

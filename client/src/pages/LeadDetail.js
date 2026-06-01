@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import Layout from '../components/layout/Layout';
-import { leadsAPI, followupsAPI, appointmentsAPI, communicationAPI, usersAPI } from '../services/api';
+import { leadsAPI, followupsAPI, appointmentsAPI, quotationsAPI, communicationAPI, usersAPI } from '../services/api';
 import { formatDateTime, getStatusColor, getPriorityColor, ENUMS, timeAgo } from '../utils/helpers';
 import { useAuth } from '../context/AuthContext';
 import './LeadDetail.css';
@@ -51,13 +51,17 @@ const LeadDetail = () => {
   const [followupForm, setFollowupForm] = useState({ scheduledAt: '', note: '' });
   const [showEmail, setShowEmail] = useState(false);
   const [emailForm, setEmailForm] = useState({ subject: '', body: '' });
+  const [showAppointment, setShowAppointment] = useState(false);
+  const [appointmentForm, setAppointmentForm] = useState({ title: '', startTime: '', endTime: '', type: 'Meeting', location: '', description: '' });
+  const [showQuotation, setShowQuotation] = useState(false);
+  const [quotationForm, setQuotationForm] = useState({ clientName: '', clientEmail: '', clientPhone: '', clientAddress: '', clientGST: '', gstPercent: 18, terms: '', notes: '', validUntil: '', items: [{ description: '', quantity: 1, unitPrice: 0, totalPrice: 0 }] });
   const [saving, setSaving] = useState(false);
 
   const loadLead = async () => {
     try {
       const { data } = await leadsAPI.get(id);
       setLead(data.lead);
-      setEditForm({ name: data.lead.name, phone: data.lead.phone || '', email: data.lead.email || '', source: data.lead.source, priority: data.lead.priority, status: data.lead.status, assignedTo: data.lead.assignedTo || '', clientAddress: data.lead.clientAddress || '', clientGST: data.lead.clientGST || '', clientType: data.lead.clientType || 'Other', campaign: data.lead.campaign || '' });
+      setEditForm({ name: data.lead.name, phone: data.lead.phone || '', email: data.lead.email || '', source: data.lead.source, priority: data.lead.priority, status: data.lead.status, assignedTo: data.lead.assignedTo || '', city: data.lead.city || '', clientAddress: data.lead.clientAddress || '', clientGST: data.lead.clientGST || '', clientType: data.lead.clientType || 'Other', campaign: data.lead.campaign || '' });
     } catch { toast.error('Lead not found'); navigate('/leads'); }
     finally { setLoading(false); }
   };
@@ -107,6 +111,46 @@ const LeadDetail = () => {
       setFollowupForm({ scheduledAt: '', note: '' });
       loadLead();
     } catch { toast.error('Failed to schedule followup'); } finally { setSaving(false); }
+  };
+
+  const handleAppointment = async () => {
+    if (!appointmentForm.title.trim()) return toast.error('Title is required');
+    if (!appointmentForm.startTime) return toast.error('Start time is required');
+    if (!appointmentForm.endTime) return toast.error('End time is required');
+    setSaving(true);
+    try {
+      await appointmentsAPI.create({ leadId: parseInt(id), ...appointmentForm });
+      toast.success('Appointment scheduled');
+      setShowAppointment(false);
+      setAppointmentForm({ title: '', startTime: '', endTime: '', type: 'Meeting', location: '', description: '' });
+      navigate('/appointments');
+    } catch { toast.error('Failed to schedule appointment'); } finally { setSaving(false); }
+  };
+
+  const handleCreateQuotation = async () => {
+    if (!quotationForm.clientName.trim()) return toast.error('Client name is required');
+    if (!quotationForm.clientPhone.trim()) return toast.error('Phone is required');
+    if (!quotationForm.clientEmail.trim()) return toast.error('Email is required');
+    if (!quotationForm.clientAddress.trim()) return toast.error('Address is required');
+    const validItems = quotationForm.items.filter((i) => i.description?.trim());
+    if (!validItems.length) return toast.error('At least one item with description is required');
+    setSaving(true);
+    try {
+      await quotationsAPI.create({ leadId: parseInt(id), ...quotationForm, items: validItems });
+      toast.success('Quotation created');
+      setShowQuotation(false);
+      setQuotationForm({ clientName: '', clientEmail: '', clientPhone: '', clientAddress: '', clientGST: '', gstPercent: 18, terms: '', notes: '', validUntil: '', items: [{ description: '', quantity: 1, unitPrice: 0, totalPrice: 0 }] });
+      navigate('/quotations');
+    } catch { toast.error('Failed to create quotation'); } finally { setSaving(false); }
+  };
+
+  const updateQuotationItem = (i, field, val) => {
+    const items = [...quotationForm.items];
+    items[i] = { ...items[i], [field]: val };
+    if (field === 'quantity' || field === 'unitPrice') {
+      items[i].totalPrice = parseFloat(items[i].quantity || 0) * parseFloat(items[i].unitPrice || 0);
+    }
+    setQuotationForm({ ...quotationForm, items });
   };
 
   const handleEmail = async () => {
@@ -159,6 +203,8 @@ const LeadDetail = () => {
           <button className="btn btn-ghost btn-sm" onClick={() => setShowCall(true)}>📋 Log Call</button>
           <button className="btn btn-ghost btn-sm" onClick={() => setShowNote(true)}>📝 Note</button>
           <button className="btn btn-ghost btn-sm" onClick={() => setShowFollowup(true)}>⏰ Followup</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => setShowAppointment(true)}>📅 Appointment</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => { setQuotationForm({ clientName: lead.name || '', clientEmail: lead.email || '', clientPhone: lead.phone || '', clientAddress: lead.clientAddress || '', clientGST: lead.clientGST || '', gstPercent: 18, terms: '', notes: '', validUntil: '', items: [{ description: '', quantity: 1, unitPrice: 0, totalPrice: 0 }] }); setShowQuotation(true); }}>📋 Quotation</button>
           {lead.email && <button className="btn btn-ghost btn-sm" onClick={() => setShowEmail(true)}>✉️ Email</button>}
           {!editing ? <button className="btn btn-primary btn-sm" onClick={() => setEditing(true)}>✏️ Edit</button> : (
             <>
@@ -191,8 +237,11 @@ const LeadDetail = () => {
                 <div className="form-group"><label className="form-label">Client Type</label><select className="form-control" value={editForm.clientType} onChange={(e) => setEditForm({ ...editForm, clientType: e.target.value })}>{ENUMS.CLIENT_TYPES.map((t) => <option key={t}>{t}</option>)}</select></div>
               </div>
               {user?.role === 'admin' && agents.length > 0 && <div className="form-group"><label className="form-label">Assign To</label><select className="form-control" value={editForm.assignedTo} onChange={(e) => setEditForm({ ...editForm, assignedTo: e.target.value })}><option value="">Unassigned</option>{agents.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></div>}
+              <div className="form-row">
+                <div className="form-group"><label className="form-label">City</label><input className="form-control" value={editForm.city} onChange={(e) => setEditForm({ ...editForm, city: e.target.value })} placeholder="e.g. Mumbai" /></div>
+                <div className="form-group"><label className="form-label">GST Number</label><input className="form-control" value={editForm.clientGST} onChange={(e) => setEditForm({ ...editForm, clientGST: e.target.value })} /></div>
+              </div>
               <div className="form-group"><label className="form-label">Client Address</label><textarea className="form-control" rows={2} value={editForm.clientAddress} onChange={(e) => setEditForm({ ...editForm, clientAddress: e.target.value })} /></div>
-              <div className="form-group"><label className="form-label">GST Number</label><input className="form-control" value={editForm.clientGST} onChange={(e) => setEditForm({ ...editForm, clientGST: e.target.value })} /></div>
             </div>
           )}
 
@@ -222,7 +271,7 @@ const LeadDetail = () => {
               <h4>Lead Information</h4>
               {[
                 ['Source', lead.source], ['Campaign', lead.campaign], ['Client Type', lead.clientType],
-                ['Address', lead.clientAddress], ['GST', lead.clientGST],
+                ['City', lead.city || (() => { const m = lead.metadata || {}; for (const k of Object.keys(m)) { if (/^city$/i.test(k) && m[k]) return m[k]; } if (m.rawFields) { for (const k of Object.keys(m.rawFields)) { if (/^city$/i.test(k) && m.rawFields[k]) return m.rawFields[k]; } } return null; })()], ['Address', lead.clientAddress], ['GST', lead.clientGST],
                 ['Next Followup', lead.nextFollowup ? formatDateTime(lead.nextFollowup) : null],
                 ['Last Note', lead.lastCallNote],
                 ['Created', formatDateTime(lead.createdAt)],
@@ -326,6 +375,78 @@ const LeadDetail = () => {
             <div className="form-group"><label className="form-label">Subject</label><input className="form-control" value={emailForm.subject} onChange={(e) => setEmailForm({ ...emailForm, subject: e.target.value })} /></div>
             <div className="form-group"><label className="form-label">Message</label><textarea className="form-control" rows={6} value={emailForm.body} onChange={(e) => setEmailForm({ ...emailForm, body: e.target.value })} /></div>
             <div className="modal-actions"><button className="btn btn-ghost" onClick={() => setShowEmail(false)}>Cancel</button><button className="btn btn-primary" onClick={handleEmail} disabled={saving}>{saving ? 'Sending...' : 'Send Email'}</button></div>
+          </div>
+        </div>
+      )}
+
+      {showAppointment && (
+        <div className="modal-overlay" onClick={() => setShowAppointment(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h3>Schedule Appointment</h3>
+            <button className="modal-close" onClick={() => setShowAppointment(false)}>×</button>
+            <div className="form-group"><label className="form-label">Title *</label><input className="form-control" value={appointmentForm.title} onChange={(e) => setAppointmentForm({ ...appointmentForm, title: e.target.value })} placeholder="e.g. Product Demo" /></div>
+            <div className="form-row">
+              <div className="form-group"><label className="form-label">Start Time *</label><input className="form-control" type="datetime-local" value={appointmentForm.startTime} onChange={(e) => setAppointmentForm({ ...appointmentForm, startTime: e.target.value })} /></div>
+              <div className="form-group"><label className="form-label">End Time *</label><input className="form-control" type="datetime-local" value={appointmentForm.endTime} onChange={(e) => setAppointmentForm({ ...appointmentForm, endTime: e.target.value })} /></div>
+            </div>
+            <div className="form-row">
+              <div className="form-group"><label className="form-label">Type</label><select className="form-control" value={appointmentForm.type} onChange={(e) => setAppointmentForm({ ...appointmentForm, type: e.target.value })}>{['Call', 'Meeting', 'Demo', 'Site Visit', 'Follow-up', 'Other'].map((t) => <option key={t}>{t}</option>)}</select></div>
+              <div className="form-group"><label className="form-label">Location</label><input className="form-control" value={appointmentForm.location} onChange={(e) => setAppointmentForm({ ...appointmentForm, location: e.target.value })} placeholder="Office / Google Meet / ..." /></div>
+            </div>
+            <div className="form-group"><label className="form-label">Description</label><textarea className="form-control" rows={2} value={appointmentForm.description} onChange={(e) => setAppointmentForm({ ...appointmentForm, description: e.target.value })} /></div>
+            <div className="modal-actions"><button className="btn btn-ghost" onClick={() => setShowAppointment(false)}>Cancel</button><button className="btn btn-primary" onClick={handleAppointment} disabled={saving}>{saving ? 'Saving...' : 'Schedule'}</button></div>
+          </div>
+        </div>
+      )}
+
+      {showQuotation && (
+        <div className="modal-overlay" onClick={() => setShowQuotation(false)}>
+          <div className="modal" style={{ maxWidth: 700 }} onClick={(e) => e.stopPropagation()}>
+            <h3>Create Quotation for {lead.name}</h3>
+            <button className="modal-close" onClick={() => setShowQuotation(false)}>×</button>
+            <div className="form-row">
+              <div className="form-group"><label className="form-label">Client Name *</label><input className="form-control" value={quotationForm.clientName} onChange={(e) => setQuotationForm({ ...quotationForm, clientName: e.target.value })} /></div>
+              <div className="form-group"><label className="form-label">Phone *</label><input className="form-control" value={quotationForm.clientPhone} onChange={(e) => setQuotationForm({ ...quotationForm, clientPhone: e.target.value })} /></div>
+            </div>
+            <div className="form-row">
+              <div className="form-group"><label className="form-label">Email *</label><input className="form-control" value={quotationForm.clientEmail} onChange={(e) => setQuotationForm({ ...quotationForm, clientEmail: e.target.value })} /></div>
+              <div className="form-group"><label className="form-label">GST Number</label><input className="form-control" value={quotationForm.clientGST} onChange={(e) => setQuotationForm({ ...quotationForm, clientGST: e.target.value })} /></div>
+            </div>
+            <div className="form-group"><label className="form-label">Address *</label><textarea className="form-control" rows={2} value={quotationForm.clientAddress} onChange={(e) => setQuotationForm({ ...quotationForm, clientAddress: e.target.value })} /></div>
+            <div style={{ marginBottom: 8 }}><label className="form-label">Items</label></div>
+            <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 12, fontSize: 13 }}>
+              <thead><tr style={{ color: 'var(--text-muted)' }}><th style={{ textAlign: 'left', paddingBottom: 6 }}>Description</th><th style={{ width: 70, textAlign: 'right', paddingBottom: 6 }}>Qty</th><th style={{ width: 100, textAlign: 'right', paddingBottom: 6 }}>Unit Price</th><th style={{ width: 100, textAlign: 'right', paddingBottom: 6 }}>Total</th><th style={{ width: 30 }} /></tr></thead>
+              <tbody>
+                {quotationForm.items.map((item, i) => (
+                  <tr key={i}>
+                    <td><input className="form-control" style={{ marginBottom: 4 }} value={item.description} onChange={(e) => updateQuotationItem(i, 'description', e.target.value)} placeholder="Item description" /></td>
+                    <td style={{ paddingLeft: 6 }}><input className="form-control" type="number" min="1" value={item.quantity} onChange={(e) => updateQuotationItem(i, 'quantity', e.target.value)} /></td>
+                    <td style={{ paddingLeft: 6 }}><input className="form-control" type="number" min="0" value={item.unitPrice} onChange={(e) => updateQuotationItem(i, 'unitPrice', e.target.value)} /></td>
+                    <td style={{ paddingLeft: 6, color: 'var(--text-muted)', textAlign: 'right', paddingTop: 8 }}>₹{parseFloat(item.totalPrice || 0).toLocaleString('en-IN')}</td>
+                    <td style={{ paddingLeft: 6 }}>{quotationForm.items.length > 1 && <button type="button" style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 16 }} onClick={() => setQuotationForm({ ...quotationForm, items: quotationForm.items.filter((_, j) => j !== i) })}>×</button>}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <button type="button" className="btn btn-ghost btn-sm" style={{ marginBottom: 12 }} onClick={() => setQuotationForm({ ...quotationForm, items: [...quotationForm.items, { description: '', quantity: 1, unitPrice: 0, totalPrice: 0 }] })}>+ Add Item</button>
+            <div className="form-row">
+              <div className="form-group"><label className="form-label">GST %</label><input className="form-control" type="number" min="0" max="100" value={quotationForm.gstPercent} onChange={(e) => setQuotationForm({ ...quotationForm, gstPercent: e.target.value })} /></div>
+              <div className="form-group"><label className="form-label">Valid Until</label><input className="form-control" type="date" value={quotationForm.validUntil} onChange={(e) => setQuotationForm({ ...quotationForm, validUntil: e.target.value })} /></div>
+            </div>
+            {(() => {
+              const sub = quotationForm.items.reduce((s, i) => s + parseFloat(i.totalPrice || 0), 0);
+              const gst = (sub * parseFloat(quotationForm.gstPercent || 0)) / 100;
+              return (
+                <div style={{ background: 'var(--surface)', borderRadius: 8, padding: '10px 14px', marginBottom: 12, fontSize: 13 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Subtotal</span><span>₹{sub.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>GST ({quotationForm.gstPercent}%)</span><span>₹{gst.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, marginTop: 6 }}><span>Total</span><span>₹{(sub + gst).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
+                </div>
+              );
+            })()}
+            <div className="form-group"><label className="form-label">Terms</label><textarea className="form-control" rows={2} value={quotationForm.terms} onChange={(e) => setQuotationForm({ ...quotationForm, terms: e.target.value })} /></div>
+            <div className="form-group"><label className="form-label">Notes</label><textarea className="form-control" rows={2} value={quotationForm.notes} onChange={(e) => setQuotationForm({ ...quotationForm, notes: e.target.value })} /></div>
+            <div className="modal-actions"><button className="btn btn-ghost" onClick={() => setShowQuotation(false)}>Cancel</button><button className="btn btn-primary" onClick={handleCreateQuotation} disabled={saving}>{saving ? 'Creating...' : 'Create Quotation'}</button></div>
           </div>
         </div>
       )}

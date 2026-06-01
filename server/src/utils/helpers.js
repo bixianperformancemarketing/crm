@@ -147,7 +147,8 @@ const mapCSVFieldToLead = (headers, row) => {
   const nameKeys = ['name', 'full name', 'fullname', 'customer name', 'client name', 'full_name'];
   const phoneKeys = ['phone', 'mobile', 'phone number', 'contact', 'mobile number'];
   const emailKeys = ['email', 'email address', 'mail'];
-  const addressKeys = ['city', 'address', 'location', 'client address'];
+  const cityKeys = ['city'];
+  const addressKeys = ['address', 'location', 'client address'];
   const sourceKeys = ['source', 'lead source'];
   const campaignKeys = ['campaign', 'campaign name', 'campaign_name'];
 
@@ -159,7 +160,7 @@ const mapCSVFieldToLead = (headers, row) => {
   };
 
   const usedKeys = new Set([
-    ...nameKeys, ...phoneKeys, ...emailKeys, ...addressKeys,
+    ...nameKeys, ...phoneKeys, ...emailKeys, ...cityKeys, ...addressKeys,
     ...sourceKeys, ...campaignKeys,
   ]);
 
@@ -176,6 +177,7 @@ const mapCSVFieldToLead = (headers, row) => {
     name: findValue(nameKeys),
     phone,
     email: findValue(emailKeys),
+    city: findValue(cityKeys),
     clientAddress: findValue(addressKeys),
     source: findValue(sourceKeys) || 'CSV Import',
     campaign: findValue(campaignKeys),

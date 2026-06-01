@@ -105,7 +105,7 @@ const createQuotation = async (req, res) => {
       clientName: clientName || lead?.name, clientEmail: clientEmail || lead?.email,
       clientPhone: clientPhone || lead?.phone, clientAddress: clientAddress || lead?.clientAddress,
       clientGST: clientGST || lead?.clientGST,
-      status: 'Draft', subtotal, gstPercent, gstAmount, totalAmount, terms, notes, validUntil,
+      status: 'Draft', subtotal, gstPercent, gstAmount, totalAmount, terms, notes, validUntil: validUntil || null,
     });
 
     const itemsData = items.map((item) => ({
