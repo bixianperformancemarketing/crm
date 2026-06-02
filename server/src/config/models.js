@@ -296,6 +296,8 @@ const QuotationItem = sequelize.define('QuotationItem', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
   quotationId: { type: DataTypes.INTEGER, allowNull: false },
   description: { type: DataTypes.STRING(255), allowNull: false },
+  subDescription: { type: DataTypes.TEXT, allowNull: true },
+  subItems: { type: DataTypes.JSON, defaultValue: [] },
   quantity: { type: DataTypes.DECIMAL(10, 2), defaultValue: 1 },
   unitPrice: { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
   totalPrice: { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
@@ -335,6 +337,8 @@ const InvoiceItem = sequelize.define('InvoiceItem', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
   invoiceId: { type: DataTypes.INTEGER, allowNull: false },
   description: { type: DataTypes.STRING(255), allowNull: false },
+  subDescription: { type: DataTypes.TEXT, allowNull: true },
+  subItems: { type: DataTypes.JSON, defaultValue: [] },
   quantity: { type: DataTypes.DECIMAL(10, 2), defaultValue: 1 },
   unitPrice: { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
   totalPrice: { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
@@ -368,27 +372,15 @@ const ContentTask = sequelize.define('ContentTask', {
   createdBy: { type: DataTypes.INTEGER, allowNull: false },
   title: { type: DataTypes.STRING(255), allowNull: false },
   description: { type: DataTypes.TEXT },
-  platform: {
-    type: DataTypes.ENUM(
-      'Instagram', 'Facebook', 'LinkedIn', 'YouTube',
-      'Twitter/X', 'Website', 'Google', 'WhatsApp', 'Other'
-    ),
-    defaultValue: 'Instagram',
-  },
-  contentType: {
-    type: DataTypes.ENUM(
-      'Post', 'Story', 'Reel', 'Video', 'Blog',
-      'Ad Creative', 'Banner', 'Logo', 'Brochure', 'Other'
-    ),
-    defaultValue: 'Post',
+  priority: {
+    type: DataTypes.ENUM('Low', 'Medium', 'High'),
+    defaultValue: 'Medium',
   },
   status: {
-    type: DataTypes.ENUM('Pending', 'In Progress', 'Review', 'Approved', 'Published', 'Rejected'),
+    type: DataTypes.ENUM('Pending', 'In Progress', 'Review', 'Approved', 'Published', 'Rejected', 'Done', 'Cancelled'),
     defaultValue: 'Pending',
   },
   dueDate: { type: DataTypes.DATEONLY },
-  publishDate: { type: DataTypes.DATEONLY },
-  fileUrl: { type: DataTypes.STRING(255) },
   notes: { type: DataTypes.TEXT },
 }, { tableName: 'content_tasks' });
 
@@ -621,6 +613,19 @@ const syncDatabase = async () => {
       await sequelize.query(`ALTER TABLE quotations MODIFY status ENUM('Draft','Sent','Approved','Rejected','Not Responding') NOT NULL DEFAULT 'Draft'`);
     } catch (e) { /* ignore */ }
 
+    // Expand content_tasks status ENUM to include 'Done' and 'Cancelled'
+    try {
+      await sequelize.query(`ALTER TABLE content_tasks MODIFY status ENUM('Pending','In Progress','Review','Approved','Published','Rejected','Done','Cancelled') NOT NULL DEFAULT 'Pending'`);
+    } catch (e) { /* ignore */ }
+
+    // Add priority column to content_tasks if missing
+    try {
+      const ctCols = await qi.describeTable('content_tasks');
+      if (!ctCols.priority) {
+        await qi.addColumn('content_tasks', 'priority', { type: DataTypes.ENUM('Low', 'Medium', 'High'), defaultValue: 'Medium', allowNull: true });
+      }
+    } catch (e) { /* ignore */ }
+
     // Expand leads source ENUM to include 'Quotation' and 'Invoice'
     try {
       await sequelize.query(`ALTER TABLE leads MODIFY source ENUM('Meta Ads','Google Ads','Website','WhatsApp','Reference','Telecalling','Social Media','CSV Import','Instagram DM','Quotation','Justdial','Invoice','Other') DEFAULT 'Other'`);
@@ -631,6 +636,27 @@ const syncDatabase = async () => {
       const leadColumns = await qi.describeTable('leads');
       if (!leadColumns.city) {
         await qi.addColumn('leads', 'city', { type: DataTypes.STRING(100), allowNull: true });
+      }
+    } catch (e) { /* ignore */ }
+
+    // Add subDescription and subItems to quotation_items and invoice_items if missing
+    try {
+      const qiCols = await qi.describeTable('quotation_items');
+      if (!qiCols.subDescription) {
+        await qi.addColumn('quotation_items', 'subDescription', { type: DataTypes.TEXT, allowNull: true });
+      }
+      if (!qiCols.subItems) {
+        await qi.addColumn('quotation_items', 'subItems', { type: DataTypes.JSON, allowNull: true });
+      }
+    } catch (e) { /* ignore */ }
+
+    try {
+      const iiCols = await qi.describeTable('invoice_items');
+      if (!iiCols.subDescription) {
+        await qi.addColumn('invoice_items', 'subDescription', { type: DataTypes.TEXT, allowNull: true });
+      }
+      if (!iiCols.subItems) {
+        await qi.addColumn('invoice_items', 'subItems', { type: DataTypes.JSON, allowNull: true });
       }
     } catch (e) { /* ignore */ }
 

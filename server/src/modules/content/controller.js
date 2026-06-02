@@ -5,13 +5,12 @@ const { paginate, paginateResponse } = require('../../utils/helpers');
 const getTasks = async (req, res) => {
   try {
     const { user, workspaceId } = req;
-    const { page = 1, limit = 20, status, platform, assignedTo, dateFrom, dateTo } = req.query;
+    const { page = 1, limit = 20, status, assignedTo, dateFrom, dateTo } = req.query;
     const { limit: lim, offset } = paginate(page, limit);
 
     const where = { organizationId: user.organizationId, workspaceId };
     if (user.role === 'employee') where.assignedTo = user.id;
     if (status) where.status = status;
-    if (platform) where.platform = platform;
     if (assignedTo && user.role !== 'employee') where.assignedTo = assignedTo;
     if (dateFrom || dateTo) {
       where.dueDate = {};
@@ -89,15 +88,15 @@ const getTask = async (req, res) => {
 const createTask = async (req, res) => {
   try {
     const { user, workspaceId } = req;
-    const { leadId, title, description, platform, contentType, assignedTo, dueDate, publishDate, notes } = req.body;
+    const { leadId, title, description, assignedTo, dueDate, priority, notes } = req.body;
     if (!title) return res.status(400).json({ success: false, message: 'Title is required' });
 
     const task = await ContentTask.create({
       organizationId: user.organizationId, workspaceId,
       leadId: leadId || null, assignedTo: assignedTo || null, createdBy: user.id,
-      title, description: description || '', platform: platform || 'Instagram',
-      contentType: contentType || 'Post', status: 'Pending',
-      dueDate: dueDate || null, publishDate: publishDate || null, notes: notes || '',
+      title, description: description || '',
+      priority: priority || 'Medium', status: 'Pending',
+      dueDate: dueDate || null, notes: notes || '',
     });
     res.status(201).json({ success: true, message: 'Content task created', task });
   } catch (err) {
@@ -115,7 +114,7 @@ const updateTask = async (req, res) => {
     const task = await ContentTask.findOne({ where });
     if (!task) return res.status(404).json({ success: false, message: 'Task not found' });
 
-    const allowed = ['title', 'description', 'platform', 'contentType', 'status', 'assignedTo', 'dueDate', 'publishDate', 'fileUrl', 'notes'];
+    const allowed = ['title', 'description', 'priority', 'status', 'assignedTo', 'dueDate', 'notes'];
     const updates = {};
     for (const k of allowed) { if (req.body[k] !== undefined) updates[k] = req.body[k]; }
     await task.update(updates);

@@ -14,5 +14,6 @@ router.put('/:id/status', ctrl.updateStatus);
 router.get('/:id/pdf', checkFeature('canUsePDF'), ctrl.downloadPDF);
 router.post('/:id/send-email', checkFeature('canUsePDF'), ctrl.sendEmail);
 router.post('/:id/whatsapp-share', checkFeature('canUsePDF'), ctrl.whatsappShare);
+router.delete('/:id', ctrl.deleteQuotation);
 
 module.exports = router;

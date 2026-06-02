@@ -846,7 +846,8 @@ const Settings = () => {
   const [pwSaving, setPwSaving] = useState(false);
 
   const [wsForm, setWsForm] = useState({ name: '', description: '' });
-  const [orgSettings, setOrgSettings] = useState({ companyName: '', companyAddress: '', companyPhone: '', companyEmail: '', companyGST: '', companyWebsite: '', logoUrl: '' });
+  const [orgSettings, setOrgSettings] = useState({ companyName: '', companyAddress: '', companyPhone: '', companyEmail: '', companyGST: '', companyWebsite: '', logoUrl: '', signatureUrl: '', signatoryName: '', signatoryDesignation: '' });
+  const [bankDetails, setBankDetails] = useState({ bankName: '', accountHolder: '', accountNumber: '', ifscCode: '', upiId: '' });
   const [smtpForm, setSmtpForm] = useState({ host: '', port: 587, user: '', pass: '', from: '', secure: false });
   const [testEmail, setTestEmail] = useState('');
 
@@ -866,7 +867,12 @@ const Settings = () => {
         companyGST: b.gst || '',
         companyWebsite: b.website || '',
         logoUrl: b.logo || '',
+        signatureUrl: b.signature || '',
+        signatoryName: b.signatoryName || '',
+        signatoryDesignation: b.signatoryDesignation || '',
       });
+      const bd = s.bankDetails || {};
+      setBankDetails({ bankName: bd.bankName || '', accountHolder: bd.accountHolder || '', accountNumber: bd.accountNumber || '', ifscCode: bd.ifscCode || '', upiId: bd.upiId || '' });
       if (s.smtp) {
         setSmtpForm({ host: s.smtp.host || '', port: s.smtp.port || 587, user: s.smtp.user || '', pass: '', from: s.smtp.from || '', secure: s.smtp.secure || false });
       }
@@ -899,6 +905,16 @@ const Settings = () => {
             gst: orgSettings.companyGST,
             website: orgSettings.companyWebsite,
             logo: orgSettings.logoUrl,
+            signature: orgSettings.signatureUrl,
+            signatoryName: orgSettings.signatoryName,
+            signatoryDesignation: orgSettings.signatoryDesignation,
+          },
+          bankDetails: {
+            bankName: bankDetails.bankName,
+            accountHolder: bankDetails.accountHolder,
+            accountNumber: bankDetails.accountNumber,
+            ifscCode: bankDetails.ifscCode,
+            upiId: bankDetails.upiId,
           },
         },
       });
@@ -993,6 +1009,25 @@ const Settings = () => {
             <div className="form-group"><label className="form-label">Website</label><input className="form-control" value={orgSettings.companyWebsite} onChange={e => setOrgSettings({ ...orgSettings, companyWebsite: e.target.value })} placeholder="https://yourwebsite.com" /></div>
             <div className="form-group"><label className="form-label">Address</label><textarea className="form-control" rows={2} value={orgSettings.companyAddress} onChange={e => setOrgSettings({ ...orgSettings, companyAddress: e.target.value })} /></div>
             <div className="form-group"><label className="form-label">Logo URL</label><input className="form-control" value={orgSettings.logoUrl} onChange={e => setOrgSettings({ ...orgSettings, logoUrl: e.target.value })} placeholder="https://..." /></div>
+
+            <div style={{ margin: '20px 0 12px', fontWeight: 600, fontSize: 13, borderTop: '1px solid var(--border)', paddingTop: 16 }}>Authorized Signatory</div>
+            <div className="form-row">
+              <div className="form-group"><label className="form-label">Name</label><input className="form-control" value={orgSettings.signatoryName} onChange={e => setOrgSettings({ ...orgSettings, signatoryName: e.target.value })} placeholder="e.g. John Doe" /></div>
+              <div className="form-group"><label className="form-label">Designation</label><input className="form-control" value={orgSettings.signatoryDesignation} onChange={e => setOrgSettings({ ...orgSettings, signatoryDesignation: e.target.value })} placeholder="e.g. Founder & CEO" /></div>
+            </div>
+            <div className="form-group"><label className="form-label">Signature Image URL</label><input className="form-control" value={orgSettings.signatureUrl} onChange={e => setOrgSettings({ ...orgSettings, signatureUrl: e.target.value })} placeholder="https://... (transparent PNG preferred)" /></div>
+
+            <div style={{ margin: '20px 0 12px', fontWeight: 600, fontSize: 13, borderTop: '1px solid var(--border)', paddingTop: 16 }}>Bank Details <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-muted)' }}>(shown on Invoice PDF)</span></div>
+            <div className="form-row">
+              <div className="form-group"><label className="form-label">Bank Name</label><input className="form-control" value={bankDetails.bankName} onChange={e => setBankDetails({ ...bankDetails, bankName: e.target.value })} placeholder="e.g. HDFC Bank" /></div>
+              <div className="form-group"><label className="form-label">Account Holder</label><input className="form-control" value={bankDetails.accountHolder} onChange={e => setBankDetails({ ...bankDetails, accountHolder: e.target.value })} placeholder="Account holder name" /></div>
+            </div>
+            <div className="form-row">
+              <div className="form-group"><label className="form-label">Account Number</label><input className="form-control" value={bankDetails.accountNumber} onChange={e => setBankDetails({ ...bankDetails, accountNumber: e.target.value })} placeholder="1234567890" /></div>
+              <div className="form-group"><label className="form-label">IFSC Code</label><input className="form-control" value={bankDetails.ifscCode} onChange={e => setBankDetails({ ...bankDetails, ifscCode: e.target.value })} placeholder="HDFC0001234" /></div>
+            </div>
+            <div className="form-group"><label className="form-label">UPI ID</label><input className="form-control" value={bankDetails.upiId} onChange={e => setBankDetails({ ...bankDetails, upiId: e.target.value })} placeholder="yourname@upi" /></div>
+
             <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Saving...' : 'Save Organization Info'}</button>
           </form>
         </div>

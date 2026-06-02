@@ -248,13 +248,21 @@ const getOrgSettings = async (req, res) => {
 const updateOrgSettings = async (req, res) => {
   try {
     const org = await Organization.findByPk(req.user.organizationId);
-    const { branding, smtpConfig } = req.body;
     const currentSettings = org.settings || {};
-    const newSettings = {
-      ...currentSettings,
-      branding: branding || currentSettings.branding,
-      smtpConfig: smtpConfig !== undefined ? smtpConfig : currentSettings.smtpConfig,
-    };
+
+    let newSettings;
+    if (req.body.settings) {
+      // Frontend sends { settings: { branding, bankDetails, smtp, ... } }
+      newSettings = { ...currentSettings, ...req.body.settings };
+    } else {
+      // Legacy direct fields
+      const { branding, smtpConfig, bankDetails } = req.body;
+      newSettings = { ...currentSettings };
+      if (branding !== undefined) newSettings.branding = branding;
+      if (smtpConfig !== undefined) newSettings.smtpConfig = smtpConfig;
+      if (bankDetails !== undefined) newSettings.bankDetails = bankDetails;
+    }
+
     await org.update({ settings: newSettings });
     res.json({ success: true, message: 'Settings updated', settings: newSettings });
   } catch (err) {

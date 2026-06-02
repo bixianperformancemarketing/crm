@@ -4,7 +4,7 @@ import Layout from '../components/layout/Layout';
 import Pagination from '../components/common/Pagination';
 import UpgradeModal from '../components/common/UpgradeModal';
 import { contentAPI, usersAPI } from '../services/api';
-import { formatDate, ENUMS } from '../utils/helpers';
+import { formatDate } from '../utils/helpers';
 import { useAuth } from '../context/AuthContext';
 import './Content.css';
 
@@ -13,7 +13,7 @@ const CHIP_CLASS = { 'Pending': '', 'In Progress': 'status-in-progress', 'Review
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-const emptyForm = () => ({ title: '', type: 'Post', platform: 'Instagram', dueDate: '', assignedTo: '', priority: 'Medium', notes: '' });
+const emptyForm = () => ({ title: '', description: '', dueDate: '', assignedTo: '', priority: 'Medium', notes: '' });
 
 const Content = () => {
   const { org, isRole } = useAuth();
@@ -167,18 +167,16 @@ const Content = () => {
             ))}
           </div>
           {loading ? <div className="loading-spinner"><div className="spinner" /></div> : tasks.length === 0 ? (
-            <div className="empty-state"><div className="empty-icon">📅</div><div className="empty-title">No content tasks</div></div>
+            <div className="empty-state"><div className="empty-icon">✅</div><div className="empty-title">No tasks yet</div></div>
           ) : (
             <>
               <div className="table-wrap">
                 <table>
-                  <thead><tr><th>Title</th><th>Type</th><th>Platform</th><th>Assigned To</th><th>Due Date</th><th>Priority</th><th>Status</th><th>Actions</th></tr></thead>
+                  <thead><tr><th>Title</th><th>Assigned To</th><th>Due Date</th><th>Priority</th><th>Status</th><th>Actions</th></tr></thead>
                   <tbody>
                     {tasks.map((t) => (
                       <tr key={t.id} style={{ cursor: 'pointer' }} onClick={() => setShowTask(t)}>
-                        <td style={{ fontWeight: 500 }}>{t.title}</td>
-                        <td><span className="task-type-badge">{t.type}</span></td>
-                        <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t.platform}</td>
+                        <td style={{ fontWeight: 500 }}>{t.title}{t.description && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{t.description}</div>}</td>
                         <td style={{ fontSize: 12 }}>{t.assignee?.name || '—'}</td>
                         <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t.dueDate ? formatDate(t.dueDate) : '—'}</td>
                         <td><span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: t.priority === 'High' ? 'rgba(239,68,68,0.15)' : t.priority === 'Medium' ? 'rgba(245,158,11,0.15)' : 'rgba(107,114,128,0.15)', color: t.priority === 'High' ? '#ef4444' : t.priority === 'Medium' ? '#f59e0b' : '#6b7280' }}>{t.priority}</span></td>
@@ -237,35 +235,28 @@ const Content = () => {
       {showTask && (
         <div className="modal-overlay" onClick={() => setShowTask(null)}>
           <div className="modal" style={{ maxWidth: 500 }} onClick={e => e.stopPropagation()}>
-            <h3>Task Details</h3>
             <button className="modal-close" onClick={() => setShowTask(null)}>×</button>
-            <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-              <span className="task-type-badge">{showTask.type}</span>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
               <span className="task-status-badge" style={{ background: `${STATUS_COLORS[showTask.status]}22`, color: STATUS_COLORS[showTask.status] }}>{showTask.status}</span>
+              <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: showTask.priority === 'High' ? 'rgba(239,68,68,0.15)' : showTask.priority === 'Medium' ? 'rgba(245,158,11,0.15)' : 'rgba(107,114,128,0.15)', color: showTask.priority === 'High' ? '#ef4444' : showTask.priority === 'Medium' ? '#f59e0b' : '#6b7280' }}>{showTask.priority}</span>
             </div>
-            <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 12 }}>{showTask.title}</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', fontSize: 13, marginBottom: 16 }}>
-              <div><span style={{ color: 'var(--text-muted)' }}>Platform:</span> {showTask.platform}</div>
-              <div><span style={{ color: 'var(--text-muted)' }}>Priority:</span> {showTask.priority}</div>
+            <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 8 }}>{showTask.title}</div>
+            {showTask.description && <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 12 }}>{showTask.description}</div>}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px', fontSize: 13, marginBottom: 16 }}>
               <div><span style={{ color: 'var(--text-muted)' }}>Due Date:</span> {showTask.dueDate ? formatDate(showTask.dueDate) : '—'}</div>
               <div><span style={{ color: 'var(--text-muted)' }}>Assigned To:</span> {showTask.assignee?.name || '—'}</div>
+              {showTask.creator && <div><span style={{ color: 'var(--text-muted)' }}>Created By:</span> {showTask.creator.name}</div>}
             </div>
             {showTask.notes && <div style={{ background: '#0a0a17', borderRadius: 8, padding: 12, fontSize: 13, marginBottom: 16, color: 'var(--text-muted)' }}>{showTask.notes}</div>}
-            {canManage && (
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
-                {['Pending', 'In Progress', 'Review', 'Done'].filter(s => s !== showTask.status).map(s => (
-                  <button key={s} className="btn btn-ghost btn-sm" onClick={() => handleStatusChange(showTask.id, s)}>
-                    → {s}
-                  </button>
-                ))}
-              </div>
-            )}
-            {canManage && (
-              <div className="modal-actions">
-                <button className="btn btn-ghost" style={{ color: 'var(--danger)' }} onClick={() => handleDelete(showTask.id)}>Delete</button>
-                <button className="btn btn-ghost" onClick={() => setShowTask(null)}>Close</button>
-              </div>
-            )}
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+              {['Pending', 'In Progress', 'Review', 'Done', 'Cancelled'].filter(s => s !== showTask.status).map(s => (
+                <button key={s} className="btn btn-ghost btn-sm" onClick={() => handleStatusChange(showTask.id, s)}>→ {s}</button>
+              ))}
+            </div>
+            <div className="modal-actions">
+              {canManage && <button className="btn btn-ghost" style={{ color: 'var(--danger)' }} onClick={() => handleDelete(showTask.id)}>Delete</button>}
+              <button className="btn btn-ghost" onClick={() => setShowTask(null)}>Close</button>
+            </div>
           </div>
         </div>
       )}
@@ -273,24 +264,11 @@ const Content = () => {
       {showCreate && (
         <div className="modal-overlay" onClick={() => setShowCreate(false)}>
           <div className="modal" style={{ maxWidth: 520 }} onClick={e => e.stopPropagation()}>
-            <h3>New Content Task</h3>
+            <h3>New Task</h3>
             <button className="modal-close" onClick={() => setShowCreate(false)}>×</button>
             <form onSubmit={handleCreate}>
-              <div className="form-group"><label className="form-label">Title *</label><input className="form-control" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Post title or description" /></div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label className="form-label">Type</label>
-                  <select className="form-control" value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>
-                    {(ENUMS.CONTENT_TYPES || ['Post', 'Reel', 'Story', 'Video', 'Blog', 'Ad', 'Email', 'Other']).map(t => <option key={t}>{t}</option>)}
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Platform</label>
-                  <select className="form-control" value={form.platform} onChange={e => setForm({ ...form, platform: e.target.value })}>
-                    {(ENUMS.CONTENT_PLATFORMS || ['Instagram', 'Facebook', 'LinkedIn', 'Twitter', 'YouTube', 'Website', 'Email', 'Other']).map(p => <option key={p}>{p}</option>)}
-                  </select>
-                </div>
-              </div>
+              <div className="form-group"><label className="form-label">Title *</label><input className="form-control" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Task title" /></div>
+              <div className="form-group"><label className="form-label">Description</label><textarea className="form-control" rows={2} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="What needs to be done..." /></div>
               <div className="form-row">
                 <div className="form-group"><label className="form-label">Due Date *</label><input className="form-control" type="date" value={form.dueDate} onChange={e => setForm({ ...form, dueDate: e.target.value })} /></div>
                 <div className="form-group">
@@ -304,7 +282,7 @@ const Content = () => {
                 <label className="form-label">Assign To</label>
                 <select className="form-control" value={form.assignedTo} onChange={e => setForm({ ...form, assignedTo: e.target.value })}>
                   <option value="">— Unassigned —</option>
-                  {users.map(u => <option key={u.id} value={u.id}>{u.name} ({u.role})</option>)}
+                  {users.map(u => <option key={u.id} value={u.id}>{u.name} ({u.label || u.role})</option>)}
                 </select>
               </div>
               <div className="form-group"><label className="form-label">Notes</label><textarea className="form-control" rows={2} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Additional notes..." /></div>

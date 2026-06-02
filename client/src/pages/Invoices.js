@@ -9,8 +9,13 @@ import { useAuth } from '../context/AuthContext';
 import { ENUMS } from '../utils/helpers';
 import './Invoices.css';
 
-const emptyItem = () => ({ description: '', quantity: 1, unitPrice: 0, totalPrice: 0 });
-const emptyForm = () => ({ clientName: '', clientEmail: '', clientPhone: '', clientAddress: '', clientGST: '', gstPercent: 18, terms: '', notes: '', dueDate: '', items: [emptyItem()] });
+const emptyItem = () => ({ description: '', subDescription: '', subItems: [], totalPrice: '' });
+const emptyForm = () => ({ clientName: '', clientEmail: '', clientPhone: '', clientAddress: '', clientGST: '', gstPercent: 18, terms: [], notes: '', dueDate: '', items: [emptyItem()] });
+const parseTermsArray = (raw) => {
+  if (!raw) return [];
+  try { const p = JSON.parse(raw); return Array.isArray(p) ? p : (raw ? [raw] : []); }
+  catch { return raw ? [raw] : []; }
+};
 
 const Invoices = () => {
   const { hasFeature, org } = useAuth();
@@ -29,6 +34,7 @@ const Invoices = () => {
   const [sendingWhatsapp, setSendingWhatsapp] = useState(null);
   const [editInvoice, setEditInvoice] = useState(null);
   const [editForm, setEditForm] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -47,18 +53,48 @@ const Invoices = () => {
   const updateItem = (i, field, val) => {
     const items = [...form.items];
     items[i] = { ...items[i], [field]: val };
-    if (field === 'quantity' || field === 'unitPrice') {
-      items[i].totalPrice = parseFloat(items[i].quantity || 0) * parseFloat(items[i].unitPrice || 0);
-    }
     setForm({ ...form, items });
   };
 
   const updateEditItem = (i, field, val) => {
     const items = [...editForm.items];
     items[i] = { ...items[i], [field]: val };
-    if (field === 'quantity' || field === 'unitPrice') {
-      items[i].totalPrice = parseFloat(items[i].quantity || 0) * parseFloat(items[i].unitPrice || 0);
-    }
+    setEditForm({ ...editForm, items });
+  };
+
+  const addSubItem = (i) => {
+    const items = [...form.items];
+    items[i] = { ...items[i], subItems: [...(items[i].subItems || []), { label: '', qty: '' }] };
+    setForm({ ...form, items });
+  };
+  const removeSubItem = (i, j) => {
+    const items = [...form.items];
+    items[i] = { ...items[i], subItems: items[i].subItems.filter((_, k) => k !== j) };
+    setForm({ ...form, items });
+  };
+  const updateSubItem = (i, j, field, val) => {
+    const items = [...form.items];
+    const subItems = [...(items[i].subItems || [])];
+    subItems[j] = { ...subItems[j], [field]: val };
+    items[i] = { ...items[i], subItems };
+    setForm({ ...form, items });
+  };
+
+  const addEditSubItem = (i) => {
+    const items = [...editForm.items];
+    items[i] = { ...items[i], subItems: [...(items[i].subItems || []), { label: '', qty: '' }] };
+    setEditForm({ ...editForm, items });
+  };
+  const removeEditSubItem = (i, j) => {
+    const items = [...editForm.items];
+    items[i] = { ...items[i], subItems: items[i].subItems.filter((_, k) => k !== j) };
+    setEditForm({ ...editForm, items });
+  };
+  const updateEditSubItem = (i, j, field, val) => {
+    const items = [...editForm.items];
+    const subItems = [...(items[i].subItems || [])];
+    subItems[j] = { ...subItems[j], [field]: val };
+    items[i] = { ...items[i], subItems };
     setEditForm({ ...editForm, items });
   };
 
@@ -78,7 +114,7 @@ const Invoices = () => {
     if (!validItems.length) return toast.error('At least one item with a description is required');
     setSaving(true);
     try {
-      const { data } = await invoicesAPI.create({ ...form, items: validItems });
+      const { data } = await invoicesAPI.create({ ...form, terms: JSON.stringify(form.terms.filter(t => t.trim())), items: validItems });
       if (data.upgradeRequired) { setUpgradeModal(data); return; }
       toast.success('Invoice created');
       setShowCreate(false);
@@ -105,8 +141,9 @@ const Invoices = () => {
         terms: invData.terms || '',
         notes: invData.notes || '',
         dueDate: invData.dueDate ? invData.dueDate.slice(0, 10) : '',
+        terms: parseTermsArray(invData.terms),
         items: invData.items?.length
-          ? invData.items.map((i) => ({ description: i.description, quantity: i.quantity, unitPrice: i.unitPrice, totalPrice: i.totalPrice }))
+          ? invData.items.map((i) => ({ description: i.description, subDescription: i.subDescription || '', subItems: i.subItems || [], totalPrice: i.totalPrice }))
           : [emptyItem()],
       });
       setEditInvoice(inv);
@@ -128,9 +165,10 @@ const Invoices = () => {
     }
     setSaving(true);
     try {
+      const termsStr = JSON.stringify((editForm.terms || []).filter(t => t.trim()));
       const payload = hasPayments
-        ? { terms: editForm.terms, notes: editForm.notes, dueDate: editForm.dueDate }
-        : { ...editForm, items: editForm.items.filter((i) => i.description?.trim()) };
+        ? { terms: termsStr, notes: editForm.notes, dueDate: editForm.dueDate }
+        : { ...editForm, terms: termsStr, items: editForm.items.filter((i) => i.description?.trim()) };
       await invoicesAPI.update(editInvoice.id, payload);
       toast.success('Invoice updated');
       closeEdit();
@@ -180,6 +218,18 @@ const Invoices = () => {
       if (d?.upgradeRequired) { setUpgradeModal(d); return; }
       toast.error(d?.message || 'Failed to send email');
     } finally { setSendingEmail(null); }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteConfirm) return;
+    try {
+      await invoicesAPI.delete(deleteConfirm.id);
+      toast.success('Invoice deleted');
+      setDeleteConfirm(null);
+      load();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to delete invoice');
+    }
   };
 
   const handlePayment = async () => {
@@ -253,6 +303,7 @@ const Invoices = () => {
                             )}
                           </button>
                         )}
+                        <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={() => setDeleteConfirm(inv)}>🗑️ Delete</button>
                       </div>
                     </td>
                   </tr>
@@ -285,21 +336,31 @@ const Invoices = () => {
               <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 8 }}>
                 <thead>
                   <tr style={{ background: 'var(--card-bg)', borderBottom: '1px solid var(--border)' }}>
-                    <th style={{ padding: '8px 6px', textAlign: 'left', fontSize: 12, fontWeight: 600 }}>Description</th>
-                    <th style={{ padding: '8px 6px', textAlign: 'right', fontSize: 12, fontWeight: 600, width: 70 }}>Qty</th>
-                    <th style={{ padding: '8px 6px', textAlign: 'right', fontSize: 12, fontWeight: 600, width: 110 }}>Unit Price</th>
-                    <th style={{ padding: '8px 6px', textAlign: 'right', fontSize: 12, fontWeight: 600, width: 110 }}>Total</th>
+                    <th style={{ padding: '8px 6px', textAlign: 'left', fontSize: 12, fontWeight: 600 }}>Service</th>
+                    <th style={{ padding: '8px 6px', textAlign: 'left', fontSize: 12, fontWeight: 600, width: 200 }}>Deliverables</th>
+                    <th style={{ padding: '8px 6px', textAlign: 'right', fontSize: 12, fontWeight: 600, width: 120 }}>Package Price</th>
                     <th style={{ width: 32 }} />
                   </tr>
                 </thead>
                 <tbody>
                   {form.items.map((item, i) => (
-                    <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
-                      <td style={{ padding: '4px 4px' }}><input className="form-control" style={{ margin: 0 }} value={item.description} onChange={(e) => updateItem(i, 'description', e.target.value)} placeholder="Service / item description..." /></td>
-                      <td style={{ padding: '4px 4px' }}><input className="form-control" style={{ margin: 0, textAlign: 'right' }} type="number" min="1" value={item.quantity} onChange={(e) => updateItem(i, 'quantity', e.target.value)} /></td>
-                      <td style={{ padding: '4px 4px' }}><input className="form-control" style={{ margin: 0, textAlign: 'right' }} type="number" min="0" step="0.01" value={item.unitPrice} onChange={(e) => updateItem(i, 'unitPrice', e.target.value)} /></td>
-                      <td style={{ padding: '4px 8px', textAlign: 'right', fontSize: 13, fontWeight: 500 }}>{formatCurrency(item.totalPrice || 0)}</td>
-                      <td style={{ padding: '4px 2px' }}>
+                    <tr key={i} style={{ borderBottom: '1px solid var(--border)', verticalAlign: 'top' }}>
+                      <td style={{ padding: '6px 4px' }}>
+                        <input className="form-control" style={{ margin: 0 }} value={item.description} onChange={(e) => updateItem(i, 'description', e.target.value)} placeholder="Item / service name" />
+                        <textarea className="form-control" value={item.subDescription} onChange={(e) => updateItem(i, 'subDescription', e.target.value)} placeholder="Description / what's included" rows={2} style={{ marginTop: 4, fontSize: 12, resize: 'vertical' }} />
+                      </td>
+                      <td style={{ padding: '6px 4px' }}>
+                        {(item.subItems || []).map((si, j) => (
+                          <div key={j} style={{ display: 'flex', gap: 4, marginBottom: 4, alignItems: 'center' }}>
+                            <input value={si.label} onChange={(e) => updateSubItem(i, j, 'label', e.target.value)} placeholder="Item name" style={{ flex: 1, background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 8px', color: 'var(--text)', fontSize: 12, outline: 'none' }} />
+                            <input type="number" min="0" value={si.qty} onChange={(e) => updateSubItem(i, j, 'qty', e.target.value)} placeholder="8" style={{ width: 54, background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 6px', color: 'var(--text)', fontSize: 12, outline: 'none', textAlign: 'center' }} />
+                            <button type="button" onClick={() => removeSubItem(i, j)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 15, padding: '0 2px', lineHeight: 1 }}>×</button>
+                          </div>
+                        ))}
+                        <button type="button" onClick={() => addSubItem(i)} style={{ background: 'none', border: '1px dashed var(--border)', borderRadius: 6, color: 'var(--text-muted)', fontSize: 11, padding: '3px 8px', cursor: 'pointer', marginTop: 2 }}>+ Add Deliverable</button>
+                      </td>
+                      <td style={{ padding: '6px 4px' }}><input className="form-control" style={{ margin: 0, textAlign: 'right' }} type="number" min="0" step="0.01" value={item.totalPrice} onChange={(e) => updateItem(i, 'totalPrice', e.target.value)} placeholder="0" /></td>
+                      <td style={{ padding: '6px 2px' }}>
                         {form.items.length > 1 && <button type="button" style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 16, padding: '0 4px' }} onClick={() => setForm({ ...form, items: form.items.filter((_, j) => j !== i) })}>×</button>}
                       </td>
                     </tr>
@@ -323,11 +384,17 @@ const Invoices = () => {
                 </div>
               </div>
 
-              <div className="form-row">
-                <div className="form-group"><label className="form-label">Due Date</label><input className="form-control" type="date" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} /></div>
-                <div className="form-group"><label className="form-label">Terms</label><input className="form-control" value={form.terms} onChange={(e) => setForm({ ...form, terms: e.target.value })} placeholder="Payment terms..." /></div>
+              <div className="form-group"><label className="form-label">Due Date</label><input className="form-control" type="date" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} /></div>
+              <div className="form-group">
+                <label className="form-label">Terms & Conditions</label>
+                {(form.terms || []).map((term, i) => (
+                  <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 6, alignItems: 'center' }}>
+                    <input className="form-control" style={{ margin: 0 }} value={term} onChange={(e) => { const t = [...form.terms]; t[i] = e.target.value; setForm({ ...form, terms: t }); }} placeholder={`Term ${i + 1}`} />
+                    <button type="button" onClick={() => setForm({ ...form, terms: form.terms.filter((_, j) => j !== i) })} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 18, flexShrink: 0 }}>×</button>
+                  </div>
+                ))}
+                <button type="button" className="btn btn-ghost btn-sm" style={{ marginTop: 2 }} onClick={() => setForm({ ...form, terms: [...(form.terms || []), ''] })}>+ Add Term</button>
               </div>
-              <div className="form-group"><label className="form-label">Notes</label><input className="form-control" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Internal notes..." /></div>
 
               <div className="modal-actions">
                 <button type="button" className="btn btn-ghost" onClick={() => { setShowCreate(false); setForm(emptyForm()); }}>Cancel</button>
@@ -370,21 +437,31 @@ const Invoices = () => {
                     <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 8 }}>
                       <thead>
                         <tr style={{ background: 'var(--card-bg)', borderBottom: '1px solid var(--border)' }}>
-                          <th style={{ padding: '8px 6px', textAlign: 'left', fontSize: 12, fontWeight: 600 }}>Description</th>
-                          <th style={{ padding: '8px 6px', textAlign: 'right', fontSize: 12, fontWeight: 600, width: 70 }}>Qty</th>
-                          <th style={{ padding: '8px 6px', textAlign: 'right', fontSize: 12, fontWeight: 600, width: 110 }}>Unit Price</th>
-                          <th style={{ padding: '8px 6px', textAlign: 'right', fontSize: 12, fontWeight: 600, width: 110 }}>Total</th>
+                          <th style={{ padding: '8px 6px', textAlign: 'left', fontSize: 12, fontWeight: 600 }}>Service</th>
+                          <th style={{ padding: '8px 6px', textAlign: 'left', fontSize: 12, fontWeight: 600, width: 200 }}>Deliverables</th>
+                          <th style={{ padding: '8px 6px', textAlign: 'right', fontSize: 12, fontWeight: 600, width: 120 }}>Package Price</th>
                           <th style={{ width: 32 }} />
                         </tr>
                       </thead>
                       <tbody>
                         {editForm.items.map((item, i) => (
-                          <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
-                            <td style={{ padding: '4px 4px' }}><input className="form-control" style={{ margin: 0 }} value={item.description} onChange={(e) => updateEditItem(i, 'description', e.target.value)} placeholder="Service / item description..." /></td>
-                            <td style={{ padding: '4px 4px' }}><input className="form-control" style={{ margin: 0, textAlign: 'right' }} type="number" min="1" value={item.quantity} onChange={(e) => updateEditItem(i, 'quantity', e.target.value)} /></td>
-                            <td style={{ padding: '4px 4px' }}><input className="form-control" style={{ margin: 0, textAlign: 'right' }} type="number" min="0" step="0.01" value={item.unitPrice} onChange={(e) => updateEditItem(i, 'unitPrice', e.target.value)} /></td>
-                            <td style={{ padding: '4px 8px', textAlign: 'right', fontSize: 13, fontWeight: 500 }}>{formatCurrency(item.totalPrice || 0)}</td>
-                            <td style={{ padding: '4px 2px' }}>
+                          <tr key={i} style={{ borderBottom: '1px solid var(--border)', verticalAlign: 'top' }}>
+                            <td style={{ padding: '6px 4px' }}>
+                              <input className="form-control" style={{ margin: 0 }} value={item.description} onChange={(e) => updateEditItem(i, 'description', e.target.value)} placeholder="Item / service name" />
+                              <textarea className="form-control" value={item.subDescription} onChange={(e) => updateEditItem(i, 'subDescription', e.target.value)} placeholder="Description / what's included" rows={2} style={{ marginTop: 4, fontSize: 12, resize: 'vertical' }} />
+                            </td>
+                            <td style={{ padding: '6px 4px' }}>
+                              {(item.subItems || []).map((si, j) => (
+                                <div key={j} style={{ display: 'flex', gap: 4, marginBottom: 4, alignItems: 'center' }}>
+                                  <input value={si.label} onChange={(e) => updateEditSubItem(i, j, 'label', e.target.value)} placeholder="Item name" style={{ flex: 1, background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 8px', color: 'var(--text)', fontSize: 12, outline: 'none' }} />
+                                  <input type="number" min="0" value={si.qty} onChange={(e) => updateEditSubItem(i, j, 'qty', e.target.value)} placeholder="8" style={{ width: 54, background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 6px', color: 'var(--text)', fontSize: 12, outline: 'none', textAlign: 'center' }} />
+                                  <button type="button" onClick={() => removeEditSubItem(i, j)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 15, padding: '0 2px', lineHeight: 1 }}>×</button>
+                                </div>
+                              ))}
+                              <button type="button" onClick={() => addEditSubItem(i)} style={{ background: 'none', border: '1px dashed var(--border)', borderRadius: 6, color: 'var(--text-muted)', fontSize: 11, padding: '3px 8px', cursor: 'pointer', marginTop: 2 }}>+ Add Deliverable</button>
+                            </td>
+                            <td style={{ padding: '6px 4px' }}><input className="form-control" style={{ margin: 0, textAlign: 'right' }} type="number" min="0" step="0.01" value={item.totalPrice} onChange={(e) => updateEditItem(i, 'totalPrice', e.target.value)} placeholder="0" /></td>
+                            <td style={{ padding: '6px 2px' }}>
                               {editForm.items.length > 1 && <button type="button" style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 16, padding: '0 4px' }} onClick={() => setEditForm({ ...editForm, items: editForm.items.filter((_, j) => j !== i) })}>×</button>}
                             </td>
                           </tr>
@@ -410,11 +487,17 @@ const Invoices = () => {
                   </>
                 )}
 
-                <div className="form-row">
-                  <div className="form-group"><label className="form-label">Due Date</label><input className="form-control" type="date" value={editForm.dueDate} onChange={(e) => setEditForm({ ...editForm, dueDate: e.target.value })} /></div>
-                  <div className="form-group"><label className="form-label">Terms</label><input className="form-control" value={editForm.terms} onChange={(e) => setEditForm({ ...editForm, terms: e.target.value })} placeholder="Payment terms..." /></div>
+                <div className="form-group"><label className="form-label">Due Date</label><input className="form-control" type="date" value={editForm.dueDate} onChange={(e) => setEditForm({ ...editForm, dueDate: e.target.value })} /></div>
+                <div className="form-group">
+                  <label className="form-label">Terms & Conditions</label>
+                  {(editForm.terms || []).map((term, i) => (
+                    <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 6, alignItems: 'center' }}>
+                      <input className="form-control" style={{ margin: 0 }} value={term} onChange={(e) => { const t = [...editForm.terms]; t[i] = e.target.value; setEditForm({ ...editForm, terms: t }); }} placeholder={`Term ${i + 1}`} />
+                      <button type="button" onClick={() => setEditForm({ ...editForm, terms: editForm.terms.filter((_, j) => j !== i) })} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 18, flexShrink: 0 }}>×</button>
+                    </div>
+                  ))}
+                  <button type="button" className="btn btn-ghost btn-sm" style={{ marginTop: 2 }} onClick={() => setEditForm({ ...editForm, terms: [...(editForm.terms || []), ''] })}>+ Add Term</button>
                 </div>
-                <div className="form-group"><label className="form-label">Notes</label><input className="form-control" value={editForm.notes} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} placeholder="Internal notes..." /></div>
 
                 <div className="modal-actions">
                   <button type="button" className="btn btn-ghost" onClick={closeEdit}>Cancel</button>
@@ -449,6 +532,19 @@ const Invoices = () => {
       )}
 
       {upgradeModal && <UpgradeModal message={upgradeModal.message} limitType={upgradeModal.limitType} plan={org?.plan} onClose={() => setUpgradeModal(null)} />}
+
+      {deleteConfirm && (
+        <div className="modal-overlay" onClick={() => setDeleteConfirm(null)}>
+          <div className="modal confirm-modal" onClick={(e) => e.stopPropagation()}>
+            <h3>Delete Invoice</h3>
+            <p>Are you sure you want to delete <strong>{deleteConfirm.invoiceNumber}</strong> for <strong>{deleteConfirm.clientName}</strong>? This cannot be undone.</p>
+            <div className="modal-actions">
+              <button className="btn btn-ghost" onClick={() => setDeleteConfirm(null)}>Cancel</button>
+              <button className="btn btn-danger" onClick={handleDelete}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 };

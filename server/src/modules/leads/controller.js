@@ -379,4 +379,24 @@ const bulkAssign = async (req, res) => {
   }
 };
 
-module.exports = { getLeads, getLead, createLead, updateLead, deleteLead, getPipeline, addNote, importCSV, bulkAssign };
+const bulkDelete = async (req, res) => {
+  try {
+    const { user, workspaceId } = req;
+    const { leadIds } = req.body;
+
+    if (!Array.isArray(leadIds) || leadIds.length === 0) {
+      return res.status(400).json({ success: false, message: 'leadIds must be a non-empty array' });
+    }
+
+    const count = await Lead.destroy({
+      where: { id: { [Op.in]: leadIds }, organizationId: user.organizationId, workspaceId },
+    });
+
+    res.json({ success: true, message: `${count} lead(s) deleted`, count });
+  } catch (err) {
+    console.error('bulkDelete error:', err);
+    res.status(500).json({ success: false, message: 'Bulk delete failed' });
+  }
+};
+
+module.exports = { getLeads, getLead, createLead, updateLead, deleteLead, getPipeline, addNote, importCSV, bulkAssign, bulkDelete };

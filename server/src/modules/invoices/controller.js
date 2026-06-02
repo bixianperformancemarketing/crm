@@ -83,7 +83,7 @@ const createInvoice = async (req, res) => {
       }
     }
 
-    const subtotal = items.reduce((sum, i) => sum + parseFloat(i.quantity || 1) * parseFloat(i.unitPrice || 0), 0);
+    const subtotal = items.reduce((sum, i) => sum + parseFloat(i.totalPrice || 0), 0);
     const gstAmount = (subtotal * parseFloat(gstPercent)) / 100;
     const totalAmount = subtotal + gstAmount;
     const invNumber = await getNextNumber(Invoice, 'invoiceNumber', 'INV-', workspaceId, user.organizationId);
@@ -101,9 +101,11 @@ const createInvoice = async (req, res) => {
     const itemsData = items.map((i) => ({
       invoiceId: inv.id,
       description: i.description,
-      quantity: parseFloat(i.quantity) || 1,
-      unitPrice: parseFloat(i.unitPrice) || 0,
-      totalPrice: parseFloat(i.quantity || 1) * parseFloat(i.unitPrice || 0),
+      subDescription: i.subDescription || null,
+      subItems: i.subItems || [],
+      quantity: 1,
+      unitPrice: 0,
+      totalPrice: parseFloat(i.totalPrice) || 0,
     }));
     await InvoiceItem.bulkCreate(itemsData);
 
@@ -149,7 +151,7 @@ const updateInvoice = async (req, res) => {
       if (dueDate !== undefined) updates.dueDate = dueDate;
 
       if (items && items.length) {
-        const subtotal = items.reduce((sum, i) => sum + parseFloat(i.quantity || 1) * parseFloat(i.unitPrice || 0), 0);
+        const subtotal = items.reduce((sum, i) => sum + parseFloat(i.totalPrice || 0), 0);
         const gst = parseFloat(gstPercent || inv.gstPercent);
         const gstAmount = (subtotal * gst) / 100;
         const totalAmount = subtotal + gstAmount;
@@ -163,9 +165,11 @@ const updateInvoice = async (req, res) => {
         await InvoiceItem.bulkCreate(items.map((i) => ({
           invoiceId: id,
           description: i.description,
-          quantity: parseFloat(i.quantity) || 1,
-          unitPrice: parseFloat(i.unitPrice) || 0,
-          totalPrice: (parseFloat(i.quantity) || 1) * (parseFloat(i.unitPrice) || 0),
+          subDescription: i.subDescription || null,
+          subItems: i.subItems || [],
+          quantity: 1,
+          unitPrice: 0,
+          totalPrice: parseFloat(i.totalPrice) || 0,
         })));
       }
     }
@@ -250,4 +254,20 @@ const whatsappShare = async (req, res) => {
   }
 };
 
-module.exports = { getInvoices, getInvoice, createInvoice, updateInvoice, downloadPDF, sendEmail, whatsappShare };
+const deleteInvoice = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { user, workspaceId } = req;
+    const inv = await Invoice.findOne({ where: { id, organizationId: user.organizationId, workspaceId } });
+    if (!inv) return res.status(404).json({ success: false, message: 'Invoice not found' });
+    if (parseFloat(inv.paidAmount) > 0) {
+      return res.status(400).json({ success: false, message: 'Cannot delete an invoice with recorded payments' });
+    }
+    await inv.destroy();
+    res.json({ success: true, message: 'Invoice deleted' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to delete invoice' });
+  }
+};
+
+module.exports = { getInvoices, getInvoice, createInvoice, updateInvoice, downloadPDF, sendEmail, whatsappShare, deleteInvoice };

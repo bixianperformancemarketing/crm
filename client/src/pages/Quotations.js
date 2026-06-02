@@ -8,7 +8,12 @@ import { formatCurrency, formatDate, getStatusColor, downloadBlob } from '../uti
 import { useAuth } from '../context/AuthContext';
 import './Quotations.css';
 
-const emptyItem = () => ({ description: '', quantity: 1, unitPrice: 0, totalPrice: 0 });
+const emptyItem = () => ({ description: '', subDescription: '', subItems: [], totalPrice: '' });
+const parseTermsArray = (raw) => {
+  if (!raw) return [];
+  try { const p = JSON.parse(raw); return Array.isArray(p) ? p : (raw ? [raw] : []); }
+  catch { return raw ? [raw] : []; }
+};
 
 const Quotations = () => {
   const { user, org, hasFeature } = useAuth();
@@ -21,9 +26,10 @@ const Quotations = () => {
   const [saving, setSaving] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(null);
   const [sendingWhatsapp, setSendingWhatsapp] = useState(null);
-  const [form, setForm] = useState({ clientName: '', clientEmail: '', clientPhone: '', clientAddress: '', clientGST: '', gstPercent: 18, terms: '', notes: '', validUntil: '', items: [emptyItem()] });
+  const [form, setForm] = useState({ clientName: '', clientEmail: '', clientPhone: '', clientAddress: '', clientGST: '', gstPercent: 18, terms: [], notes: '', validUntil: '', items: [emptyItem()] });
   const [editQuotation, setEditQuotation] = useState(null);
   const [editForm, setEditForm] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -40,18 +46,48 @@ const Quotations = () => {
   const updateItem = (i, field, val) => {
     const items = [...form.items];
     items[i] = { ...items[i], [field]: val };
-    if (field === 'quantity' || field === 'unitPrice') {
-      items[i].totalPrice = parseFloat(items[i].quantity || 0) * parseFloat(items[i].unitPrice || 0);
-    }
     setForm({ ...form, items });
   };
 
   const updateEditItem = (i, field, val) => {
     const items = [...editForm.items];
     items[i] = { ...items[i], [field]: val };
-    if (field === 'quantity' || field === 'unitPrice') {
-      items[i].totalPrice = parseFloat(items[i].quantity || 0) * parseFloat(items[i].unitPrice || 0);
-    }
+    setEditForm({ ...editForm, items });
+  };
+
+  const addSubItem = (i) => {
+    const items = [...form.items];
+    items[i] = { ...items[i], subItems: [...(items[i].subItems || []), { label: '', qty: '' }] };
+    setForm({ ...form, items });
+  };
+  const removeSubItem = (i, j) => {
+    const items = [...form.items];
+    items[i] = { ...items[i], subItems: items[i].subItems.filter((_, k) => k !== j) };
+    setForm({ ...form, items });
+  };
+  const updateSubItem = (i, j, field, val) => {
+    const items = [...form.items];
+    const subItems = [...(items[i].subItems || [])];
+    subItems[j] = { ...subItems[j], [field]: val };
+    items[i] = { ...items[i], subItems };
+    setForm({ ...form, items });
+  };
+
+  const addEditSubItem = (i) => {
+    const items = [...editForm.items];
+    items[i] = { ...items[i], subItems: [...(items[i].subItems || []), { label: '', qty: '' }] };
+    setEditForm({ ...editForm, items });
+  };
+  const removeEditSubItem = (i, j) => {
+    const items = [...editForm.items];
+    items[i] = { ...items[i], subItems: items[i].subItems.filter((_, k) => k !== j) };
+    setEditForm({ ...editForm, items });
+  };
+  const updateEditSubItem = (i, j, field, val) => {
+    const items = [...editForm.items];
+    const subItems = [...(items[i].subItems || [])];
+    subItems[j] = { ...subItems[j], [field]: val };
+    items[i] = { ...items[i], subItems };
     setEditForm({ ...editForm, items });
   };
 
@@ -71,11 +107,11 @@ const Quotations = () => {
     if (!form.clientAddress.trim()) return toast.error('Address is required');
     setSaving(true);
     try {
-      const { data } = await quotationsAPI.create({ ...form, items: form.items.filter((i) => i.description) });
+      const { data } = await quotationsAPI.create({ ...form, terms: JSON.stringify(form.terms.filter(t => t.trim())), items: form.items.filter((i) => i.description) });
       if (data.upgradeRequired) { setUpgradeModal(data); return; }
       toast.success('Quotation created');
       setShowCreate(false);
-      setForm({ clientName: '', clientEmail: '', clientPhone: '', clientAddress: '', clientGST: '', gstPercent: 18, terms: '', notes: '', validUntil: '', items: [emptyItem()] });
+      setForm({ clientName: '', clientEmail: '', clientPhone: '', clientAddress: '', clientGST: '', gstPercent: 18, terms: [], notes: '', validUntil: '', items: [emptyItem()] });
       load();
     } catch (err) {
       const d = err.response?.data;
@@ -95,11 +131,11 @@ const Quotations = () => {
         clientAddress: qData.clientAddress || '',
         clientGST: qData.clientGST || '',
         gstPercent: qData.gstPercent || 18,
-        terms: qData.terms || '',
+        terms: parseTermsArray(qData.terms),
         notes: qData.notes || '',
         validUntil: qData.validUntil ? qData.validUntil.slice(0, 10) : '',
         items: qData.items?.length
-          ? qData.items.map((i) => ({ description: i.description, quantity: i.quantity, unitPrice: i.unitPrice, totalPrice: i.totalPrice }))
+          ? qData.items.map((i) => ({ description: i.description, subDescription: i.subDescription || '', subItems: i.subItems || [], totalPrice: i.totalPrice }))
           : [emptyItem()],
       });
       setEditQuotation(q);
@@ -120,13 +156,25 @@ const Quotations = () => {
     if (!validItems.length) return toast.error('At least one item with a description is required');
     setSaving(true);
     try {
-      await quotationsAPI.update(editQuotation.id, { ...editForm, items: validItems });
+      await quotationsAPI.update(editQuotation.id, { ...editForm, terms: JSON.stringify(editForm.terms.filter(t => t.trim())), items: validItems });
       toast.success('Quotation updated');
       closeEdit();
       load();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to update quotation');
     } finally { setSaving(false); }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteConfirm) return;
+    try {
+      await quotationsAPI.delete(deleteConfirm.id);
+      toast.success('Quotation deleted');
+      setDeleteConfirm(null);
+      load();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to delete quotation');
+    }
   };
 
   const handleStatus = async (id, status) => {
@@ -224,6 +272,7 @@ const Quotations = () => {
                             )}
                           </button>
                         )}
+                        <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={() => setDeleteConfirm(q)}>🗑️ Delete</button>
                       </div>
                     </td>
                   </tr>
@@ -254,14 +303,25 @@ const Quotations = () => {
 
               <h4 style={{ margin: '16px 0 10px', fontSize: 13, color: 'var(--text-muted)' }}>Line Items</h4>
               <table className="items-table">
-                <thead><tr><th>Description</th><th style={{ width: 110 }}>Qty</th><th style={{ width: 130 }}>Unit Price</th><th style={{ width: 130 }}>Total</th><th style={{ width: 40 }}></th></tr></thead>
+                <thead><tr><th>Service</th><th style={{ width: 200 }}>Deliverables</th><th style={{ width: 130 }}>Package Price</th><th style={{ width: 40 }}></th></tr></thead>
                 <tbody>
                   {form.items.map((item, i) => (
                     <tr key={i}>
-                      <td><input value={item.description} onChange={(e) => updateItem(i, 'description', e.target.value)} placeholder="Service description" /></td>
-                      <td><input type="number" min="0" step="0.01" value={item.quantity} onChange={(e) => updateItem(i, 'quantity', e.target.value)} /></td>
-                      <td><input type="number" min="0" step="0.01" value={item.unitPrice} onChange={(e) => updateItem(i, 'unitPrice', e.target.value)} /></td>
-                      <td style={{ color: '#f59e0b', fontWeight: 600 }}>₹{parseFloat(item.totalPrice || 0).toLocaleString('en-IN')}</td>
+                      <td>
+                        <input value={item.description} onChange={(e) => updateItem(i, 'description', e.target.value)} placeholder="Item / service name" />
+                        <textarea value={item.subDescription} onChange={(e) => updateItem(i, 'subDescription', e.target.value)} placeholder="Description / what's included" rows={2} style={{ marginTop: 4, width: '100%', background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '6px 8px', color: 'var(--text)', fontSize: 12, resize: 'vertical', outline: 'none' }} />
+                      </td>
+                      <td>
+                        {(item.subItems || []).map((si, j) => (
+                          <div key={j} style={{ display: 'flex', gap: 4, marginBottom: 4, alignItems: 'center' }}>
+                            <input value={si.label} onChange={(e) => updateSubItem(i, j, 'label', e.target.value)} placeholder="Item name" style={{ flex: 1, background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 8px', color: 'var(--text)', fontSize: 12, outline: 'none' }} />
+                            <input type="number" min="0" value={si.qty} onChange={(e) => updateSubItem(i, j, 'qty', e.target.value)} placeholder="8" style={{ width: 54, background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 6px', color: 'var(--text)', fontSize: 12, outline: 'none', textAlign: 'center' }} />
+                            <button type="button" onClick={() => removeSubItem(i, j)} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 15, padding: '0 2px', lineHeight: 1 }}>×</button>
+                          </div>
+                        ))}
+                        <button type="button" onClick={() => addSubItem(i)} style={{ background: 'none', border: '1px dashed var(--border)', borderRadius: 6, color: 'var(--text-muted)', fontSize: 11, padding: '3px 8px', cursor: 'pointer', marginTop: 2 }}>+ Add Deliverable</button>
+                      </td>
+                      <td><input type="number" min="0" step="0.01" value={item.totalPrice} onChange={(e) => updateItem(i, 'totalPrice', e.target.value)} placeholder="0" style={{ textAlign: 'right' }} /></td>
                       <td><button type="button" style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 16 }} onClick={() => setForm({ ...form, items: form.items.filter((_, j) => j !== i) })}>×</button></td>
                     </tr>
                   ))}
@@ -275,11 +335,17 @@ const Quotations = () => {
                 <div className="total-row grand"><span>Total</span><span>{formatCurrency(total)}</span></div>
               </div>
 
-              <div className="form-row" style={{ marginTop: 16 }}>
-                <div className="form-group"><label className="form-label">Valid Until</label><input className="form-control" type="date" value={form.validUntil} onChange={(e) => setForm({ ...form, validUntil: e.target.value })} /></div>
-                <div className="form-group"><label className="form-label">Terms</label><input className="form-control" value={form.terms} onChange={(e) => setForm({ ...form, terms: e.target.value })} /></div>
+              <div className="form-group" style={{ marginTop: 16 }}><label className="form-label">Valid Until</label><input className="form-control" type="date" value={form.validUntil} onChange={(e) => setForm({ ...form, validUntil: e.target.value })} /></div>
+              <div className="form-group">
+                <label className="form-label">Terms & Conditions</label>
+                {(form.terms || []).map((term, i) => (
+                  <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 6, alignItems: 'center' }}>
+                    <input className="form-control" style={{ margin: 0 }} value={term} onChange={(e) => { const t = [...form.terms]; t[i] = e.target.value; setForm({ ...form, terms: t }); }} placeholder={`Term ${i + 1}`} />
+                    <button type="button" onClick={() => setForm({ ...form, terms: form.terms.filter((_, j) => j !== i) })} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 18, flexShrink: 0 }}>×</button>
+                  </div>
+                ))}
+                <button type="button" className="btn btn-ghost btn-sm" style={{ marginTop: 2 }} onClick={() => setForm({ ...form, terms: [...(form.terms || []), ''] })}>+ Add Term</button>
               </div>
-              <div className="form-group"><label className="form-label">Notes</label><textarea className="form-control" rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
               <div className="modal-actions"><button type="button" className="btn btn-ghost" onClick={() => setShowCreate(false)}>Cancel</button><button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Creating...' : 'Create Quotation'}</button></div>
             </form>
           </div>
@@ -305,14 +371,25 @@ const Quotations = () => {
 
               <h4 style={{ margin: '16px 0 10px', fontSize: 13, color: 'var(--text-muted)' }}>Line Items</h4>
               <table className="items-table">
-                <thead><tr><th>Description</th><th style={{ width: 110 }}>Qty</th><th style={{ width: 130 }}>Unit Price</th><th style={{ width: 130 }}>Total</th><th style={{ width: 40 }}></th></tr></thead>
+                <thead><tr><th>Service</th><th style={{ width: 200 }}>Deliverables</th><th style={{ width: 130 }}>Package Price</th><th style={{ width: 40 }}></th></tr></thead>
                 <tbody>
                   {editForm.items.map((item, i) => (
                     <tr key={i}>
-                      <td><input value={item.description} onChange={(e) => updateEditItem(i, 'description', e.target.value)} placeholder="Service description" /></td>
-                      <td><input type="number" min="0" step="0.01" value={item.quantity} onChange={(e) => updateEditItem(i, 'quantity', e.target.value)} /></td>
-                      <td><input type="number" min="0" step="0.01" value={item.unitPrice} onChange={(e) => updateEditItem(i, 'unitPrice', e.target.value)} /></td>
-                      <td style={{ color: '#f59e0b', fontWeight: 600 }}>₹{parseFloat(item.totalPrice || 0).toLocaleString('en-IN')}</td>
+                      <td>
+                        <input value={item.description} onChange={(e) => updateEditItem(i, 'description', e.target.value)} placeholder="Item / service name" />
+                        <textarea value={item.subDescription} onChange={(e) => updateEditItem(i, 'subDescription', e.target.value)} placeholder="Description / what's included" rows={2} style={{ marginTop: 4, width: '100%', background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '6px 8px', color: 'var(--text)', fontSize: 12, resize: 'vertical', outline: 'none' }} />
+                      </td>
+                      <td>
+                        {(item.subItems || []).map((si, j) => (
+                          <div key={j} style={{ display: 'flex', gap: 4, marginBottom: 4, alignItems: 'center' }}>
+                            <input value={si.label} onChange={(e) => updateEditSubItem(i, j, 'label', e.target.value)} placeholder="Item name" style={{ flex: 1, background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 8px', color: 'var(--text)', fontSize: 12, outline: 'none' }} />
+                            <input type="number" min="0" value={si.qty} onChange={(e) => updateEditSubItem(i, j, 'qty', e.target.value)} placeholder="8" style={{ width: 54, background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 6px', color: 'var(--text)', fontSize: 12, outline: 'none', textAlign: 'center' }} />
+                            <button type="button" onClick={() => removeEditSubItem(i, j)} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 15, padding: '0 2px', lineHeight: 1 }}>×</button>
+                          </div>
+                        ))}
+                        <button type="button" onClick={() => addEditSubItem(i)} style={{ background: 'none', border: '1px dashed var(--border)', borderRadius: 6, color: 'var(--text-muted)', fontSize: 11, padding: '3px 8px', cursor: 'pointer', marginTop: 2 }}>+ Add Deliverable</button>
+                      </td>
+                      <td><input type="number" min="0" step="0.01" value={item.totalPrice} onChange={(e) => updateEditItem(i, 'totalPrice', e.target.value)} placeholder="0" style={{ textAlign: 'right' }} /></td>
                       <td><button type="button" style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 16 }} onClick={() => setEditForm({ ...editForm, items: editForm.items.filter((_, j) => j !== i) })}>×</button></td>
                     </tr>
                   ))}
@@ -326,11 +403,17 @@ const Quotations = () => {
                 <div className="total-row grand"><span>Total</span><span>{formatCurrency(editTotal)}</span></div>
               </div>
 
-              <div className="form-row" style={{ marginTop: 16 }}>
-                <div className="form-group"><label className="form-label">Valid Until</label><input className="form-control" type="date" value={editForm.validUntil} onChange={(e) => setEditForm({ ...editForm, validUntil: e.target.value })} /></div>
-                <div className="form-group"><label className="form-label">Terms</label><input className="form-control" value={editForm.terms} onChange={(e) => setEditForm({ ...editForm, terms: e.target.value })} /></div>
+              <div className="form-group" style={{ marginTop: 16 }}><label className="form-label">Valid Until</label><input className="form-control" type="date" value={editForm.validUntil} onChange={(e) => setEditForm({ ...editForm, validUntil: e.target.value })} /></div>
+              <div className="form-group">
+                <label className="form-label">Terms & Conditions</label>
+                {(editForm.terms || []).map((term, i) => (
+                  <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 6, alignItems: 'center' }}>
+                    <input className="form-control" style={{ margin: 0 }} value={term} onChange={(e) => { const t = [...editForm.terms]; t[i] = e.target.value; setEditForm({ ...editForm, terms: t }); }} placeholder={`Term ${i + 1}`} />
+                    <button type="button" onClick={() => setEditForm({ ...editForm, terms: editForm.terms.filter((_, j) => j !== i) })} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 18, flexShrink: 0 }}>×</button>
+                  </div>
+                ))}
+                <button type="button" className="btn btn-ghost btn-sm" style={{ marginTop: 2 }} onClick={() => setEditForm({ ...editForm, terms: [...(editForm.terms || []), ''] })}>+ Add Term</button>
               </div>
-              <div className="form-group"><label className="form-label">Notes</label><textarea className="form-control" rows={2} value={editForm.notes} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} /></div>
               <div className="modal-actions">
                 <button type="button" className="btn btn-ghost" onClick={closeEdit}>Cancel</button>
                 <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</button>
@@ -341,6 +424,19 @@ const Quotations = () => {
       )}
 
       {upgradeModal && <UpgradeModal message={upgradeModal.message} limitType={upgradeModal.limitType} plan={org?.plan} onClose={() => setUpgradeModal(null)} />}
+
+      {deleteConfirm && (
+        <div className="modal-overlay" onClick={() => setDeleteConfirm(null)}>
+          <div className="modal confirm-modal" onClick={(e) => e.stopPropagation()}>
+            <h3>Delete Quotation</h3>
+            <p>Are you sure you want to delete <strong>{deleteConfirm.quotationNumber}</strong> for <strong>{deleteConfirm.clientName}</strong>? This cannot be undone.</p>
+            <div className="modal-actions">
+              <button className="btn btn-ghost" onClick={() => setDeleteConfirm(null)}>Cancel</button>
+              <button className="btn btn-danger" onClick={handleDelete}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 };

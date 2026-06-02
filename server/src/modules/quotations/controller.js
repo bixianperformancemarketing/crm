@@ -93,7 +93,7 @@ const createQuotation = async (req, res) => {
       }
     }
 
-    const subtotal = items.reduce((sum, item) => sum + parseFloat(item.quantity || 1) * parseFloat(item.unitPrice || 0), 0);
+    const subtotal = items.reduce((sum, item) => sum + parseFloat(item.totalPrice || 0), 0);
     const gstAmount = (subtotal * parseFloat(gstPercent)) / 100;
     const totalAmount = subtotal + gstAmount;
 
@@ -111,9 +111,11 @@ const createQuotation = async (req, res) => {
     const itemsData = items.map((item) => ({
       quotationId: q.id,
       description: item.description,
-      quantity: parseFloat(item.quantity) || 1,
-      unitPrice: parseFloat(item.unitPrice) || 0,
-      totalPrice: parseFloat(item.quantity || 1) * parseFloat(item.unitPrice || 0),
+      subDescription: item.subDescription || null,
+      subItems: item.subItems || [],
+      quantity: 1,
+      unitPrice: 0,
+      totalPrice: parseFloat(item.totalPrice) || 0,
     }));
     await QuotationItem.bulkCreate(itemsData);
 
@@ -154,7 +156,7 @@ const updateQuotation = async (req, res) => {
     if (validUntil) updates.validUntil = validUntil;
 
     if (items && items.length) {
-      const subtotal = items.reduce((sum, i) => sum + parseFloat(i.quantity || 1) * parseFloat(i.unitPrice || 0), 0);
+      const subtotal = items.reduce((sum, i) => sum + parseFloat(i.totalPrice || 0), 0);
       const gst = parseFloat(gstPercent || q.gstPercent);
       const gstAmount = (subtotal * gst) / 100;
       updates.subtotal = subtotal;
@@ -164,9 +166,13 @@ const updateQuotation = async (req, res) => {
 
       await QuotationItem.destroy({ where: { quotationId: id } });
       await QuotationItem.bulkCreate(items.map((i) => ({
-        quotationId: id, description: i.description,
-        quantity: parseFloat(i.quantity) || 1, unitPrice: parseFloat(i.unitPrice) || 0,
-        totalPrice: (parseFloat(i.quantity) || 1) * (parseFloat(i.unitPrice) || 0),
+        quotationId: id,
+        description: i.description,
+        subDescription: i.subDescription || null,
+        subItems: i.subItems || [],
+        quantity: 1,
+        unitPrice: 0,
+        totalPrice: parseFloat(i.totalPrice) || 0,
       })));
     }
 
@@ -210,6 +216,8 @@ const updateStatus = async (req, res) => {
         await InvoiceItem.bulkCreate(q.items.map((item) => ({
           invoiceId: inv.id,
           description: item.description,
+          subDescription: item.subDescription || null,
+          subItems: item.subItems || [],
           quantity: item.quantity,
           unitPrice: item.unitPrice,
           totalPrice: item.totalPrice,
@@ -308,4 +316,17 @@ const whatsappShare = async (req, res) => {
   }
 };
 
-module.exports = { getQuotations, getQuotation, createQuotation, updateQuotation, updateStatus, downloadPDF, sendEmail, whatsappShare };
+const deleteQuotation = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { user, workspaceId } = req;
+    const q = await Quotation.findOne({ where: { id, organizationId: user.organizationId, workspaceId } });
+    if (!q) return res.status(404).json({ success: false, message: 'Quotation not found' });
+    await q.destroy();
+    res.json({ success: true, message: 'Quotation deleted' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to delete quotation' });
+  }
+};
+
+module.exports = { getQuotations, getQuotation, createQuotation, updateQuotation, updateStatus, downloadPDF, sendEmail, whatsappShare, deleteQuotation };

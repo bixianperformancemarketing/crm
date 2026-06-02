@@ -97,6 +97,7 @@ export const leadsAPI = {
   getPipeline: () => api.get('/leads/pipeline'),
   addNote: (id, note) => api.post(`/leads/${id}/note`, { note }),
   bulkAssign: (leadIds, assignedTo) => api.put('/leads/bulk-assign', { leadIds, assignedTo }),
+  bulkDelete: (leadIds) => api.delete('/leads/bulk-delete', { data: { leadIds } }),
   importCSV: (file, onProgress) => {
     const formData = new FormData();
     formData.append('file', file);
@@ -140,6 +141,7 @@ export const quotationsAPI = {
   downloadPDF: (id) => api.get(`/quotations/${id}/pdf`, { responseType: 'blob' }),
   sendEmail: (id) => api.post(`/quotations/${id}/send-email`),
   whatsappShare: (id) => api.post(`/quotations/${id}/whatsapp-share`),
+  delete: (id) => api.delete(`/quotations/${id}`),
 };
 
 // ─── INVOICES ─────────────────────────────────────────────────────────────
@@ -151,6 +153,7 @@ export const invoicesAPI = {
   downloadPDF: (id) => api.get(`/invoices/${id}/pdf`, { responseType: 'blob' }),
   sendEmail: (id) => api.post(`/invoices/${id}/send-email`),
   whatsappShare: (id) => api.post(`/invoices/${id}/whatsapp-share`),
+  delete: (id) => api.delete(`/invoices/${id}`),
 };
 
 // ─── PAYMENTS ─────────────────────────────────────────────────────────────

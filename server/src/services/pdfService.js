@@ -1,5 +1,15 @@
 const PDFDocument = require('pdfkit');
 const moment = require('moment-timezone');
+const axios = require('axios');
+
+const fetchImageBuffer = async (url) => {
+  if (!url || !url.trim()) return null;
+  try {
+    if (url.startsWith('data:')) return Buffer.from(url.split(',')[1], 'base64');
+    const res = await axios.get(url.trim(), { responseType: 'arraybuffer', timeout: 5000 });
+    return Buffer.from(res.data);
+  } catch { return null; }
+};
 
 const IST = 'Asia/Kolkata';
 const PRIMARY = '#E7C51C';
@@ -65,28 +75,138 @@ const addClientSection = (doc, clientData, docData, type) => {
   return y + 95;
 };
 
+const parseTerms = (raw) => {
+  if (!raw) return [];
+  try {
+    const p = JSON.parse(raw);
+    return Array.isArray(p) ? p.filter(t => t && t.trim()) : (raw.trim() ? [raw] : []);
+  } catch { return raw.trim() ? [raw] : []; }
+};
+
+const addTermsAndPayment = (doc, bankDetails, termsRaw, startY) => {
+  const terms = parseTerms(termsRaw);
+  const bankFields = [
+    bankDetails?.bankName      && ['Bank',        bankDetails.bankName],
+    bankDetails?.accountHolder && ['A/C Holder',  bankDetails.accountHolder],
+    bankDetails?.accountNumber && ['Account No.', bankDetails.accountNumber],
+    bankDetails?.ifscCode      && ['IFSC',        bankDetails.ifscCode],
+    bankDetails?.upiId         && ['UPI ID',      bankDetails.upiId],
+  ].filter(Boolean);
+
+  const hasBank  = bankFields.length > 0;
+  const hasTerms = terms.length > 0;
+  if (!hasBank && !hasTerms) return startY;
+
+  const boxY   = startY + 14;
+  const termH  = hasTerms ? terms.length * 14 + 28 : 0;
+  const bankH  = hasBank  ? bankFields.length * 13 + 28 : 0;
+  const boxH   = Math.max(termH, bankH, 52);
+
+  if (hasBank && hasTerms) {
+    // ── Two columns mirroring BILL TO layout ──────────────────────────────
+    doc.rect(50,  boxY, 240, boxH).fill(LIGHT_GRAY);
+    doc.rect(305, boxY, 240, boxH).fill(LIGHT_GRAY);
+
+    doc.fontSize(8).fillColor(GRAY).font('Helvetica-Bold').text('PAYMENT DETAILS', 60, boxY + 10);
+    let by = boxY + 24;
+    bankFields.forEach(([label, value]) => {
+      doc.fontSize(7.5).fillColor(GRAY).font('Helvetica').text(`${label}:`, 60, by, { width: 68 });
+      doc.fontSize(7.5).fillColor(BLACK).font('Helvetica-Bold').text(value, 130, by, { width: 150 });
+      by += 13;
+    });
+
+    doc.fontSize(8).fillColor(GRAY).font('Helvetica-Bold').text('TERMS & CONDITIONS', 315, boxY + 10);
+    let ty = boxY + 24;
+    terms.forEach(term => {
+      doc.fontSize(8).fillColor(BLACK).font('Helvetica').text(`•  ${term}`, 315, ty, { width: 225 });
+      ty += 14;
+    });
+
+  } else if (hasBank) {
+    doc.rect(50, boxY, 495, boxH).fill(LIGHT_GRAY);
+    doc.fontSize(8).fillColor(GRAY).font('Helvetica-Bold').text('PAYMENT DETAILS', 60, boxY + 10);
+    let by = boxY + 24;
+    bankFields.forEach(([label, value]) => {
+      doc.fontSize(7.5).fillColor(GRAY).font('Helvetica').text(`${label}:`, 60, by, { width: 68 });
+      doc.fontSize(7.5).fillColor(BLACK).font('Helvetica-Bold').text(value, 130, by, { width: 200 });
+      by += 13;
+    });
+
+  } else {
+    doc.rect(50, boxY, 495, boxH).fill(LIGHT_GRAY);
+    doc.fontSize(8).fillColor(GRAY).font('Helvetica-Bold').text('TERMS & CONDITIONS', 60, boxY + 10);
+    let ty = boxY + 24;
+    terms.forEach(term => {
+      doc.fontSize(8).fillColor(BLACK).font('Helvetica').text(`•  ${term}`, 60, ty, { width: 470 });
+      ty += 14;
+    });
+  }
+
+  return boxY + boxH + 8;
+};
+
 const addItemsTable = (doc, items, startY) => {
   const tableY = startY + 10;
-  const colWidths = [240, 55, 90, 90];
-  const colX = [50, 295, 355, 450];
-  const headers = ['DESCRIPTION', 'QTY', 'UNIT PRICE', 'TOTAL'];
+  const cols = [
+    { x: 50, w: 235, label: 'SERVICE', align: 'left' },
+    { x: 290, w: 155, label: 'DELIVERABLES', align: 'center' },
+    { x: 450, w: 95, label: 'AMOUNT', align: 'right' },
+  ];
 
   doc.rect(50, tableY, 495, 22).fill(PRIMARY);
   doc.fontSize(9).fillColor(PRIMARY_DARK).font('Helvetica-Bold');
-  headers.forEach((h, i) => {
-    doc.text(h, colX[i] + 5, tableY + 7, { width: colWidths[i] - 10, align: i > 0 ? 'right' : 'left' });
+  cols.forEach((col) => {
+    doc.text(col.label, col.x + 5, tableY + 7, { width: col.w - 10, align: col.align });
   });
 
   let currentY = tableY + 22;
+
   items.forEach((item, idx) => {
-    const rowHeight = 24;
-    if (idx % 2 === 0) doc.rect(50, currentY, 495, rowHeight).fill(ACCENT_BG);
-    doc.fontSize(9).fillColor(BLACK).font('Helvetica');
-    doc.text(item.description || '', colX[0] + 5, currentY + 8, { width: colWidths[0] - 10 });
-    doc.text(String(parseFloat(item.quantity || 1)), colX[1] + 5, currentY + 8, { width: colWidths[1] - 10, align: 'right' });
-    doc.text(`Rs. ${parseFloat(item.unitPrice || 0).toLocaleString('en-IN')}`, colX[2] + 5, currentY + 8, { width: colWidths[2] - 10, align: 'right' });
-    doc.text(`Rs. ${parseFloat(item.totalPrice || 0).toLocaleString('en-IN')}`, colX[3] + 5, currentY + 8, { width: colWidths[3] - 10, align: 'right' });
-    currentY += rowHeight;
+    // Calculate left-column height
+    doc.fontSize(9).font('Helvetica-Bold');
+    const descH = doc.heightOfString(item.description || '', { width: cols[0].w - 10 });
+    doc.fontSize(8).font('Helvetica');
+    const subDescH = item.subDescription
+      ? doc.heightOfString(item.subDescription, { width: cols[0].w - 10 }) + 4
+      : 0;
+
+    // Format deliverables
+    const subItemsText = (item.subItems || [])
+      .filter((si) => si.label || si.qty)
+      .map((si) => `${si.qty || ''} ${si.label || ''}`.trim())
+      .join('  •  ');
+    const siH = subItemsText
+      ? doc.heightOfString(subItemsText, { width: cols[1].w - 10 }) + 4
+      : 0;
+
+    const rowH = Math.max(descH + subDescH, siH, 18) + 16;
+
+    if (idx % 2 === 0) doc.rect(50, currentY, 495, rowH).fill(ACCENT_BG);
+
+    // Service name
+    doc.fontSize(9).fillColor(BLACK).font('Helvetica-Bold');
+    doc.text(item.description || '', cols[0].x + 5, currentY + 8, { width: cols[0].w - 10 });
+
+    // Sub-description
+    if (item.subDescription) {
+      doc.fontSize(9).font('Helvetica-Bold');
+      const mainH = doc.heightOfString(item.description || '', { width: cols[0].w - 10 });
+      doc.fontSize(8).fillColor(GRAY).font('Helvetica');
+      doc.text(item.subDescription, cols[0].x + 5, currentY + 8 + mainH + 2, { width: cols[0].w - 10 });
+    }
+
+    // Deliverables
+    if (subItemsText) {
+      doc.fontSize(8).fillColor('#333').font('Helvetica');
+      doc.text(subItemsText, cols[1].x + 5, currentY + 8, { width: cols[1].w - 10, align: 'center' });
+    }
+
+    // Amount
+    doc.fontSize(10).fillColor(BLACK).font('Helvetica-Bold');
+    doc.text(`Rs. ${parseFloat(item.totalPrice || 0).toLocaleString('en-IN')}`, cols[2].x + 5, currentY + 8, { width: cols[2].w - 10, align: 'right' });
+
+    currentY += rowH;
+    drawLine(doc, currentY, '#eeeeee');
   });
 
   return currentY;
@@ -118,24 +238,94 @@ const addTotals = (doc, data, startY) => {
   return y + 10;
 };
 
-const addFooter = (doc, data) => {
-  const footerY = doc.page.height - 120;
-  drawLine(doc, footerY);
+const addFooter = (doc, data, orgSettings, logoBuffer, signatureBuffer, type) => {
+  const branding = orgSettings?.branding || {};
+  const bankDetails = orgSettings?.bankDetails || {};
+  const signatoryName = branding.signatoryName || '';
+  const signatoryDesignation = branding.signatoryDesignation || '';
+  const hasBankDetails = false; // bank details now shown as a body section, not in footer
 
-  if (data.terms) {
-    doc.fontSize(8).fillColor(GRAY).font('Helvetica-Bold').text('TERMS & CONDITIONS', 50, footerY + 10);
-    doc.fontSize(8).fillColor('#555').font('Helvetica').text(data.terms, 50, footerY + 22, { width: 495 });
+  const footerY = doc.page.height - 130;
+
+  // Yellow background — mirrors the header
+  doc.rect(0, footerY, doc.page.width, doc.page.height - footerY).fill(PRIMARY);
+
+  const TEXT_DARK = PRIMARY_DARK;   // #1a1a2e — headings on yellow
+  const TEXT_MID  = '#5a4a00';      // dark amber — secondary text on yellow
+  const LINE_COLOR = 'rgba(26,26,46,0.25)';
+
+  // Thin separator line at top of footer
+  doc.strokeColor(TEXT_DARK).lineWidth(0.5).opacity(0.3)
+    .moveTo(50, footerY + 1).lineTo(545, footerY + 1).stroke();
+  doc.opacity(1);
+
+  // ── Left column: Logo + company name ────────────────────────────────────
+  let leftY = footerY + 14;
+  if (logoBuffer) {
+    try {
+      doc.image(logoBuffer, 50, leftY, { height: 34, fit: [110, 34] });
+      leftY += 40;
+    } catch {}
   }
-  if (data.notes) {
-    doc.fontSize(8).fillColor(GRAY).font('Helvetica-Bold').text('NOTES', 50, footerY + 50);
-    doc.fontSize(8).fillColor('#555').font('Helvetica').text(data.notes, 50, footerY + 62, { width: 495 });
+  const companyName = branding.companyName || '';
+  if (companyName) {
+    doc.fontSize(9).fillColor(TEXT_DARK).font('Helvetica-Bold').text(companyName, 50, leftY, { width: 145 });
+    leftY += 13;
+  }
+  if (branding.phone)   { doc.fontSize(7.5).fillColor(TEXT_MID).font('Helvetica').text(branding.phone,   50, leftY, { width: 145 }); leftY += 11; }
+  if (branding.email)   { doc.fontSize(7.5).fillColor(TEXT_MID).font('Helvetica').text(branding.email,   50, leftY, { width: 145 }); leftY += 11; }
+  if (branding.website) { doc.fontSize(7.5).fillColor(TEXT_MID).font('Helvetica').text(branding.website, 50, leftY, { width: 145 }); }
+
+  // ── Middle column: Bank details (invoice) or Terms (quotation) ──────────
+  const midX = 215;
+  const midWidth = 170;
+  let midY = footerY + 14;
+
+  // Payment details and terms are shown in the body section above the footer
+
+  // ── Right column: Signature + signatory ─────────────────────────────────
+  const rightX = 400;
+  const rightWidth = 145;
+  let rightY = footerY + 14;
+
+  if (signatureBuffer) {
+    try {
+      doc.image(signatureBuffer, rightX, rightY, { height: 38, fit: [rightWidth, 38] });
+      rightY += 44;
+    } catch { rightY += 10; }
+  } else {
+    doc.strokeColor(TEXT_DARK).lineWidth(0.5).opacity(0.4)
+      .moveTo(rightX + 10, rightY + 32).lineTo(rightX + rightWidth - 10, rightY + 32).stroke();
+    doc.opacity(1);
+    rightY += 38;
+  }
+  doc.fontSize(8).fillColor(TEXT_DARK).font('Helvetica-Bold').text('Authorized Signatory', rightX, rightY, { width: rightWidth, align: 'center' });
+  rightY += 12;
+  if (signatoryName) {
+    doc.fontSize(8).fillColor(TEXT_DARK).font('Helvetica-Bold').text(signatoryName, rightX, rightY, { width: rightWidth, align: 'center' });
+    rightY += 11;
+  }
+  if (signatoryDesignation) {
+    doc.fontSize(7.5).fillColor(TEXT_MID).font('Helvetica').text(signatoryDesignation, rightX, rightY, { width: rightWidth, align: 'center' });
   }
 
-  doc.fontSize(8).fillColor(GRAY).text('Thank you for your business!', 50, doc.page.height - 30, { align: 'center', width: 495 });
+  // ── Bottom strip: notes + thank-you ─────────────────────────────────────
+  const stripY = doc.page.height - 22;
+  doc.strokeColor(TEXT_DARK).lineWidth(0.5).opacity(0.15)
+    .moveTo(50, stripY - 5).lineTo(545, stripY - 5).stroke();
+  doc.opacity(1);
+
+  doc.fontSize(8).fillColor(TEXT_DARK).font('Helvetica-Bold').text('Thank you for your business!', 50, stripY, { align: 'center', width: 495 });
 };
 
-const generateQuotationPDF = (quotation, items, orgSettings) =>
-  new Promise((resolve, reject) => {
+const generateQuotationPDF = async (quotation, items, orgSettings) => {
+  const branding = orgSettings?.branding || {};
+  const [logoBuffer, signatureBuffer] = await Promise.all([
+    fetchImageBuffer(branding.logo),
+    fetchImageBuffer(branding.signature),
+  ]);
+
+  return new Promise((resolve, reject) => {
     const chunks = [];
     const doc = new PDFDocument({ margin: 0, size: 'A4' });
     doc.on('data', (chunk) => chunks.push(chunk));
@@ -154,12 +344,20 @@ const generateQuotationPDF = (quotation, items, orgSettings) =>
 
     const itemsEndY = addItemsTable(doc, items || [], clientY);
     const totalsEndY = addTotals(doc, quotation, itemsEndY);
-    addFooter(doc, quotation);
+    addTermsAndPayment(doc, orgSettings?.bankDetails || {}, quotation.terms, totalsEndY);
+    addFooter(doc, quotation, orgSettings, logoBuffer, signatureBuffer, 'Quotation');
     doc.end();
   });
+};
 
-const generateInvoicePDF = (invoice, orgSettings, invoiceItems) =>
-  new Promise((resolve, reject) => {
+const generateInvoicePDF = async (invoice, orgSettings, invoiceItems) => {
+  const branding = orgSettings?.branding || {};
+  const [logoBuffer, signatureBuffer] = await Promise.all([
+    fetchImageBuffer(branding.logo),
+    fetchImageBuffer(branding.signature),
+  ]);
+
+  return new Promise((resolve, reject) => {
     const chunks = [];
     const doc = new PDFDocument({ margin: 0, size: 'A4' });
     doc.on('data', (chunk) => chunks.push(chunk));
@@ -180,8 +378,10 @@ const generateInvoicePDF = (invoice, orgSettings, invoiceItems) =>
 
     const itemsEndY = addItemsTable(doc, items, clientY);
     const totalsEndY = addTotals(doc, invoice, itemsEndY);
-    addFooter(doc, invoice);
+    addTermsAndPayment(doc, orgSettings?.bankDetails || {}, invoice.terms, totalsEndY);
+    addFooter(doc, invoice, orgSettings, logoBuffer, signatureBuffer, 'Invoice');
     doc.end();
   });
+};
 
 module.exports = { generateQuotationPDF, generateInvoicePDF };

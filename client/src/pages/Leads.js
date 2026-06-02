@@ -40,10 +40,12 @@ const Leads = () => {
   const [importing, setImporting] = useState(false);
   const [importResults, setImportResults] = useState(null);
 
-  // bulk assign state
+  // bulk action state
   const [selected, setSelected] = useState(new Set());
   const [bulkAssignTo, setBulkAssignTo] = useState('');
   const [bulkAssigning, setBulkAssigning] = useState(false);
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
   const lastClickedIndex = useRef(null);
   const touchDragStart = useRef(null);
 
@@ -161,6 +163,21 @@ const Leads = () => {
 
   const handleTouchEnd = useCallback(() => { touchDragStart.current = null; }, []);
 
+  const handleBulkDelete = async () => {
+    setBulkDeleting(true);
+    try {
+      const { data } = await leadsAPI.bulkDelete([...selected]);
+      toast.success(data.message);
+      setSelected(new Set());
+      setConfirmBulkDelete(false);
+      loadLeads();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Bulk delete failed');
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
   const handleBulkAssign = async () => {
     if (!bulkAssignTo) { toast.error('Please select an employee'); return; }
     if (selected.size === 0) return;
@@ -257,6 +274,13 @@ const Leads = () => {
             disabled={!bulkAssignTo || bulkAssigning}
           >
             {bulkAssigning ? 'Assigning...' : 'Assign'}
+          </button>
+          <button
+            className="btn btn-sm"
+            style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444', border: 'none' }}
+            onClick={() => setConfirmBulkDelete(true)}
+          >
+            Delete {selected.size}
           </button>
           <button
             className="btn btn-ghost btn-sm"
@@ -388,6 +412,7 @@ const Leads = () => {
 
       {upgradeModal && <UpgradeModal message={upgradeModal.message} limitType={upgradeModal.limitType} plan={org?.plan} onClose={() => setUpgradeModal(null)} />}
       {confirmDelete && <ConfirmModal title="Delete Lead" message={`Delete ${confirmDelete.name}? This cannot be undone.`} confirmText="Delete" confirmClass="btn-danger" loading={deleting} onConfirm={handleDelete} onCancel={() => setConfirmDelete(null)} />}
+      {confirmBulkDelete && <ConfirmModal title="Delete Leads" message={`Delete ${selected.size} lead${selected.size !== 1 ? 's' : ''}? This cannot be undone.`} confirmText="Delete All" confirmClass="btn-danger" loading={bulkDeleting} onConfirm={handleBulkDelete} onCancel={() => setConfirmBulkDelete(false)} />}
     </Layout>
   );
 };

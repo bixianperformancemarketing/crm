@@ -52,6 +52,18 @@ const Layout = ({ children, title }) => {
   const { unreadCount, resetUnread } = useSocket();
   const [collapsed, setCollapsed] = useState(window.innerWidth < 860);
   const [showNotifs, setShowNotifs] = useState(false);
+  const [theme, setTheme] = useState(() => {
+    const saved = localStorage.getItem('crm-theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', saved);
+    return saved;
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('crm-theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark');
   const [notifications, setNotifications] = useState([]);
   const notifRef = useRef(null);
   const navigate = useNavigate();
@@ -132,7 +144,7 @@ const Layout = ({ children, title }) => {
           <h1 className="header-title">{pageTitle}</h1>
           <div className="header-actions">
             {workspace && !collapsed && (
-              <span style={{ fontSize: 12, color: 'var(--text-muted)', background: 'rgba(255,255,255,0.04)', padding: '4px 10px', borderRadius: '6px' }}>
+              <span className="workspace-label">
                 {workspace.name}
               </span>
             )}
@@ -166,6 +178,9 @@ const Layout = ({ children, title }) => {
                 </div>
               )}
             </div>
+            <button className="theme-toggle-btn" onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
+              {theme === 'dark' ? '☀️' : '🌙'}
+            </button>
             <button className="btn btn-ghost btn-sm" onClick={logout}>Logout</button>
           </div>
         </header>
