@@ -191,7 +191,7 @@ const WebhooksTab = ({ org }) => {
                 </div>
                 <div className="form-group" style={{ margin: 0 }}>
                   <label className="form-label">Label (optional)</label>
-                  <input className="form-control" placeholder="e.g. CPR Park Heights Page" value={routeForm.label} onChange={e => setRouteForm({ ...routeForm, label: e.target.value })} />
+                  <input className="form-control" placeholder="e.g. Sunrise Apartments Page" value={routeForm.label} onChange={e => setRouteForm({ ...routeForm, label: e.target.value })} />
                 </div>
               </div>
               <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Adding...' : 'Add Rule'}</button>
@@ -504,7 +504,7 @@ const MetaAdsTab = ({ org }) => {
             </div>
             <div className="form-group" style={{ margin: 0 }}>
               <label className="form-label">Page Name (for display)</label>
-              <input className="form-control" placeholder="e.g. CPR Constructions" value={connectForm.fbPageName} onChange={e => setConnectForm({ ...connectForm, fbPageName: e.target.value })} />
+              <input className="form-control" placeholder="e.g. Acme Digital Agency" value={connectForm.fbPageName} onChange={e => setConnectForm({ ...connectForm, fbPageName: e.target.value })} />
             </div>
           </div>
           <div className="form-group" style={{ marginBottom: 12 }}>
