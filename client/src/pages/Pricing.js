@@ -5,11 +5,14 @@ import axios from 'axios';
 const API_URL = process.env.REACT_APP_API_URL || '';
 
 const FEATURE_LABELS = {
-  canUsePDF: 'PDF Generation',
-  canUseWebhooks: 'Webhooks',
-  canUseAdvancedReports: 'Advanced Reports',
-  canUseContentCalendar: 'Content Calendar',
+  canUseQuotations: 'Quotations',
+  canUseInvoices: 'Invoices',
+  canUseAppointments: 'Appointments',
+  canUsePDF: 'PDF / Email / WhatsApp',
   canUseCSVImport: 'CSV Import',
+  canUseContentCalendar: 'Tasks',
+  canUseAdvancedReports: 'Advanced Reports',
+  canUseWebhooks: 'Webhooks & Lead Integrations',
 };
 
 const Pricing = () => {
