@@ -15,6 +15,9 @@ const Plan = sequelize.define('Plan', {
   canUseCSVImport: { type: DataTypes.BOOLEAN, defaultValue: false },
   canUseContentCalendar: { type: DataTypes.BOOLEAN, defaultValue: false },
   canUseAdvancedReports: { type: DataTypes.BOOLEAN, defaultValue: false },
+  canUseQuotations: { type: DataTypes.BOOLEAN, defaultValue: true },
+  canUseInvoices: { type: DataTypes.BOOLEAN, defaultValue: true },
+  canUseAppointments: { type: DataTypes.BOOLEAN, defaultValue: true },
   description: { type: DataTypes.TEXT },
   durationDays: { type: DataTypes.INTEGER, defaultValue: 30 },
 }, { tableName: 'plans' });
@@ -44,6 +47,9 @@ const Organization = sequelize.define('Organization', {
   canUseCSVImport: { type: DataTypes.BOOLEAN, defaultValue: false },
   canUseContentCalendar: { type: DataTypes.BOOLEAN, defaultValue: false },
   canUseAdvancedReports: { type: DataTypes.BOOLEAN, defaultValue: false },
+  canUseQuotations: { type: DataTypes.BOOLEAN, defaultValue: true },
+  canUseInvoices: { type: DataTypes.BOOLEAN, defaultValue: true },
+  canUseAppointments: { type: DataTypes.BOOLEAN, defaultValue: true },
   webhookToken: { type: DataTypes.STRING(64), unique: true },
   settings: {
     type: DataTypes.JSON,

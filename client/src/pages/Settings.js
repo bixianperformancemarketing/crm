@@ -838,6 +838,51 @@ document.getElementById('crmForm').addEventListener('submit', function(e) {
   );
 };
 
+const ImageUpload = ({ label, value, onChange, hint }) => {
+  const inputRef = React.useRef();
+  const isBase64 = value && value.startsWith('data:');
+  const isUrl = value && !isBase64;
+
+  const handleFile = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 1024 * 1024) return toast.error('Image must be under 1 MB');
+    const reader = new FileReader();
+    reader.onload = (ev) => onChange(ev.target.result);
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  return (
+    <div className="form-group">
+      <label className="form-label">{label}</label>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        {value ? (
+          <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 100, height: 60, background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
+            <img src={value} alt={label} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} onError={() => onChange('')} />
+          </div>
+        ) : (
+          <div style={{ width: 100, height: 60, background: 'var(--surface-2)', border: '1px dashed var(--border)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: 11 }}>
+            No image
+          </div>
+        )}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <input ref={inputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFile} />
+          <button type="button" onClick={() => inputRef.current.click()} style={{ padding: '6px 14px', fontSize: 12, background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600 }}>
+            {value ? 'Replace' : 'Upload'}
+          </button>
+          {value && (
+            <button type="button" onClick={() => onChange('')} style={{ padding: '5px 14px', fontSize: 12, background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 6, cursor: 'pointer' }}>
+              Remove
+            </button>
+          )}
+        </div>
+        {hint && <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>{hint}</div>}
+      </div>
+    </div>
+  );
+};
+
 const Settings = () => {
   const { org, isRole, refreshUser, user } = useAuth();
   const [tab, setTab] = useState(isRole('owner') ? 'org' : 'workspace');
@@ -846,8 +891,8 @@ const Settings = () => {
   const [pwSaving, setPwSaving] = useState(false);
 
   const [wsForm, setWsForm] = useState({ name: '', description: '' });
-  const [orgSettings, setOrgSettings] = useState({ companyName: '', companyAddress: '', companyPhone: '', companyEmail: '', companyGST: '', companyWebsite: '', logoUrl: '', signatureUrl: '', signatoryName: '', signatoryDesignation: '' });
-  const [bankDetails, setBankDetails] = useState({ bankName: '', accountHolder: '', accountNumber: '', ifscCode: '', upiId: '' });
+  const [orgSettings, setOrgSettings] = useState({ companyName: '', companyAddress: '', companyPhone: '', companyPhone2: '', companyEmail: '', companyGST: '', companyWebsite: '', logoUrl: '', signatureUrl: '', signatoryName: '', signatoryDesignation: '' });
+  const [bankDetails, setBankDetails] = useState({ bankName: '', accountHolder: '', accountNumber: '', ifscCode: '', qrCode: '' });
   const [smtpForm, setSmtpForm] = useState({ host: '', port: 587, user: '', pass: '', from: '', secure: false });
   const [testEmail, setTestEmail] = useState('');
 
@@ -863,6 +908,7 @@ const Settings = () => {
         companyName: b.companyName || org.name || '',
         companyAddress: b.address || '',
         companyPhone: b.phone || '',
+        companyPhone2: b.phone2 || '',
         companyEmail: b.email || '',
         companyGST: b.gst || '',
         companyWebsite: b.website || '',
@@ -872,7 +918,7 @@ const Settings = () => {
         signatoryDesignation: b.signatoryDesignation || '',
       });
       const bd = s.bankDetails || {};
-      setBankDetails({ bankName: bd.bankName || '', accountHolder: bd.accountHolder || '', accountNumber: bd.accountNumber || '', ifscCode: bd.ifscCode || '', upiId: bd.upiId || '' });
+      setBankDetails({ bankName: bd.bankName || '', accountHolder: bd.accountHolder || '', accountNumber: bd.accountNumber || '', ifscCode: bd.ifscCode || '', qrCode: bd.qrCode || '' });
       if (s.smtp) {
         setSmtpForm({ host: s.smtp.host || '', port: s.smtp.port || 587, user: s.smtp.user || '', pass: '', from: s.smtp.from || '', secure: s.smtp.secure || false });
       }
@@ -901,6 +947,7 @@ const Settings = () => {
             companyName: orgSettings.companyName,
             address: orgSettings.companyAddress,
             phone: orgSettings.companyPhone,
+            phone2: orgSettings.companyPhone2,
             email: orgSettings.companyEmail,
             gst: orgSettings.companyGST,
             website: orgSettings.companyWebsite,
@@ -914,7 +961,7 @@ const Settings = () => {
             accountHolder: bankDetails.accountHolder,
             accountNumber: bankDetails.accountNumber,
             ifscCode: bankDetails.ifscCode,
-            upiId: bankDetails.upiId,
+            qrCode: bankDetails.qrCode,
           },
         },
       });
@@ -994,30 +1041,35 @@ const Settings = () => {
 
       {tab === 'org' && (
         <div style={{ maxWidth: 600 }}>
-          <div style={{ marginBottom: 20, padding: 14, background: 'rgba(14,165,233,0.08)', borderRadius: 8, fontSize: 13, color: '#0ea5e9', border: '1px solid rgba(14,165,233,0.2)' }}>
+          <div style={{ marginBottom: 24, padding: 14, background: 'rgba(14,165,233,0.08)', borderRadius: 8, fontSize: 13, color: '#0ea5e9', border: '1px solid rgba(14,165,233,0.2)' }}>
             These details appear on your PDF Quotations and Invoices.
           </div>
           <form onSubmit={saveOrgSettings}>
+
+            {/* ── Company Information ── */}
+            <div style={{ marginBottom: 16, padding: '10px 14px', background: 'var(--surface-2)', borderRadius: 8, borderLeft: '3px solid var(--accent)', fontWeight: 700, fontSize: 13 }}>
+              Company Information
+            </div>
             <div className="form-row">
               <div className="form-group"><label className="form-label">Company Name</label><input className="form-control" value={orgSettings.companyName} onChange={e => setOrgSettings({ ...orgSettings, companyName: e.target.value })} /></div>
               <div className="form-group"><label className="form-label">GST Number</label><input className="form-control" value={orgSettings.companyGST} onChange={e => setOrgSettings({ ...orgSettings, companyGST: e.target.value })} placeholder="22AAAAA0000A1Z5" /></div>
             </div>
             <div className="form-row">
-              <div className="form-group"><label className="form-label">Phone</label><input className="form-control" value={orgSettings.companyPhone} onChange={e => setOrgSettings({ ...orgSettings, companyPhone: e.target.value.replace(/[^0-9+]/g, '') })} placeholder="+91 9876543210" /></div>
-              <div className="form-group"><label className="form-label">Email</label><input className="form-control" type="email" value={orgSettings.companyEmail} onChange={e => setOrgSettings({ ...orgSettings, companyEmail: e.target.value })} /></div>
+              <div className="form-group"><label className="form-label">Primary Phone</label><input className="form-control" value={orgSettings.companyPhone} onChange={e => setOrgSettings({ ...orgSettings, companyPhone: e.target.value.replace(/[^0-9+]/g, '') })} placeholder="+91 9876543210" /></div>
+              <div className="form-group"><label className="form-label">Secondary Phone</label><input className="form-control" value={orgSettings.companyPhone2} onChange={e => setOrgSettings({ ...orgSettings, companyPhone2: e.target.value.replace(/[^0-9+]/g, '') })} placeholder="+91 9876543211" /></div>
             </div>
-            <div className="form-group"><label className="form-label">Website</label><input className="form-control" value={orgSettings.companyWebsite} onChange={e => setOrgSettings({ ...orgSettings, companyWebsite: e.target.value })} placeholder="https://yourwebsite.com" /></div>
-            <div className="form-group"><label className="form-label">Address</label><textarea className="form-control" rows={2} value={orgSettings.companyAddress} onChange={e => setOrgSettings({ ...orgSettings, companyAddress: e.target.value })} /></div>
-            <div className="form-group"><label className="form-label">Logo URL</label><input className="form-control" value={orgSettings.logoUrl} onChange={e => setOrgSettings({ ...orgSettings, logoUrl: e.target.value })} placeholder="https://..." /></div>
-
-            <div style={{ margin: '20px 0 12px', fontWeight: 600, fontSize: 13, borderTop: '1px solid var(--border)', paddingTop: 16 }}>Authorized Signatory</div>
             <div className="form-row">
-              <div className="form-group"><label className="form-label">Name</label><input className="form-control" value={orgSettings.signatoryName} onChange={e => setOrgSettings({ ...orgSettings, signatoryName: e.target.value })} placeholder="e.g. John Doe" /></div>
-              <div className="form-group"><label className="form-label">Designation</label><input className="form-control" value={orgSettings.signatoryDesignation} onChange={e => setOrgSettings({ ...orgSettings, signatoryDesignation: e.target.value })} placeholder="e.g. Founder & CEO" /></div>
+              <div className="form-group"><label className="form-label">Email</label><input className="form-control" type="email" value={orgSettings.companyEmail} onChange={e => setOrgSettings({ ...orgSettings, companyEmail: e.target.value })} /></div>
+              <div className="form-group"><label className="form-label">Website</label><input className="form-control" value={orgSettings.companyWebsite} onChange={e => setOrgSettings({ ...orgSettings, companyWebsite: e.target.value })} placeholder="https://yourwebsite.com" /></div>
             </div>
-            <div className="form-group"><label className="form-label">Signature Image URL</label><input className="form-control" value={orgSettings.signatureUrl} onChange={e => setOrgSettings({ ...orgSettings, signatureUrl: e.target.value })} placeholder="https://... (transparent PNG preferred)" /></div>
+            <div className="form-group"><label className="form-label">Address</label><textarea className="form-control" rows={2} value={orgSettings.companyAddress} onChange={e => setOrgSettings({ ...orgSettings, companyAddress: e.target.value })} /></div>
+            <ImageUpload label="Company Logo" value={orgSettings.logoUrl} onChange={v => setOrgSettings({ ...orgSettings, logoUrl: v })} hint="Appears on PDF header. PNG or JPG, under 1 MB." />
 
-            <div style={{ margin: '20px 0 12px', fontWeight: 600, fontSize: 13, borderTop: '1px solid var(--border)', paddingTop: 16 }}>Bank Details <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-muted)' }}>(shown on Invoice PDF)</span></div>
+            {/* ── Payment Details ── */}
+            <div style={{ margin: '28px 0 16px', padding: '10px 14px', background: 'var(--surface-2)', borderRadius: 8, borderLeft: '3px solid #10b981', fontWeight: 700, fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span>Payment Details</span>
+              <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-muted)' }}>shown on Quotation &amp; Invoice PDFs</span>
+            </div>
             <div className="form-row">
               <div className="form-group"><label className="form-label">Bank Name</label><input className="form-control" value={bankDetails.bankName} onChange={e => setBankDetails({ ...bankDetails, bankName: e.target.value })} placeholder="e.g. HDFC Bank" /></div>
               <div className="form-group"><label className="form-label">Account Holder</label><input className="form-control" value={bankDetails.accountHolder} onChange={e => setBankDetails({ ...bankDetails, accountHolder: e.target.value })} placeholder="Account holder name" /></div>
@@ -1026,9 +1078,21 @@ const Settings = () => {
               <div className="form-group"><label className="form-label">Account Number</label><input className="form-control" value={bankDetails.accountNumber} onChange={e => setBankDetails({ ...bankDetails, accountNumber: e.target.value })} placeholder="1234567890" /></div>
               <div className="form-group"><label className="form-label">IFSC Code</label><input className="form-control" value={bankDetails.ifscCode} onChange={e => setBankDetails({ ...bankDetails, ifscCode: e.target.value })} placeholder="HDFC0001234" /></div>
             </div>
-            <div className="form-group"><label className="form-label">UPI ID</label><input className="form-control" value={bankDetails.upiId} onChange={e => setBankDetails({ ...bankDetails, upiId: e.target.value })} placeholder="yourname@upi" /></div>
+            <ImageUpload label="Payment QR Code" value={bankDetails.qrCode} onChange={v => setBankDetails({ ...bankDetails, qrCode: v })} hint="Upload your UPI / bank QR code. Shown on PDF for easy scanning." />
 
-            <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Saving...' : 'Save Organization Info'}</button>
+            {/* ── Authorized Signatory ── */}
+            <div style={{ margin: '28px 0 16px', padding: '10px 14px', background: 'var(--surface-2)', borderRadius: 8, borderLeft: '3px solid #f59e0b', fontWeight: 700, fontSize: 13 }}>
+              Authorized Signatory
+            </div>
+            <div className="form-row">
+              <div className="form-group"><label className="form-label">Name</label><input className="form-control" value={orgSettings.signatoryName} onChange={e => setOrgSettings({ ...orgSettings, signatoryName: e.target.value })} placeholder="e.g. John Doe" /></div>
+              <div className="form-group"><label className="form-label">Designation</label><input className="form-control" value={orgSettings.signatoryDesignation} onChange={e => setOrgSettings({ ...orgSettings, signatoryDesignation: e.target.value })} placeholder="e.g. Founder & CEO" /></div>
+            </div>
+            <ImageUpload label="Signature Image" value={orgSettings.signatureUrl} onChange={v => setOrgSettings({ ...orgSettings, signatureUrl: v })} hint="Use a transparent PNG — sign on white paper, scan it, then remove the background." />
+
+            <div style={{ marginTop: 28 }}>
+              <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Saving...' : 'Save Organization Info'}</button>
+            </div>
           </form>
         </div>
       )}

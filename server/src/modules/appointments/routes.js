@@ -1,9 +1,10 @@
 const router = require('express').Router();
 const { authenticate } = require('../../middleware/auth');
 const { scopeTenant, requireWorkspace } = require('../../middleware/tenant');
+const { checkFeature } = require('../../middleware/entitlement');
 const ctrl = require('./controller');
 
-router.use(authenticate, scopeTenant, requireWorkspace);
+router.use(authenticate, scopeTenant, requireWorkspace, checkFeature('canUseAppointments'));
 
 router.get('/', ctrl.getAppointments);
 router.get('/calendar', ctrl.getCalendar);

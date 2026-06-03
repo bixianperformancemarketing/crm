@@ -163,6 +163,9 @@ const createOrganization = async (req, res) => {
       canUseCSVImport: planConfig?.canUseCSVImport || false,
       canUseContentCalendar: planConfig?.canUseContentCalendar || false,
       canUseAdvancedReports: planConfig?.canUseAdvancedReports || false,
+      canUseQuotations: planConfig?.canUseQuotations ?? true,
+      canUseInvoices: planConfig?.canUseInvoices ?? true,
+      canUseAppointments: planConfig?.canUseAppointments ?? true,
       webhookToken,
       settings: {
         branding: { companyName: name, logo: null, address: '', gst: '', phone: ownerPhone || '', email: ownerEmail, website: '' },
@@ -207,6 +210,7 @@ const updateOrganization = async (req, res) => {
       name, ownerName, ownerPhone, plan, planExpiresAt,
       maxWorkspaces, maxUsersPerWorkspace, maxLeadsTotal,
       canUseWebhooks, canUsePDF, canUseCSVImport, canUseContentCalendar, canUseAdvancedReports,
+      canUseQuotations, canUseInvoices, canUseAppointments,
       isActive, suspendedReason,
     } = req.body;
 
@@ -229,6 +233,9 @@ const updateOrganization = async (req, res) => {
         updates.canUseCSVImport = canUseCSVImport ?? planConfig.canUseCSVImport;
         updates.canUseContentCalendar = canUseContentCalendar ?? planConfig.canUseContentCalendar;
         updates.canUseAdvancedReports = canUseAdvancedReports ?? planConfig.canUseAdvancedReports;
+        updates.canUseQuotations = canUseQuotations ?? (planConfig.canUseQuotations ?? true);
+        updates.canUseInvoices = canUseInvoices ?? (planConfig.canUseInvoices ?? true);
+        updates.canUseAppointments = canUseAppointments ?? (planConfig.canUseAppointments ?? true);
       }
     }
     if (planExpiresAt) updates.planExpiresAt = planExpiresAt;
@@ -240,6 +247,9 @@ const updateOrganization = async (req, res) => {
     if (canUseCSVImport !== undefined) updates.canUseCSVImport = canUseCSVImport;
     if (canUseContentCalendar !== undefined) updates.canUseContentCalendar = canUseContentCalendar;
     if (canUseAdvancedReports !== undefined) updates.canUseAdvancedReports = canUseAdvancedReports;
+    if (canUseQuotations !== undefined) updates.canUseQuotations = canUseQuotations;
+    if (canUseInvoices !== undefined) updates.canUseInvoices = canUseInvoices;
+    if (canUseAppointments !== undefined) updates.canUseAppointments = canUseAppointments;
     if (isActive !== undefined) updates.isActive = isActive;
     if (suspendedReason !== undefined) updates.suspendedReason = suspendedReason;
 
@@ -309,7 +319,8 @@ const updatePlan = async (req, res) => {
     const plan = await Plan.findByPk(id);
     if (!plan) return res.status(404).json({ success: false, message: 'Plan not found' });
     const allowed = ['displayName', 'price', 'maxWorkspaces', 'maxUsersPerWorkspace', 'maxLeadsTotal',
-      'canUseWebhooks', 'canUsePDF', 'canUseCSVImport', 'canUseContentCalendar', 'canUseAdvancedReports', 'description'];
+      'canUseWebhooks', 'canUsePDF', 'canUseCSVImport', 'canUseContentCalendar', 'canUseAdvancedReports',
+      'canUseQuotations', 'canUseInvoices', 'canUseAppointments', 'description'];
     const updates = {};
     for (const key of allowed) {
       if (req.body[key] !== undefined) updates[key] = req.body[key];

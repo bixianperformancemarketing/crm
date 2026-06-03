@@ -4,11 +4,14 @@ import SuperAdminLayout from '../../components/layout/SuperAdminLayout';
 import { superAdminAPI } from '../../services/api';
 
 const FEATURE_LABELS = {
-  canUsePDF: 'PDF Generation',
-  canUseWebhooks: 'Webhooks',
-  canUseAdvancedReports: 'Advanced Reports',
-  canUseContentCalendar: 'Content Calendar',
+  canUseQuotations: 'Quotations',
+  canUseInvoices: 'Invoices',
+  canUseAppointments: 'Appointments',
+  canUsePDF: 'PDF / Email / WhatsApp',
   canUseCSVImport: 'CSV Import',
+  canUseContentCalendar: 'Tasks',
+  canUseAdvancedReports: 'Advanced Reports',
+  canUseWebhooks: 'Webhooks & Lead Integrations',
 };
 
 const Plans = () => {
@@ -40,6 +43,9 @@ const Plans = () => {
       canUseAdvancedReports: p.canUseAdvancedReports,
       canUseContentCalendar: p.canUseContentCalendar,
       canUseCSVImport: p.canUseCSVImport,
+      canUseQuotations: p.canUseQuotations ?? true,
+      canUseInvoices: p.canUseInvoices ?? true,
+      canUseAppointments: p.canUseAppointments ?? true,
     });
     setEditPlan(p);
   };

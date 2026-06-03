@@ -69,11 +69,58 @@ const baseTemplate = (title, content, orgSettings) => {
   </div>
   <div class="footer">
     <p>© ${year} ${companyName}. All rights reserved.</p>
-    <p>This is an automated email. Please do not reply directly.</p>
   </div>
 </div>
 </body>
 </html>`;
+};
+
+const parseTerms = (raw) => {
+  if (!raw) return [];
+  try {
+    const p = JSON.parse(raw);
+    return Array.isArray(p) ? p.filter(t => t && t.trim()) : (raw.trim() ? [raw] : []);
+  } catch { return raw.trim() ? [raw] : []; }
+};
+
+const formatItemsTable = (items) => `
+  <table class="items">
+    <thead>
+      <tr>
+        <th style="text-align:left">Service</th>
+        <th style="text-align:left">Deliverables</th>
+        <th style="text-align:right">Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${items.map((i) => {
+        const deliverables = (i.subItems || [])
+          .filter(si => si.label || si.qty)
+          .map(si => `${si.qty ? Number(si.qty).toLocaleString('en-IN') + ' ' : ''}${si.label || ''}`.trim())
+          .join('  •  ');
+        return `
+          <tr>
+            <td>
+              <strong>${i.description || ''}</strong>
+              ${i.subDescription ? `<br><span style="font-size:12px;color:#666">${i.subDescription}</span>` : ''}
+            </td>
+            <td style="font-size:12px;color:#555">${deliverables || '—'}</td>
+            <td style="text-align:right">₹${parseFloat(i.totalPrice || 0).toLocaleString('en-IN')}</td>
+          </tr>`;
+      }).join('')}
+    </tbody>
+  </table>`;
+
+const formatTerms = (termsRaw) => {
+  const terms = parseTerms(termsRaw);
+  if (!terms.length) return '';
+  return `
+    <div style="margin-top:16px">
+      <strong>Terms &amp; Conditions:</strong>
+      <ul style="margin:8px 0;padding-left:20px;color:#333">
+        ${terms.map(t => `<li style="margin-bottom:5px">${t}</li>`).join('')}
+      </ul>
+    </div>`;
 };
 
 const sendEmail = async ({ to, subject, html, attachments = [], smtpConfig, orgSettings }) => {
@@ -116,30 +163,17 @@ const sendQuotationEmail = async (quotation, items, pdfBuffer, orgSettings, smtp
     <h2>Quotation #${quotation.quotationNumber}</h2>
     <p>Dear ${quotation.clientName},</p>
     <p>Please find your quotation attached. Here is a summary:</p>
-    <table class="items">
-      <thead><tr><th>Description</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr></thead>
+    ${formatItemsTable(items)}
+    <table class="items" style="margin-top:0">
       <tbody>
-        ${items.map((i) => `
-          <tr>
-            <td>${i.description}</td>
-            <td>${i.quantity}</td>
-            <td>₹${parseFloat(i.unitPrice).toLocaleString('en-IN')}</td>
-            <td>₹${parseFloat(i.totalPrice).toLocaleString('en-IN')}</td>
-          </tr>`).join('')}
-        <tr class="total-row">
-          <td colspan="3">Subtotal</td><td>₹${parseFloat(quotation.subtotal).toLocaleString('en-IN')}</td>
-        </tr>
-        <tr class="total-row">
-          <td colspan="3">GST (${quotation.gstPercent}%)</td><td>₹${parseFloat(quotation.gstAmount).toLocaleString('en-IN')}</td>
-        </tr>
-        <tr class="total-row">
-          <td colspan="3">Total Amount</td><td>₹${parseFloat(quotation.totalAmount).toLocaleString('en-IN')}</td>
-        </tr>
+        <tr class="total-row"><td colspan="2">Subtotal</td><td style="text-align:right">₹${parseFloat(quotation.subtotal).toLocaleString('en-IN')}</td></tr>
+        <tr class="total-row"><td colspan="2">GST (${quotation.gstPercent}%)</td><td style="text-align:right">₹${parseFloat(quotation.gstAmount).toLocaleString('en-IN')}</td></tr>
+        <tr class="total-row"><td colspan="2">Total Amount</td><td style="text-align:right">₹${parseFloat(quotation.totalAmount).toLocaleString('en-IN')}</td></tr>
       </tbody>
     </table>
     ${quotation.validUntil ? `<p>This quotation is valid until <strong>${moment(quotation.validUntil).tz(IST).format('DD MMM YYYY')}</strong>.</p>` : ''}
-    ${quotation.terms ? `<p><strong>Terms:</strong> ${quotation.terms}</p>` : ''}
-    <p>For any queries, please contact us.</p>
+    ${formatTerms(quotation.terms)}
+    <p style="margin-top:16px">For any queries, please contact us.</p>
   `;
   return sendEmail({
     to: quotation.clientEmail,
@@ -276,25 +310,18 @@ const sendInvoiceEmail = async (invoice, items, pdfBuffer, orgSettings, smtpConf
     <h2>Invoice #${invoice.invoiceNumber}</h2>
     <p>Dear ${invoice.clientName},</p>
     <p>Please find your invoice attached. Here is a summary:</p>
-    <table class="items">
-      <thead><tr><th>Description</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr></thead>
+    ${formatItemsTable(items)}
+    <table class="items" style="margin-top:0">
       <tbody>
-        ${items.map((i) => `
-          <tr>
-            <td>${i.description}</td>
-            <td>${i.quantity}</td>
-            <td>₹${parseFloat(i.unitPrice).toLocaleString('en-IN')}</td>
-            <td>₹${parseFloat(i.totalPrice).toLocaleString('en-IN')}</td>
-          </tr>`).join('')}
-        <tr class="total-row"><td colspan="3">Subtotal</td><td>₹${parseFloat(invoice.subtotal).toLocaleString('en-IN')}</td></tr>
-        <tr class="total-row"><td colspan="3">GST (${invoice.gstPercent}%)</td><td>₹${parseFloat(invoice.gstAmount).toLocaleString('en-IN')}</td></tr>
-        <tr class="total-row"><td colspan="3">Total Amount</td><td>₹${parseFloat(invoice.totalAmount).toLocaleString('en-IN')}</td></tr>
-        <tr class="total-row"><td colspan="3">Amount Due</td><td>₹${parseFloat(invoice.dueAmount).toLocaleString('en-IN')}</td></tr>
+        <tr class="total-row"><td colspan="2">Subtotal</td><td style="text-align:right">₹${parseFloat(invoice.subtotal).toLocaleString('en-IN')}</td></tr>
+        <tr class="total-row"><td colspan="2">GST (${invoice.gstPercent}%)</td><td style="text-align:right">₹${parseFloat(invoice.gstAmount).toLocaleString('en-IN')}</td></tr>
+        <tr class="total-row"><td colspan="2">Total Amount</td><td style="text-align:right">₹${parseFloat(invoice.totalAmount).toLocaleString('en-IN')}</td></tr>
+        <tr class="total-row"><td colspan="2">Amount Due</td><td style="text-align:right">₹${parseFloat(invoice.dueAmount).toLocaleString('en-IN')}</td></tr>
       </tbody>
     </table>
     ${invoice.dueDate ? `<p>Payment due by <strong>${moment(invoice.dueDate).tz(IST).format('DD MMM YYYY')}</strong>.</p>` : ''}
-    ${invoice.terms ? `<p><strong>Terms:</strong> ${invoice.terms}</p>` : ''}
-    <p>For any queries, please contact us.</p>
+    ${formatTerms(invoice.terms)}
+    <p style="margin-top:16px">For any queries, please contact us.</p>
   `;
   return sendEmail({
     to: invoice.clientEmail,

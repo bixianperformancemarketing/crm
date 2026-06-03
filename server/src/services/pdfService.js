@@ -30,18 +30,20 @@ const addHeader = (doc, orgSettings, type) => {
   const address = branding.address || process.env.COMPANY_ADDRESS || '';
   const gst = branding.gst || process.env.COMPANY_GST || '';
   const phone = branding.phone || process.env.COMPANY_PHONE || '';
+  const phone2 = branding.phone2 || '';
   const email = branding.email || process.env.COMPANY_EMAIL || '';
   const website = branding.website || process.env.COMPANY_WEBSITE || '';
 
-  doc.rect(0, 0, doc.page.width, 120).fill(PRIMARY);
-  doc.fontSize(22).fillColor(PRIMARY_DARK).font('Helvetica-Bold').text(companyName, 50, 30, { width: 300 });
+  doc.rect(0, 0, doc.page.width, 130).fill(PRIMARY);
+  doc.fontSize(22).fillColor(PRIMARY_DARK).font('Helvetica-Bold').text(companyName, 50, 30, { width: 340 });
   doc.fontSize(9).fillColor('#5a4a00').font('Helvetica');
-  if (address) doc.text(address, 50, 58, { width: 300 });
-  if (gst) doc.text(`GST: ${gst}`, 50, 70, { width: 300 });
-  if (phone || email) doc.text(`${phone}  ${email}`, 50, 82, { width: 300 });
-  if (website) doc.text(website, 50, 94, { width: 300 });
+  if (address) doc.text(address, 50, 58, { width: 340 });
+  if (gst) doc.text(`GST: ${gst}`, 50, 70, { width: 340 });
+  if (phone || phone2) doc.text([phone, phone2].filter(Boolean).join('  /  '), 50, 82, { width: 340 });
+  if (email) doc.text(email, 50, 94, { width: 340 });
+  if (website) doc.text(website, 50, 106, { width: 340 });
 
-  doc.fontSize(28).fillColor(PRIMARY_DARK).font('Helvetica-Bold').text(type.toUpperCase(), 350, 35, { align: 'right', width: 195 });
+  doc.fontSize(16).fillColor(PRIMARY_DARK).font('Helvetica-Bold').text(type.toUpperCase(), 395, 40, { align: 'right', width: 150 });
   doc.moveDown(0.5);
 };
 
@@ -68,9 +70,6 @@ const addClientSection = (doc, clientData, docData, type) => {
   if (docData.validUntil) {
     doc.font('Helvetica').text('Valid Until:', 315, y + 48).font('Helvetica-Bold').text(moment(docData.validUntil).tz(IST).format('DD MMM YYYY'), 395, y + 48);
   }
-  if (docData.status) {
-    doc.font('Helvetica').text('Status:', 315, y + 61).font('Helvetica-Bold').fillColor(PRIMARY_DARK).text(docData.status, 395, y + 61);
-  }
 
   return y + 95;
 };
@@ -83,27 +82,26 @@ const parseTerms = (raw) => {
   } catch { return raw.trim() ? [raw] : []; }
 };
 
-const addTermsAndPayment = (doc, bankDetails, termsRaw, startY) => {
+const addTermsAndPayment = (doc, bankDetails, termsRaw, startY, qrBuffer = null) => {
   const terms = parseTerms(termsRaw);
   const bankFields = [
     bankDetails?.bankName      && ['Bank',        bankDetails.bankName],
     bankDetails?.accountHolder && ['A/C Holder',  bankDetails.accountHolder],
     bankDetails?.accountNumber && ['Account No.', bankDetails.accountNumber],
     bankDetails?.ifscCode      && ['IFSC',        bankDetails.ifscCode],
-    bankDetails?.upiId         && ['UPI ID',      bankDetails.upiId],
   ].filter(Boolean);
 
   const hasBank  = bankFields.length > 0;
   const hasTerms = terms.length > 0;
   if (!hasBank && !hasTerms) return startY;
 
-  const boxY   = startY + 14;
-  const termH  = hasTerms ? terms.length * 14 + 28 : 0;
-  const bankH  = hasBank  ? bankFields.length * 13 + 28 : 0;
-  const boxH   = Math.max(termH, bankH, 52);
+  const QR_SIZE = 58;
+  const boxY    = startY + 14;
+  const termH   = hasTerms ? terms.length * 14 + 28 : 0;
+  const bankH   = hasBank  ? bankFields.length * 13 + 28 + (qrBuffer ? QR_SIZE + 14 : 0) : 0;
+  const boxH    = Math.max(termH, bankH, 52);
 
   if (hasBank && hasTerms) {
-    // ── Two columns mirroring BILL TO layout ──────────────────────────────
     doc.rect(50,  boxY, 240, boxH).fill(LIGHT_GRAY);
     doc.rect(305, boxY, 240, boxH).fill(LIGHT_GRAY);
 
@@ -114,6 +112,13 @@ const addTermsAndPayment = (doc, bankDetails, termsRaw, startY) => {
       doc.fontSize(7.5).fillColor(BLACK).font('Helvetica-Bold').text(value, 130, by, { width: 150 });
       by += 13;
     });
+    if (qrBuffer) {
+      try {
+        const qrX = 50 + (240 - QR_SIZE) / 2;
+        doc.fontSize(7).fillColor(GRAY).font('Helvetica').text('Scan to Pay', 60, by + 8, { width: 220, align: 'center' });
+        doc.image(qrBuffer, qrX, by + 18, { fit: [QR_SIZE, QR_SIZE] });
+      } catch {}
+    }
 
     doc.fontSize(8).fillColor(GRAY).font('Helvetica-Bold').text('TERMS & CONDITIONS', 315, boxY + 10);
     let ty = boxY + 24;
@@ -131,6 +136,13 @@ const addTermsAndPayment = (doc, bankDetails, termsRaw, startY) => {
       doc.fontSize(7.5).fillColor(BLACK).font('Helvetica-Bold').text(value, 130, by, { width: 200 });
       by += 13;
     });
+    if (qrBuffer) {
+      try {
+        const qrX = 380;
+        doc.fontSize(7).fillColor(GRAY).font('Helvetica').text('Scan to Pay', qrX, boxY + 10, { width: QR_SIZE + 20, align: 'center' });
+        doc.image(qrBuffer, qrX + 10, boxY + 20, { fit: [QR_SIZE, QR_SIZE] });
+      } catch {}
+    }
 
   } else {
     doc.rect(50, boxY, 495, boxH).fill(LIGHT_GRAY);
@@ -173,7 +185,10 @@ const addItemsTable = (doc, items, startY) => {
     // Format deliverables
     const subItemsText = (item.subItems || [])
       .filter((si) => si.label || si.qty)
-      .map((si) => `${si.qty || ''} ${si.label || ''}`.trim())
+      .map((si) => {
+        const qty = si.qty ? Number(si.qty).toLocaleString('en-IN') : '';
+        return `${qty} ${si.label || ''}`.trim();
+      })
       .join('  •  ');
     const siH = subItemsText
       ? doc.heightOfString(subItemsText, { width: cols[1].w - 10 }) + 4
@@ -272,7 +287,10 @@ const addFooter = (doc, data, orgSettings, logoBuffer, signatureBuffer, type) =>
     doc.fontSize(9).fillColor(TEXT_DARK).font('Helvetica-Bold').text(companyName, 50, leftY, { width: 145 });
     leftY += 13;
   }
-  if (branding.phone)   { doc.fontSize(7.5).fillColor(TEXT_MID).font('Helvetica').text(branding.phone,   50, leftY, { width: 145 }); leftY += 11; }
+  if (branding.phone || branding.phone2) {
+    const phones = [branding.phone, branding.phone2].filter(Boolean).join('  /  ');
+    doc.fontSize(7.5).fillColor(TEXT_MID).font('Helvetica').text(phones, 50, leftY, { width: 145 }); leftY += 11;
+  }
   if (branding.email)   { doc.fontSize(7.5).fillColor(TEXT_MID).font('Helvetica').text(branding.email,   50, leftY, { width: 145 }); leftY += 11; }
   if (branding.website) { doc.fontSize(7.5).fillColor(TEXT_MID).font('Helvetica').text(branding.website, 50, leftY, { width: 145 }); }
 
@@ -290,7 +308,7 @@ const addFooter = (doc, data, orgSettings, logoBuffer, signatureBuffer, type) =>
 
   if (signatureBuffer) {
     try {
-      doc.image(signatureBuffer, rightX, rightY, { height: 38, fit: [rightWidth, 38] });
+      doc.image(signatureBuffer, rightX, rightY, { fit: [rightWidth, 38], align: 'center' });
       rightY += 44;
     } catch { rightY += 10; }
   } else {
@@ -320,9 +338,11 @@ const addFooter = (doc, data, orgSettings, logoBuffer, signatureBuffer, type) =>
 
 const generateQuotationPDF = async (quotation, items, orgSettings) => {
   const branding = orgSettings?.branding || {};
-  const [logoBuffer, signatureBuffer] = await Promise.all([
+  const bankDetails = orgSettings?.bankDetails || {};
+  const [logoBuffer, signatureBuffer, qrBuffer] = await Promise.all([
     fetchImageBuffer(branding.logo),
     fetchImageBuffer(branding.signature),
+    fetchImageBuffer(bankDetails.qrCode),
   ]);
 
   return new Promise((resolve, reject) => {
@@ -344,7 +364,7 @@ const generateQuotationPDF = async (quotation, items, orgSettings) => {
 
     const itemsEndY = addItemsTable(doc, items || [], clientY);
     const totalsEndY = addTotals(doc, quotation, itemsEndY);
-    addTermsAndPayment(doc, orgSettings?.bankDetails || {}, quotation.terms, totalsEndY);
+    addTermsAndPayment(doc, bankDetails, quotation.terms, totalsEndY, qrBuffer);
     addFooter(doc, quotation, orgSettings, logoBuffer, signatureBuffer, 'Quotation');
     doc.end();
   });
@@ -352,9 +372,11 @@ const generateQuotationPDF = async (quotation, items, orgSettings) => {
 
 const generateInvoicePDF = async (invoice, orgSettings, invoiceItems) => {
   const branding = orgSettings?.branding || {};
-  const [logoBuffer, signatureBuffer] = await Promise.all([
+  const bankDetails = orgSettings?.bankDetails || {};
+  const [logoBuffer, signatureBuffer, qrBuffer] = await Promise.all([
     fetchImageBuffer(branding.logo),
     fetchImageBuffer(branding.signature),
+    fetchImageBuffer(bankDetails.qrCode),
   ]);
 
   return new Promise((resolve, reject) => {
@@ -378,7 +400,7 @@ const generateInvoicePDF = async (invoice, orgSettings, invoiceItems) => {
 
     const itemsEndY = addItemsTable(doc, items, clientY);
     const totalsEndY = addTotals(doc, invoice, itemsEndY);
-    addTermsAndPayment(doc, orgSettings?.bankDetails || {}, invoice.terms, totalsEndY);
+    addTermsAndPayment(doc, bankDetails, invoice.terms, totalsEndY, qrBuffer);
     addFooter(doc, invoice, orgSettings, logoBuffer, signatureBuffer, 'Invoice');
     doc.end();
   });

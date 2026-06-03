@@ -262,7 +262,16 @@ const Quotations = () => {
                         {q.status === 'Sent' && <button className="btn btn-ghost btn-sm" onClick={() => handleStatus(q.id, 'Rejected')}>Client Declined</button>}
                         {q.status === 'Sent' && <button className="btn btn-ghost btn-sm" style={{ color: '#a78bfa' }} onClick={() => handleStatus(q.id, 'Not Responding')}>Not Responding</button>}
                         {hasFeature('canUsePDF') && <button className="btn btn-ghost btn-sm" onClick={() => handlePDF(q.id, q.quotationNumber)}>📄 PDF</button>}
-                        {hasFeature('canUsePDF') && q.clientEmail && <button className="btn btn-ghost btn-sm" onClick={() => handleEmail(q.id)} disabled={sendingEmail === q.id} title="Email quotation to client">{sendingEmail === q.id ? '...' : '✉️'}</button>}
+                        {hasFeature('canUsePDF') && q.clientEmail && (
+                          <button className="btn btn-ghost btn-sm" onClick={() => handleEmail(q.id)} disabled={sendingEmail === q.id} title="Email quotation to client" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            {sendingEmail === q.id ? '...' : (
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="2" y="4" width="20" height="16" rx="2"/>
+                                <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                              </svg>
+                            )}
+                          </button>
+                        )}
                         {hasFeature('canUsePDF') && q.clientPhone && (
                           <button className="btn btn-ghost btn-sm" onClick={() => handleWhatsapp(q)} disabled={sendingWhatsapp === q.id} title="Send via WhatsApp" style={{ color: '#25d366', display: 'inline-flex', alignItems: 'center' }}>
                             {sendingWhatsapp === q.id ? '...' : (
@@ -315,7 +324,7 @@ const Quotations = () => {
                         {(item.subItems || []).map((si, j) => (
                           <div key={j} style={{ display: 'flex', gap: 4, marginBottom: 4, alignItems: 'center' }}>
                             <input value={si.label} onChange={(e) => updateSubItem(i, j, 'label', e.target.value)} placeholder="Item name" style={{ flex: 1, background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 8px', color: 'var(--text)', fontSize: 12, outline: 'none' }} />
-                            <input type="number" min="0" value={si.qty} onChange={(e) => updateSubItem(i, j, 'qty', e.target.value)} placeholder="8" style={{ width: 54, background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 6px', color: 'var(--text)', fontSize: 12, outline: 'none', textAlign: 'center' }} />
+                            <input type="number" min="0" value={si.qty} onChange={(e) => updateSubItem(i, j, 'qty', e.target.value)} placeholder="0" style={{ width: 90, background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 6px', color: 'var(--text)', fontSize: 12, outline: 'none', textAlign: 'center' }} />
                             <button type="button" onClick={() => removeSubItem(i, j)} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 15, padding: '0 2px', lineHeight: 1 }}>×</button>
                           </div>
                         ))}
@@ -383,7 +392,7 @@ const Quotations = () => {
                         {(item.subItems || []).map((si, j) => (
                           <div key={j} style={{ display: 'flex', gap: 4, marginBottom: 4, alignItems: 'center' }}>
                             <input value={si.label} onChange={(e) => updateEditSubItem(i, j, 'label', e.target.value)} placeholder="Item name" style={{ flex: 1, background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 8px', color: 'var(--text)', fontSize: 12, outline: 'none' }} />
-                            <input type="number" min="0" value={si.qty} onChange={(e) => updateEditSubItem(i, j, 'qty', e.target.value)} placeholder="8" style={{ width: 54, background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 6px', color: 'var(--text)', fontSize: 12, outline: 'none', textAlign: 'center' }} />
+                            <input type="number" min="0" value={si.qty} onChange={(e) => updateEditSubItem(i, j, 'qty', e.target.value)} placeholder="0" style={{ width: 90, background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 6px', color: 'var(--text)', fontSize: 12, outline: 'none', textAlign: 'center' }} />
                             <button type="button" onClick={() => removeEditSubItem(i, j)} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 15, padding: '0 2px', lineHeight: 1 }}>×</button>
                           </div>
                         ))}

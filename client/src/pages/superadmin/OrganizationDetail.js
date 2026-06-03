@@ -17,6 +17,7 @@ const OrganizationDetail = () => {
     maxWorkspaces: '', maxUsersPerWorkspace: '', maxLeadsTotal: '',
     canUseWebhooks: false, canUsePDF: false, canUseCSVImport: false,
     canUseContentCalendar: false, canUseAdvancedReports: false,
+    canUseQuotations: true, canUseInvoices: true, canUseAppointments: true,
   });
   const [saving, setSaving] = useState(false);
 
@@ -41,6 +42,9 @@ const OrganizationDetail = () => {
           canUseCSVImport: o.canUseCSVImport,
           canUseContentCalendar: o.canUseContentCalendar,
           canUseAdvancedReports: o.canUseAdvancedReports,
+          canUseQuotations: o.canUseQuotations ?? true,
+          canUseInvoices: o.canUseInvoices ?? true,
+          canUseAppointments: o.canUseAppointments ?? true,
         });
       })
       .catch(() => toast.error('Failed to load'))
@@ -115,11 +119,14 @@ const OrganizationDetail = () => {
         <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12 }}>Features & Limits</div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
           {[
-            { key: 'canUseWebhooks', label: 'Webhooks & Meta Ads' },
-            { key: 'canUsePDF', label: 'PDF' },
+            { key: 'canUseQuotations', label: 'Quotations' },
+            { key: 'canUseInvoices', label: 'Invoices' },
+            { key: 'canUseAppointments', label: 'Appointments' },
+            { key: 'canUsePDF', label: 'PDF / Email / WhatsApp' },
             { key: 'canUseCSVImport', label: 'CSV Import' },
-            { key: 'canUseContentCalendar', label: 'Content Calendar' },
+            { key: 'canUseContentCalendar', label: 'Tasks' },
             { key: 'canUseAdvancedReports', label: 'Advanced Reports' },
+            { key: 'canUseWebhooks', label: 'Webhooks & Lead Integrations' },
           ].map(({ key, label }) => (
             <span key={key} style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: org[key] ? 'rgba(34,197,94,0.12)' : 'rgba(107,114,128,0.1)', color: org[key] ? '#22c55e' : '#6b7280', fontWeight: 600 }}>
               {org[key] ? '✓' : '✗'} {label}
@@ -177,6 +184,18 @@ const OrganizationDetail = () => {
                 <div className="form-group">
                   <label className="form-label">Plan Expires At</label>
                   <input className="form-control" type="date" value={editForm.planExpiresAt} onChange={e => setEditForm({ ...editForm, planExpiresAt: e.target.value })} />
+                  <div style={{ display: 'flex', gap: 5, marginTop: 6, flexWrap: 'wrap' }}>
+                    {[{ label: '+5d', days: 5 }, { label: '+1w', days: 7 }, { label: '+15d', days: 15 }, { label: '+30d', days: 30 }, { label: '+90d', days: 90 }].map(({ label, days }) => (
+                      <button key={days} type="button" onClick={() => {
+                        const base = editForm.planExpiresAt ? new Date(editForm.planExpiresAt) : new Date();
+                        if (isNaN(base)) return;
+                        base.setDate(base.getDate() + days);
+                        setEditForm({ ...editForm, planExpiresAt: base.toISOString().split('T')[0] });
+                      }} style={{ padding: '3px 9px', fontSize: 11, background: 'rgba(167,139,250,0.12)', color: '#a78bfa', border: '1px solid rgba(167,139,250,0.3)', borderRadius: 5, cursor: 'pointer', fontWeight: 600 }}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -199,11 +218,14 @@ const OrganizationDetail = () => {
               <div style={{ fontWeight: 600, fontSize: 11, color: 'var(--text-muted)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1 }}>Features</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
                 {[
-                  { key: 'canUseWebhooks', label: 'Webhooks & Meta Ads' },
-                  { key: 'canUsePDF', label: 'PDF Generation' },
+                  { key: 'canUseQuotations', label: 'Quotations' },
+                  { key: 'canUseInvoices', label: 'Invoices' },
+                  { key: 'canUseAppointments', label: 'Appointments' },
+                  { key: 'canUsePDF', label: 'PDF / Email / WhatsApp' },
                   { key: 'canUseCSVImport', label: 'CSV Import' },
-                  { key: 'canUseContentCalendar', label: 'Content Calendar' },
+                  { key: 'canUseContentCalendar', label: 'Tasks' },
                   { key: 'canUseAdvancedReports', label: 'Advanced Reports' },
+                  { key: 'canUseWebhooks', label: 'Webhooks & Lead Integrations' },
                 ].map(({ key, label }) => (
                   <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer' }}>
                     <input type="checkbox" checked={!!editForm[key]} onChange={e => setEditForm({ ...editForm, [key]: e.target.checked })} />

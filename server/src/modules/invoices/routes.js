@@ -4,7 +4,7 @@ const { scopeTenant, requireWorkspace } = require('../../middleware/tenant');
 const { checkFeature } = require('../../middleware/entitlement');
 const ctrl = require('./controller');
 
-router.use(authenticate, scopeTenant, requireWorkspace);
+router.use(authenticate, scopeTenant, requireWorkspace, checkFeature('canUseInvoices'));
 
 router.get('/', ctrl.getInvoices);
 router.get('/:id', ctrl.getInvoice);
