@@ -15,16 +15,6 @@ const Payments = () => {
   const [pagination, setPagination] = useState(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [theme, setTheme] = useState(() => document.documentElement.getAttribute('data-theme') || 'dark');
-
-  useEffect(() => {
-    const observer = new MutationObserver(() => {
-      setTheme(document.documentElement.getAttribute('data-theme') || 'dark');
-    });
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-    return () => observer.disconnect();
-  }, []);
-
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -48,10 +38,8 @@ const Payments = () => {
     datasets: [{ label: 'Revenue', data: monthlyData.values, backgroundColor: 'rgba(233,69,96,0.7)', borderColor: '#e94560', borderWidth: 1 }],
   };
 
-  const tickColor = theme === 'light' ? '#374151' : '#cbd5e1';
-  const gridColor = theme === 'light' ? '#e5e7eb' : '#1e1e3a';
-  const opts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: tickColor } } }, scales: { x: { ticks: { color: tickColor }, grid: { color: gridColor } }, y: { ticks: { color: tickColor }, grid: { color: gridColor } } } };
-  const pieOpts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: tickColor } } } };
+  const opts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#6b7280' } } }, scales: { x: { ticks: { color: '#6b7280' }, grid: { color: '#1e1e3a' } }, y: { ticks: { color: '#6b7280' }, grid: { color: '#1e1e3a' } } } };
+  const pieOpts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#6b7280' } } } };
 
   return (
     <Layout title="Payments">
