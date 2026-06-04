@@ -11,8 +11,6 @@ import './Reports.css';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, ArcElement, Tooltip, Legend);
 
-const CHART_OPTS = { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#6b7280', boxWidth: 12 } } }, scales: { x: { ticks: { color: '#6b7280', font: { size: 11 } }, grid: { color: '#1e1e3a' } }, y: { ticks: { color: '#6b7280', font: { size: 11 } }, grid: { color: '#1e1e3a' } } } };
-const PIE_OPTS = { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: '#6b7280', boxWidth: 12, font: { size: 11 } } } } };
 const COLORS = ['#e94560', '#7c3aed', '#0ea5e9', '#22c55e', '#f59e0b', '#ec4899', '#14b8a6', '#f97316'];
 
 const Reports = () => {
@@ -20,9 +18,23 @@ const Reports = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [upgradeModal, setUpgradeModal] = useState(null);
+  const [theme, setTheme] = useState(() => document.documentElement.getAttribute('data-theme') || 'dark');
   const today = new Date();
   const [startDate, setStartDate] = useState(`${today.getFullYear()}-01-01`);
   const [endDate, setEndDate] = useState(today.toISOString().split('T')[0]);
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setTheme(document.documentElement.getAttribute('data-theme') || 'dark');
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => observer.disconnect();
+  }, []);
+
+  const tickColor = theme === 'light' ? '#374151' : '#cbd5e1';
+  const gridColor = theme === 'light' ? '#e5e7eb' : '#1e1e3a';
+  const CHART_OPTS = { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: tickColor, boxWidth: 12 } } }, scales: { x: { ticks: { color: tickColor, font: { size: 11 } }, grid: { color: gridColor } }, y: { ticks: { color: tickColor, font: { size: 11 } }, grid: { color: gridColor } } } };
+  const PIE_OPTS = { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: tickColor, boxWidth: 12, font: { size: 11 } } } } };
 
   const load = useCallback(async () => {
     setLoading(true);

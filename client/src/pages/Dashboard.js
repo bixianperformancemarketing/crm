@@ -9,12 +9,19 @@ import './Dashboard.css';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend);
 
-const chartDefaults = { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#6b7280', font: { size: 11 } } } }, scales: { x: { ticks: { color: '#6b7280' }, grid: { color: '#1e1e3a' } }, y: { ticks: { color: '#6b7280' }, grid: { color: '#1e1e3a' } } } };
-
 const Dashboard = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [overdueCount, setOverdueCount] = useState(0);
+  const [theme, setTheme] = useState(() => document.documentElement.getAttribute('data-theme') || 'dark');
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setTheme(document.documentElement.getAttribute('data-theme') || 'dark');
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const load = async () => {
@@ -33,6 +40,10 @@ const Dashboard = () => {
 
   if (loading) return <Layout title="Dashboard"><div className="loading-spinner"><div className="spinner" /></div></Layout>;
   if (!data) return <Layout title="Dashboard"><div className="empty-state"><div className="empty-icon">📊</div><div className="empty-title">Failed to load dashboard</div></div></Layout>;
+
+  const tickColor = theme === 'light' ? '#374151' : '#cbd5e1';
+  const gridColor = theme === 'light' ? '#e5e7eb' : '#1e1e3a';
+  const chartDefaults = { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: tickColor, font: { size: 11 } } } }, scales: { x: { ticks: { color: tickColor }, grid: { color: gridColor } }, y: { ticks: { color: tickColor }, grid: { color: gridColor } } } };
 
   const { stats, charts } = data;
   const monthlyData = buildMonthlyChartData(charts?.monthlyRevenue || [], 12);
@@ -58,7 +69,7 @@ const Dashboard = () => {
     datasets: [{ label: 'Leads', data: volumeData.values, borderColor: '#0ea5e9', backgroundColor: 'rgba(14,165,233,0.08)', tension: 0.4, fill: true }],
   };
 
-  const doughnutDefaults = { ...chartDefaults, scales: undefined, plugins: { legend: { position: 'bottom', labels: { color: '#6b7280', font: { size: 11 } } } } };
+  const doughnutDefaults = { ...chartDefaults, scales: undefined, plugins: { legend: { position: 'bottom', labels: { color: tickColor, font: { size: 11 } } } } };
 
   return (
     <Layout title="Dashboard">
