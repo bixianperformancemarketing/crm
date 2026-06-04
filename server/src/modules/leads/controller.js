@@ -24,7 +24,7 @@ const findLeastLoadedAgent = async (workspaceId, organizationId) => {
 const getLeads = async (req, res) => {
   try {
     const { workspaceId, user } = req;
-    const { page = 1, limit = 20, search, status, source, priority, assignedTo, city, dateFrom, dateTo, sort = 'createdAt', order = 'DESC' } = req.query;
+    const { page = 1, limit = 50, search, status, source, priority, assignedTo, city, dateFrom, dateTo, sort = 'createdAt', order = 'DESC' } = req.query;
     const { limit: lim, offset } = paginate(page, limit);
 
     const where = { organizationId: user.organizationId, workspaceId };
