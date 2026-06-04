@@ -38,8 +38,16 @@ const Payments = () => {
     datasets: [{ label: 'Revenue', data: monthlyData.values, backgroundColor: 'rgba(233,69,96,0.7)', borderColor: '#e94560', borderWidth: 1 }],
   };
 
-  const opts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#6b7280' } } }, scales: { x: { ticks: { color: '#6b7280' }, grid: { color: '#1e1e3a' } }, y: { ticks: { color: '#6b7280' }, grid: { color: '#1e1e3a' } } } };
-  const pieOpts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#6b7280' } } } };
+  const [theme, setTheme] = useState(() => document.documentElement.getAttribute('data-theme') || 'dark');
+  useEffect(() => {
+    const observer = new MutationObserver(() => setTheme(document.documentElement.getAttribute('data-theme') || 'dark'));
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => observer.disconnect();
+  }, []);
+  const tc = theme === 'light' ? '#374151' : '#9ca3af';
+  const gc = theme === 'light' ? '#e5e7eb' : '#1e1e3a';
+  const opts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: tc } } }, scales: { x: { ticks: { color: tc }, grid: { color: gc } }, y: { ticks: { color: tc }, grid: { color: gc } } } };
+  const pieOpts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: tc } } } };
 
   return (
     <Layout title="Payments">
