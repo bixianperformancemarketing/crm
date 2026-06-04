@@ -27,7 +27,7 @@ const extractLeadFields = (fieldData) => {
 const resolveWorkspaceForForm = (integration, formId) => {
   const routes = integration.formRoutes || [];
   const match = routes.find(r => r.formId === formId);
-  return match ? match.workspaceId : integration.workspaceId;
+  return match ? match.workspaceId : null;
 };
 
 const processMetaLead = async (metaLead, form, integration) => {
@@ -39,6 +39,7 @@ const processMetaLead = async (metaLead, form, integration) => {
 
   const { name, phone, email, raw } = extractLeadFields(metaLead.field_data);
   const workspaceId = resolveWorkspaceForForm(integration, form.id);
+  if (!workspaceId) return false;
 
   const lead = await Lead.create({
     organizationId: integration.organizationId,
