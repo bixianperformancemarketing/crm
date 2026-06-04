@@ -195,6 +195,7 @@ const Followup = sequelize.define('Followup', {
   completedAt: { type: DataTypes.DATE },
   outcome: { type: DataTypes.TEXT },
   reminderSentAt: { type: DataTypes.DATE },
+  onTimeReminderSentAt: { type: DataTypes.DATE },
 }, { tableName: 'followups' });
 
 // ─── CALL LOG ─────────────────────────────────────────────────────────────
@@ -562,11 +563,14 @@ const syncDatabase = async () => {
       }
     } catch (e) { /* table may not exist yet on first run */ }
 
-    // Add reminderSentAt column to followups if missing
+    // Add reminderSentAt and onTimeReminderSentAt columns to followups if missing
     try {
       const fuColumns = await qi.describeTable('followups');
       if (!fuColumns.reminderSentAt) {
         await qi.addColumn('followups', 'reminderSentAt', { type: DataTypes.DATE, allowNull: true });
+      }
+      if (!fuColumns.onTimeReminderSentAt) {
+        await qi.addColumn('followups', 'onTimeReminderSentAt', { type: DataTypes.DATE, allowNull: true });
       }
     } catch (e) { /* ignore */ }
 

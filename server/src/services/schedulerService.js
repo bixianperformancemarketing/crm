@@ -94,6 +94,48 @@ const checkFollowupReminders = async () => {
   }
 };
 
+const checkFollowupOnTimeReminders = async () => {
+  try {
+    const now = new Date();
+    const minus1 = new Date(now.getTime() - 1 * 60 * 1000);
+    const plus1 = new Date(now.getTime() + 1 * 60 * 1000);
+
+    const followups = await Followup.findAll({
+      where: {
+        status: 'pending',
+        scheduledAt: { [Op.between]: [minus1, plus1] },
+        onTimeReminderSentAt: null,
+      },
+      include: [{ model: Lead, as: 'lead', attributes: ['id', 'name'] }],
+    });
+
+    for (const fu of followups) {
+      const msg = `Followup with ${fu.lead?.name || 'a lead'} is due now!`;
+
+      emitToUser(fu.userId, 'followup_reminder', {
+        followupId: fu.id,
+        leadId: fu.leadId,
+        leadName: fu.lead?.name,
+        scheduledAt: fu.scheduledAt,
+        note: fu.note,
+        message: msg,
+      });
+
+      await notificationService.notifyFollowupDue({
+        followup: fu,
+        lead: fu.lead,
+        userId: fu.userId,
+        organizationId: fu.organizationId,
+        workspaceId: fu.workspaceId,
+      });
+
+      await fu.update({ onTimeReminderSentAt: new Date() });
+    }
+  } catch (err) {
+    console.error('On-time followup reminder check error:', err.message);
+  }
+};
+
 let dailyJobLastRun = null;
 
 const runDailyJobs = async () => {
@@ -224,6 +266,7 @@ const startScheduler = () => {
 
   setInterval(checkAppointmentReminders, 60 * 1000);
   setInterval(checkFollowupReminders, 60 * 1000);
+  setInterval(checkFollowupOnTimeReminders, 60 * 1000);
   checkFollowupReminders();
   setInterval(runDailyJobs, 60 * 1000);
   setInterval(metaSyncService.syncAllIntegrations, 60 * 1000);
