@@ -54,7 +54,8 @@ const LeadDetail = () => {
   const [showAppointment, setShowAppointment] = useState(false);
   const [appointmentForm, setAppointmentForm] = useState({ title: '', startTime: '', endTime: '', type: 'Meeting', location: '', description: '' });
   const [showQuotation, setShowQuotation] = useState(false);
-  const [quotationForm, setQuotationForm] = useState({ clientName: '', clientEmail: '', clientPhone: '', clientAddress: '', clientGST: '', gstPercent: 18, terms: '', notes: '', validUntil: '', items: [{ description: '', quantity: 1, unitPrice: 0, totalPrice: 0 }] });
+  const emptyQItem = () => ({ description: '', subDescription: '', subItems: [], totalPrice: '' });
+  const [quotationForm, setQuotationForm] = useState({ clientName: '', clientEmail: '', clientPhone: '', clientAddress: '', clientGST: '', gstPercent: 18, terms: [], notes: '', validUntil: '', items: [emptyQItem()] });
   const [saving, setSaving] = useState(false);
 
   const loadLead = async () => {
@@ -136,22 +137,18 @@ const LeadDetail = () => {
     if (!validItems.length) return toast.error('At least one item with description is required');
     setSaving(true);
     try {
-      await quotationsAPI.create({ leadId: parseInt(id), ...quotationForm, items: validItems });
+      await quotationsAPI.create({ leadId: parseInt(id), ...quotationForm, terms: JSON.stringify(quotationForm.terms.filter(t => t.trim())), items: validItems });
       toast.success('Quotation created');
       setShowQuotation(false);
-      setQuotationForm({ clientName: '', clientEmail: '', clientPhone: '', clientAddress: '', clientGST: '', gstPercent: 18, terms: '', notes: '', validUntil: '', items: [{ description: '', quantity: 1, unitPrice: 0, totalPrice: 0 }] });
+      setQuotationForm({ clientName: '', clientEmail: '', clientPhone: '', clientAddress: '', clientGST: '', gstPercent: 18, terms: [], notes: '', validUntil: '', items: [emptyQItem()] });
       navigate('/quotations');
     } catch { toast.error('Failed to create quotation'); } finally { setSaving(false); }
   };
 
-  const updateQuotationItem = (i, field, val) => {
-    const items = [...quotationForm.items];
-    items[i] = { ...items[i], [field]: val };
-    if (field === 'quantity' || field === 'unitPrice') {
-      items[i].totalPrice = parseFloat(items[i].quantity || 0) * parseFloat(items[i].unitPrice || 0);
-    }
-    setQuotationForm({ ...quotationForm, items });
-  };
+  const updateQItem = (i, field, val) => { const items = [...quotationForm.items]; items[i] = { ...items[i], [field]: val }; setQuotationForm({ ...quotationForm, items }); };
+  const addQSubItem = (i) => { const items = [...quotationForm.items]; items[i] = { ...items[i], subItems: [...(items[i].subItems || []), { label: '', qty: '' }] }; setQuotationForm({ ...quotationForm, items }); };
+  const removeQSubItem = (i, j) => { const items = [...quotationForm.items]; items[i] = { ...items[i], subItems: items[i].subItems.filter((_, k) => k !== j) }; setQuotationForm({ ...quotationForm, items }); };
+  const updateQSubItem = (i, j, field, val) => { const items = [...quotationForm.items]; const subItems = [...(items[i].subItems || [])]; subItems[j] = { ...subItems[j], [field]: val }; items[i] = { ...items[i], subItems }; setQuotationForm({ ...quotationForm, items }); };
 
   const handleEmail = async () => {
     if (!emailForm.subject || !emailForm.body) return toast.error('Subject and body required');
@@ -204,7 +201,7 @@ const LeadDetail = () => {
           <button className="btn btn-ghost btn-sm" onClick={() => setShowNote(true)}>📝 Note</button>
           <button className="btn btn-ghost btn-sm" onClick={() => setShowFollowup(true)}>⏰ Followup</button>
           <button className="btn btn-ghost btn-sm" onClick={() => setShowAppointment(true)}>📅 Appointment</button>
-          <button className="btn btn-ghost btn-sm" onClick={() => { setQuotationForm({ clientName: lead.name || '', clientEmail: lead.email || '', clientPhone: lead.phone || '', clientAddress: lead.clientAddress || '', clientGST: lead.clientGST || '', gstPercent: 18, terms: '', notes: '', validUntil: '', items: [{ description: '', quantity: 1, unitPrice: 0, totalPrice: 0 }] }); setShowQuotation(true); }}>📋 Quotation</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => { setQuotationForm({ clientName: lead.name || '', clientEmail: lead.email || '', clientPhone: lead.phone || '', clientAddress: lead.clientAddress || '', clientGST: lead.clientGST || '', gstPercent: 18, terms: [], notes: '', validUntil: '', items: [emptyQItem()] }); setShowQuotation(true); }}>📋 Quotation</button>
           {lead.email && <button className="btn btn-ghost btn-sm" onClick={() => setShowEmail(true)}>✉️ Email</button>}
           {!editing ? <button className="btn btn-primary btn-sm" onClick={() => setEditing(true)}>✏️ Edit</button> : (
             <>
@@ -413,38 +410,51 @@ const LeadDetail = () => {
               <div className="form-group"><label className="form-label">GST Number</label><input className="form-control" value={quotationForm.clientGST} onChange={(e) => setQuotationForm({ ...quotationForm, clientGST: e.target.value })} /></div>
             </div>
             <div className="form-group"><label className="form-label">Address *</label><textarea className="form-control" rows={2} value={quotationForm.clientAddress} onChange={(e) => setQuotationForm({ ...quotationForm, clientAddress: e.target.value })} /></div>
-            <div style={{ marginBottom: 8 }}><label className="form-label">Items</label></div>
-            <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 12, fontSize: 13 }}>
-              <thead><tr style={{ color: 'var(--text-muted)' }}><th style={{ textAlign: 'left', paddingBottom: 6 }}>Description</th><th style={{ width: 70, textAlign: 'right', paddingBottom: 6 }}>Qty</th><th style={{ width: 100, textAlign: 'right', paddingBottom: 6 }}>Unit Price</th><th style={{ width: 100, textAlign: 'right', paddingBottom: 6 }}>Total</th><th style={{ width: 30 }} /></tr></thead>
+            <h4 style={{ margin: '16px 0 10px', fontSize: 13, color: 'var(--text-muted)' }}>Line Items</h4>
+            <table className="items-table">
+              <thead><tr><th>Service</th><th style={{ width: 200 }}>Deliverables</th><th style={{ width: 130 }}>Package Price</th><th style={{ width: 40 }}></th></tr></thead>
               <tbody>
                 {quotationForm.items.map((item, i) => (
                   <tr key={i}>
-                    <td><input className="form-control" style={{ marginBottom: 4 }} value={item.description} onChange={(e) => updateQuotationItem(i, 'description', e.target.value)} placeholder="Item description" /></td>
-                    <td style={{ paddingLeft: 6 }}><input className="form-control" type="number" min="1" value={item.quantity} onChange={(e) => updateQuotationItem(i, 'quantity', e.target.value)} /></td>
-                    <td style={{ paddingLeft: 6 }}><input className="form-control" type="number" min="0" value={item.unitPrice} onChange={(e) => updateQuotationItem(i, 'unitPrice', e.target.value)} /></td>
-                    <td style={{ paddingLeft: 6, color: 'var(--text-muted)', textAlign: 'right', paddingTop: 8 }}>₹{parseFloat(item.totalPrice || 0).toLocaleString('en-IN')}</td>
-                    <td style={{ paddingLeft: 6 }}>{quotationForm.items.length > 1 && <button type="button" style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 16 }} onClick={() => setQuotationForm({ ...quotationForm, items: quotationForm.items.filter((_, j) => j !== i) })}>×</button>}</td>
+                    <td>
+                      <input value={item.description} onChange={(e) => updateQItem(i, 'description', e.target.value)} placeholder="Item / service name" />
+                      <textarea value={item.subDescription} onChange={(e) => updateQItem(i, 'subDescription', e.target.value)} placeholder="Description / what's included" rows={2} style={{ marginTop: 4, width: '100%', background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '6px 8px', color: 'var(--text)', fontSize: 12, resize: 'vertical', outline: 'none' }} />
+                    </td>
+                    <td>
+                      {(item.subItems || []).map((si, j) => (
+                        <div key={j} style={{ display: 'flex', gap: 4, marginBottom: 4, alignItems: 'center' }}>
+                          <input value={si.label} onChange={(e) => updateQSubItem(i, j, 'label', e.target.value)} placeholder="Item name" style={{ flex: 1, background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 8px', color: 'var(--text)', fontSize: 12, outline: 'none' }} />
+                          <input type="number" min="0" value={si.qty} onChange={(e) => updateQSubItem(i, j, 'qty', e.target.value)} placeholder="0" style={{ width: 90, background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 6px', color: 'var(--text)', fontSize: 12, outline: 'none', textAlign: 'center' }} />
+                          <button type="button" onClick={() => removeQSubItem(i, j)} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 15, padding: '0 2px' }}>×</button>
+                        </div>
+                      ))}
+                      <button type="button" onClick={() => addQSubItem(i)} style={{ background: 'none', border: '1px dashed var(--border)', borderRadius: 6, color: 'var(--text-muted)', fontSize: 11, padding: '3px 8px', cursor: 'pointer', marginTop: 2 }}>+ Add Deliverable</button>
+                    </td>
+                    <td><input type="number" min="0" step="0.01" value={item.totalPrice} onChange={(e) => updateQItem(i, 'totalPrice', e.target.value)} placeholder="0" style={{ textAlign: 'right' }} /></td>
+                    <td><button type="button" style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 16 }} onClick={() => setQuotationForm({ ...quotationForm, items: quotationForm.items.filter((_, j) => j !== i) })}>×</button></td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            <button type="button" className="btn btn-ghost btn-sm" style={{ marginBottom: 12 }} onClick={() => setQuotationForm({ ...quotationForm, items: [...quotationForm.items, { description: '', quantity: 1, unitPrice: 0, totalPrice: 0 }] })}>+ Add Item</button>
-            <div className="form-row">
-              <div className="form-group"><label className="form-label">GST %</label><input className="form-control" type="number" min="0" max="100" value={quotationForm.gstPercent} onChange={(e) => setQuotationForm({ ...quotationForm, gstPercent: e.target.value })} /></div>
-              <div className="form-group"><label className="form-label">Valid Until</label><input className="form-control" type="date" value={quotationForm.validUntil} onChange={(e) => setQuotationForm({ ...quotationForm, validUntil: e.target.value })} /></div>
+            <button type="button" className="btn btn-ghost btn-sm" style={{ marginTop: 8 }} onClick={() => setQuotationForm({ ...quotationForm, items: [...quotationForm.items, emptyQItem()] })}>+ Add Item</button>
+            <div className="totals-box">
+              {(() => { const sub = quotationForm.items.reduce((s, i) => s + parseFloat(i.totalPrice || 0), 0); const gst = (sub * parseFloat(quotationForm.gstPercent || 0)) / 100; return (<>
+                <div className="total-row"><span>Subtotal</span><span>{sub.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span></div>
+                <div className="total-row"><span>GST <input type="number" value={quotationForm.gstPercent} onChange={(e) => setQuotationForm({ ...quotationForm, gstPercent: e.target.value })} style={{ width: 50, background: 'transparent', border: '1px solid #2a2a4a', color: 'var(--text)', borderRadius: 4, padding: '2px 4px', fontSize: 12 }} />%</span><span>{gst.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span></div>
+                <div className="total-row grand"><span>Total</span><span>{(sub + gst).toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span></div>
+              </>); })()}
             </div>
-            {(() => {
-              const sub = quotationForm.items.reduce((s, i) => s + parseFloat(i.totalPrice || 0), 0);
-              const gst = (sub * parseFloat(quotationForm.gstPercent || 0)) / 100;
-              return (
-                <div style={{ background: 'var(--surface)', borderRadius: 8, padding: '10px 14px', marginBottom: 12, fontSize: 13 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Subtotal</span><span>₹{sub.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>GST ({quotationForm.gstPercent}%)</span><span>₹{gst.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, marginTop: 6 }}><span>Total</span><span>₹{(sub + gst).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
+            <div className="form-group" style={{ marginTop: 16 }}><label className="form-label">Valid Until</label><input className="form-control" type="date" value={quotationForm.validUntil} onChange={(e) => setQuotationForm({ ...quotationForm, validUntil: e.target.value })} /></div>
+            <div className="form-group">
+              <label className="form-label">Terms & Conditions</label>
+              {(quotationForm.terms || []).map((term, i) => (
+                <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 6, alignItems: 'center' }}>
+                  <input className="form-control" style={{ margin: 0 }} value={term} onChange={(e) => { const t = [...quotationForm.terms]; t[i] = e.target.value; setQuotationForm({ ...quotationForm, terms: t }); }} placeholder={`Term ${i + 1}`} />
+                  <button type="button" onClick={() => setQuotationForm({ ...quotationForm, terms: quotationForm.terms.filter((_, j) => j !== i) })} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 18, flexShrink: 0 }}>×</button>
                 </div>
-              );
-            })()}
-            <div className="form-group"><label className="form-label">Terms</label><textarea className="form-control" rows={2} value={quotationForm.terms} onChange={(e) => setQuotationForm({ ...quotationForm, terms: e.target.value })} /></div>
+              ))}
+              <button type="button" className="btn btn-ghost btn-sm" style={{ marginTop: 2 }} onClick={() => setQuotationForm({ ...quotationForm, terms: [...(quotationForm.terms || []), ''] })}>+ Add Term</button>
+            </div>
             <div className="form-group"><label className="form-label">Notes</label><textarea className="form-control" rows={2} value={quotationForm.notes} onChange={(e) => setQuotationForm({ ...quotationForm, notes: e.target.value })} /></div>
             <div className="modal-actions"><button className="btn btn-ghost" onClick={() => setShowQuotation(false)}>Cancel</button><button className="btn btn-primary" onClick={handleCreateQuotation} disabled={saving}>{saving ? 'Creating...' : 'Create Quotation'}</button></div>
           </div>
