@@ -403,7 +403,7 @@ const Quotations = () => {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></div>
               <button type="button" className="btn btn-ghost btn-sm" style={{ marginTop: 8 }} onClick={() => setEditForm({ ...editForm, items: [...editForm.items, emptyItem()] })}>+ Add Item</button>
 
               <div className="totals-box">
