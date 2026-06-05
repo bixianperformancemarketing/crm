@@ -13,6 +13,7 @@ const socketIO = require('./sockets');
 const { startScheduler } = require('./services/schedulerService');
 
 const app = express();
+app.set('etag', false);
 const server = http.createServer(app);
 
 const io = socketIO.init(server);

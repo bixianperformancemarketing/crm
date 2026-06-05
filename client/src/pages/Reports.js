@@ -34,10 +34,10 @@ const Reports = () => {
   const CHART_OPTS = { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: tc, boxWidth: 12 } } }, scales: { x: { ticks: { color: tc, font: { size: 11 } }, grid: { color: gc } }, y: { ticks: { color: tc, font: { size: 11 } }, grid: { color: gc } } } };
   const PIE_OPTS = { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: tc, boxWidth: 12, font: { size: 11 } } } } };
 
-  const load = useCallback(async () => {
+  const load = async (start, end) => {
     setLoading(true);
     try {
-      const { data: res } = await reportsAPI.getAdvanced({ startDate, endDate });
+      const { data: res } = await reportsAPI.getAdvanced({ startDate: start, endDate: end });
       if (res.upgradeRequired) { setUpgradeModal(res); setLoading(false); return; }
       setData(res);
     } catch (err) {
@@ -45,9 +45,9 @@ const Reports = () => {
       if (d?.upgradeRequired) { setUpgradeModal(d); setLoading(false); return; }
       toast.error('Failed to load reports');
     } finally { setLoading(false); }
-  }, [startDate, endDate]);
+  };
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(startDate, endDate); }, []);
 
   if (!hasFeature('canUseAdvancedReports')) {
     return (
@@ -87,7 +87,7 @@ const Reports = () => {
           <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
           <span style={{ color: 'var(--text-muted)' }}>To</span>
           <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
-          <button className="btn btn-primary btn-sm" onClick={load} disabled={loading}>{loading ? '...' : 'Apply'}</button>
+          <button className="btn btn-primary btn-sm" onClick={() => load(startDate, endDate)} disabled={loading}>{loading ? '...' : 'Apply'}</button>
         </div>
       </div>
 
