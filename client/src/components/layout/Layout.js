@@ -50,7 +50,7 @@ const NAV_ITEMS = {
 const Layout = ({ children, title }) => {
   const { user, org, workspace, logout, hasFeature } = useAuth();
   const { unreadCount, resetUnread } = useSocket();
-  const [collapsed, setCollapsed] = useState(window.innerWidth < 680);
+  const [collapsed, setCollapsed] = useState(window.innerWidth < 900);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showNotifs, setShowNotifs] = useState(false);
   const [theme, setTheme] = useState(() => {
