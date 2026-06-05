@@ -184,7 +184,7 @@ const getAdvancedReports = async (req, res) => {
     const paymentWhere = { organizationId: orgId, workspaceId, ...(hasDateFilter ? { receivedAt: dateFilter } : {}) };
     const contentWhere = { organizationId: orgId, workspaceId, ...(hasDateFilter ? { createdAt: dateFilter } : {}) };
 
-    const [leadBySource, agentPerformance, contentStats, revenueByMonth, totalRevenueRow, invoiceStats, pendingRow] = await Promise.all([
+    const [leadBySource, agentPerformance, contentStats, revenueByMonth, totalRevenue, invoiceStats, pendingAmount] = await Promise.all([
       Lead.findAll({
         where: leadWhere,
         attributes: ['source', [fn('COUNT', col('id')), 'count']],
@@ -212,21 +212,13 @@ const getAdvancedReports = async (req, res) => {
         order: [[fn('YEAR', col('receivedAt')), 'ASC'], [fn('MONTH', col('receivedAt')), 'ASC']],
         raw: true,
       }),
-      Payment.findOne({
-        where: paymentWhere,
-        attributes: [[fn('SUM', col('amount')), 'total']],
-        raw: true,
-      }),
+      Payment.sum('amount', { where: paymentWhere }),
       Invoice.findAll({
         where: { organizationId: orgId, workspaceId, ...(hasDateFilter ? { createdAt: dateFilter } : {}) },
         attributes: ['status', [fn('COUNT', col('id')), 'count']],
         group: ['status'], raw: true,
       }),
-      Invoice.findOne({
-        where: { organizationId: orgId, workspaceId, status: { [Op.in]: ['Unpaid', 'Partial'] }, ...(hasDateFilter ? { createdAt: dateFilter } : {}) },
-        attributes: [[fn('SUM', col('dueAmount')), 'total']],
-        raw: true,
-      }),
+      Invoice.sum('dueAmount', { where: { organizationId: orgId, workspaceId, status: { [Op.in]: ['Unpaid', 'Partial'] }, ...(hasDateFilter ? { createdAt: dateFilter } : {}) } }),
     ]);
 
     const agentStats = agentPerformance.map((agent) => {
@@ -256,10 +248,10 @@ const getAdvancedReports = async (req, res) => {
       revenueByMonth,
       agentStats,
       contentStats,
-      totalRevenue: parseFloat(totalRevenueRow?.total || 0),
+      totalRevenue: parseFloat(totalRevenue || 0),
       totalInvoices,
       paidInvoices: parseInt(paidInvoices?.count || 0),
-      pendingAmount: parseFloat(pendingRow?.total || 0),
+      pendingAmount: parseFloat(pendingAmount || 0),
     });
   } catch (err) {
     console.error('getAdvancedReports error:', err);
