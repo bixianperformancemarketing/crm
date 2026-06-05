@@ -219,7 +219,7 @@ const getAdvancedReports = async (req, res) => {
       }),
       Invoice.findAll({
         where: { organizationId: orgId, workspaceId, ...(hasDateFilter ? { createdAt: dateFilter } : {}) },
-        attributes: ['status', 'dueAmount', [fn('COUNT', col('id')), 'count']],
+        attributes: ['status', [fn('COUNT', col('id')), 'count']],
         group: ['status'], raw: true,
       }),
       Invoice.findOne({
