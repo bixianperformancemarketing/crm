@@ -116,16 +116,16 @@ const Layout = ({ children, title }) => {
       <aside className={`sidebar${collapsed ? ' collapsed' : ''}${mobileOpen ? ' mobile-open' : ''}`}>
         <div className="sidebar-logo">
           <div className="logo-icon">CRM</div>
-          {!collapsed && <span className="logo-text">{org?.name || 'Agency CRM'}</span>}
+          {(!collapsed || mobileOpen) && <span className="logo-text">{org?.name || 'Agency CRM'}</span>}
         </div>
 
         <nav className="sidebar-nav">
           <div className="nav-section">
-            {!collapsed && <div className="nav-section-title">Navigation</div>}
+            {(!collapsed || mobileOpen) && <div className="nav-section-title">Navigation</div>}
             {navItems.map((item) => (
-              <NavLink key={item.to} to={item.to} className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`} title={collapsed ? item.label : undefined} onClick={() => setMobileOpen(false)}>
+              <NavLink key={item.to} to={item.to} className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`} title={collapsed && !mobileOpen ? item.label : undefined} onClick={() => setMobileOpen(false)}>
                 <span className="nav-icon">{item.icon}</span>
-                {!collapsed && <span className="nav-label">{item.label}</span>}
+                {(!collapsed || mobileOpen) && <span className="nav-label">{item.label}</span>}
               </NavLink>
             ))}
           </div>
@@ -134,7 +134,7 @@ const Layout = ({ children, title }) => {
         <div className="sidebar-footer">
           <div className="user-card">
             <div className="user-avatar">{initials}</div>
-            {!collapsed && (
+            {(!collapsed || mobileOpen) && (
               <div className="user-info">
                 <div className="user-name">{user?.name}</div>
                 <div className="user-role">{user?.label || user?.role}</div>
