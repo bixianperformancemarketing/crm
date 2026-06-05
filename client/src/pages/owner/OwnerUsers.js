@@ -68,7 +68,7 @@ const OwnerUsers = () => {
     e.preventDefault();
     setSaving(true);
     try {
-      await api.put(`/users/${editUser.id}`, { name: form.name, phone: form.phone, label: form.label, canUseContentCalendar: form.canUseContentCalendar });
+      await api.put(`/users/${editUser.id}`, { name: form.name, phone: form.phone, label: form.label, assignType: form.assignType, canUseContentCalendar: form.canUseContentCalendar });
       toast.success('User updated');
       setEditUser(null);
       loadUsers();
@@ -87,7 +87,7 @@ const OwnerUsers = () => {
   };
 
   const openEdit = (u) => {
-    setForm({ name: u.name, email: u.email, password: '', role: u.role, label: u.label || '', phone: u.phone || '', canUseContentCalendar: !!u.canUseContentCalendar });
+    setForm({ name: u.name, email: u.email, password: '', role: u.role, label: u.label || '', assignType: u.assignType || '', phone: u.phone || '', canUseContentCalendar: !!u.canUseContentCalendar });
     setEditUser(u);
   };
 
@@ -232,7 +232,7 @@ const OwnerUsers = () => {
                   </select>
                 </div>
               </div>
-              {showCreate && form.role === 'employee' && (
+              {form.role === 'employee' && (
                 <div className="form-group">
                   <label className="form-label">What will this employee handle? *</label>
                   <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
