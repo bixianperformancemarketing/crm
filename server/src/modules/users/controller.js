@@ -92,13 +92,17 @@ const updateUser = async (req, res) => {
     const target = await User.findOne({ where: { id, organizationId: user.organizationId } });
     if (!target) return res.status(404).json({ success: false, message: 'User not found' });
 
-    const { name, phone, isActive, password, label, assignType, canUseContentCalendar } = req.body;
+    const { name, phone, isActive, password, label, assignType, canUseContentCalendar, role } = req.body;
     const updates = {};
     if (name) updates.name = name;
     if (phone !== undefined) updates.phone = phone;
     if (label !== undefined) updates.label = label;
     if (assignType !== undefined) updates.assignType = assignType;
     if (canUseContentCalendar !== undefined) updates.canUseContentCalendar = !!canUseContentCalendar;
+    if (role && ['admin', 'employee'].includes(role) && user.role === 'owner') {
+      updates.role = role;
+      if (role === 'admin') { updates.assignType = null; updates.canUseContentCalendar = false; }
+    }
     if (isActive !== undefined) updates.isActive = isActive;
     if (password) {
       if (password.length < 8) return res.status(400).json({ success: false, message: 'Password too short' });
