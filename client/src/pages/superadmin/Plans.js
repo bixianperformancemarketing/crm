@@ -35,6 +35,7 @@ const Plans = () => {
     setForm({
       displayName: p.displayName || p.name,
       price: p.price,
+      yearlyPrice: p.yearlyPrice || 0,
       maxWorkspaces: p.maxWorkspaces,
       maxUsersPerWorkspace: p.maxUsersPerWorkspace,
       maxLeadsTotal: p.maxLeadsTotal,
@@ -75,6 +76,7 @@ const Plans = () => {
                   <div style={{ fontWeight: 800, fontSize: 18, textTransform: 'capitalize' }}>{p.displayName || p.name}</div>
                   <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--accent)', marginTop: 4 }}>
                     {p.price === 0 ? 'Free' : `₹${Number(p.price || 0).toLocaleString('en-IN')}/mo`}
+                  {p.yearlyPrice > 0 && <div style={{ fontSize: 13, color: '#22c55e', marginTop: 2 }}>₹{Number(p.yearlyPrice).toLocaleString('en-IN')}/yr</div>}
                   </div>
                 </div>
                 <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 20, background: 'rgba(124,58,237,0.12)', color: '#a78bfa', textTransform: 'uppercase' }}>{p.name}</span>
@@ -105,8 +107,9 @@ const Plans = () => {
             <form onSubmit={handleSave}>
               <div className="form-row">
                 <div className="form-group"><label className="form-label">Display Name</label><input className="form-control" value={form.displayName} onChange={e => setForm({ ...form, displayName: e.target.value })} /></div>
-                <div className="form-group"><label className="form-label">Price (₹/mo)</label><input className="form-control" type="number" min="0" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} /></div>
+                <div className="form-group"><label className="form-label">Monthly Price (₹)</label><input className="form-control" type="number" min="0" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} /></div>
               </div>
+              <div className="form-group"><label className="form-label">Yearly Price (₹) <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>— leave 0 to hide yearly option</span></label><input className="form-control" type="number" min="0" value={form.yearlyPrice} onChange={e => setForm({ ...form, yearlyPrice: e.target.value })} /></div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
                 <div className="form-group"><label className="form-label">Max Workspaces</label><input className="form-control" type="number" min="1" value={form.maxWorkspaces} onChange={e => setForm({ ...form, maxWorkspaces: e.target.value })} /></div>
                 <div className="form-group"><label className="form-label">Users/Workspace</label><input className="form-control" type="number" min="1" value={form.maxUsersPerWorkspace} onChange={e => setForm({ ...form, maxUsersPerWorkspace: e.target.value })} /></div>

@@ -19,6 +19,8 @@ const Pricing = () => {
   const navigate = useNavigate();
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [billing, setBilling] = useState('monthly');
+  const hasYearly = plans.some(p => Number(p.yearlyPrice) > 0);
 
   useEffect(() => {
     axios.get(`${API_URL}/api/public/plans`)
@@ -45,6 +47,14 @@ const Pricing = () => {
       <div style={s.hero}>
         <h1 style={s.heroTitle}>Simple, Transparent Pricing</h1>
         <p style={s.heroSub}>Choose the plan that fits your agency. No hidden fees.</p>
+        {hasYearly && (
+          <div style={s.toggle}>
+            <button style={{ ...s.toggleBtn, ...(billing === 'monthly' ? s.toggleActive : {}) }} onClick={() => setBilling('monthly')}>Monthly</button>
+            <button style={{ ...s.toggleBtn, ...(billing === 'yearly' ? s.toggleActive : {}) }} onClick={() => setBilling('yearly')}>
+              Yearly <span style={s.saveBadge}>Save more</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Plans */}
@@ -61,9 +71,16 @@ const Pricing = () => {
                 <div style={s.planPrice}>
                   {plan.price === 0 || plan.price === '0.00'
                     ? <span style={s.priceNum}>Free</span>
-                    : <><span style={s.priceNum}>₹{Number(plan.price).toLocaleString('en-IN')}</span><span style={s.pricePer}>/mo</span></>
+                    : billing === 'yearly' && Number(plan.yearlyPrice) > 0
+                      ? <><span style={s.priceNum}>₹{Number(plan.yearlyPrice).toLocaleString('en-IN')}</span><span style={s.pricePer}>/yr</span></>
+                      : <><span style={s.priceNum}>₹{Number(plan.price).toLocaleString('en-IN')}</span><span style={s.pricePer}>/mo</span></>
                   }
                 </div>
+                {billing === 'yearly' && Number(plan.yearlyPrice) > 0 && (
+                  <div style={{ fontSize: 12, color: '#22c55e', marginBottom: 4 }}>
+                    vs ₹{(Number(plan.price) * 12).toLocaleString('en-IN')}/yr monthly — save ₹{(Number(plan.price) * 12 - Number(plan.yearlyPrice)).toLocaleString('en-IN')}
+                  </div>
+                )}
                 {plan.description && <p style={s.planDesc}>{plan.description}</p>}
 
                 <div style={s.limits}>
@@ -117,6 +134,10 @@ const s = {
   navLink: { background: 'none', border: 'none', color: '#9ca3af', fontSize: 14, cursor: 'pointer', padding: '8px 14px', borderRadius: 8 },
   registerBtn: { background: 'linear-gradient(135deg, #e94560, #7c3aed)', border: 'none', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer', padding: '8px 18px', borderRadius: 8 },
   hero: { textAlign: 'center', padding: '60px 20px 40px' },
+  toggle: { display: 'inline-flex', background: '#12121f', border: '1px solid #1e1e3a', borderRadius: 30, padding: 4, marginTop: 24, gap: 4 },
+  toggleBtn: { background: 'none', border: 'none', color: '#9ca3af', fontSize: 14, fontWeight: 500, padding: '8px 20px', borderRadius: 26, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 },
+  toggleActive: { background: 'linear-gradient(135deg, #e94560, #7c3aed)', color: '#fff' },
+  saveBadge: { fontSize: 10, background: 'rgba(34,197,94,0.2)', color: '#22c55e', padding: '2px 7px', borderRadius: 20, fontWeight: 700 },
   heroTitle: { fontSize: 36, fontWeight: 800, margin: '0 0 12px', background: 'linear-gradient(135deg, #e2e2f0, #a78bfa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' },
   heroSub: { fontSize: 16, color: '#9ca3af', margin: 0 },
   spinnerWrap: { display: 'flex', justifyContent: 'center', padding: 60 },

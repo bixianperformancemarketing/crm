@@ -7,6 +7,7 @@ const Plan = sequelize.define('Plan', {
   name: { type: DataTypes.STRING(50), allowNull: false, unique: true },
   displayName: { type: DataTypes.STRING(100), allowNull: false },
   price: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
+  yearlyPrice: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
   maxWorkspaces: { type: DataTypes.INTEGER, defaultValue: 1 },
   maxUsersPerWorkspace: { type: DataTypes.INTEGER, defaultValue: 3 },
   maxLeadsTotal: { type: DataTypes.INTEGER, defaultValue: 100 },
