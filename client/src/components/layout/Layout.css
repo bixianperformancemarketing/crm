@@ -210,14 +210,18 @@ tr:hover td { background: rgba(255,255,255,0.015); }
 /* ─── MOBILE OVERLAY ────────────────────────────────────────────────── */
 .mobile-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 99; }
 
-/* ─── RESPONSIVE — TABLET (≤ 860px) ────────────────────────────────── */
-@media (max-width: 860px) {
-  .sidebar { width: 60px; }
-  .sidebar .logo-text, .sidebar .nav-label, .sidebar .nav-section-title, .sidebar .user-info { display: none; }
-  .main-content { margin-left: 60px; }
+/* ─── RESPONSIVE — TABLET (≤ 768px) ────────────────────────────────── */
+@media (max-width: 768px) {
   .charts-grid { grid-template-columns: 1fr; }
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
   .form-row { grid-template-columns: 1fr; }
+}
+
+/* ─── RESPONSIVE — SMALL TABLET (≤ 680px) ──────────────────────────── */
+@media (max-width: 680px) {
+  .sidebar { width: 60px; }
+  .sidebar .logo-text, .sidebar .nav-label, .sidebar .nav-section-title, .sidebar .user-info { display: none; }
+  .main-content { margin-left: 60px; }
 }
 
 /* ─── RESPONSIVE — MOBILE (≤ 600px) ────────────────────────────────── */

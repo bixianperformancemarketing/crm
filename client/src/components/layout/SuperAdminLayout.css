@@ -18,7 +18,7 @@
 /* Mobile overlay */
 .sa-mobile-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 99; }
 
-@media (max-width: 860px) {
+@media (max-width: 680px) {
   .sa-sidebar { width: 60px; overflow: hidden; }
   .sa-sidebar .sa-logo h2, .sa-sidebar .sa-tag { display: none; }
   .sa-nav a { justify-content: center; padding: 12px; font-size: 18px; }

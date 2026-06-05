@@ -11,7 +11,7 @@
 .followup-lead { font-size: 13px; font-weight: 500; }
 .followup-time { font-size: 12px; color: var(--text-muted); }
 .followup-note { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
-@media (max-width: 860px) { .dashboard-grid { grid-template-columns: 1fr; } }
+@media (max-width: 768px) { .dashboard-grid { grid-template-columns: 1fr; } }
 @media (max-width: 600px) {
   .dashboard-grid { gap: 14px; }
   .followup-item { flex-direction: column; align-items: flex-start; gap: 4px; }
