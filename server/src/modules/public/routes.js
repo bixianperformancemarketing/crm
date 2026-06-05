@@ -12,7 +12,8 @@ router.get('/plans', async (req, res) => {
         'id', 'name', 'displayName', 'price', 'maxWorkspaces',
         'maxUsersPerWorkspace', 'maxLeadsTotal', 'canUseWebhooks',
         'canUsePDF', 'canUseCSVImport', 'canUseContentCalendar',
-        'canUseAdvancedReports', 'description', 'durationDays',
+        'canUseAdvancedReports', 'canUseQuotations', 'canUseInvoices',
+        'canUseAppointments', 'description', 'durationDays',
       ],
       order: [['price', 'ASC']],
     });

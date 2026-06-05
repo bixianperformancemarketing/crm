@@ -56,7 +56,7 @@ const calculateLeadScore = (lead) => {
   const sourceScores = {
     'Meta Ads': 25, 'Google Ads': 25, 'Website': 20,
     'WhatsApp': 15, 'Reference': 30, 'Telecalling': 10,
-    'Social Media': 15, 'CSV Import': 10, 'Instagram DM': 20, 'Justdial': 20, 'Other': 5,
+    'Social Media': 15, 'CSV Import': 10, 'Instagram DM': 20, 'Justdial': 20, 'Walk-in': 25, 'Other': 5,
   };
   score += sourceScores[lead.source] || 5;
 

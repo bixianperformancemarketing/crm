@@ -126,7 +126,7 @@ const Lead = sequelize.define('Lead', {
   source: {
     type: DataTypes.ENUM(
       'Meta Ads', 'Google Ads', 'Website', 'WhatsApp', 'Reference', 'Justdial',
-      'Telecalling', 'Social Media', 'CSV Import', 'Instagram DM', 'Quotation', 'Other'
+      'Telecalling', 'Social Media', 'CSV Import', 'Instagram DM', 'Quotation', 'Walk-in', 'Other'
     ),
     defaultValue: 'Other',
   },
@@ -638,7 +638,7 @@ const syncDatabase = async () => {
 
     // Expand leads source ENUM to include 'Quotation' and 'Invoice'
     try {
-      await sequelize.query(`ALTER TABLE leads MODIFY source ENUM('Meta Ads','Google Ads','Website','WhatsApp','Reference','Telecalling','Social Media','CSV Import','Instagram DM','Quotation','Justdial','Invoice','Other') DEFAULT 'Other'`);
+      await sequelize.query(`ALTER TABLE leads MODIFY source ENUM('Meta Ads','Google Ads','Website','WhatsApp','Reference','Telecalling','Social Media','CSV Import','Instagram DM','Quotation','Justdial','Invoice','Walk-in','Other') DEFAULT 'Other'`);
     } catch (e) { /* ignore */ }
 
     // Add city column to leads if missing
