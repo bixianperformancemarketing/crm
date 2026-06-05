@@ -175,7 +175,7 @@ const getAdvancedReports = async (req, res) => {
     const { startDate, endDate } = req.query;
     const dateFilter = {};
     if (startDate) dateFilter[Op.gte] = new Date(startDate);
-    if (endDate) dateFilter[Op.lte] = new Date(endDate);
+    if (endDate) { const d = new Date(endDate); d.setDate(d.getDate() + 1); dateFilter[Op.lt] = d; }
     const hasDateFilter = !!(startDate || endDate);
 
     const leadWhere = { organizationId: orgId, workspaceId };
