@@ -228,14 +228,14 @@ const updateOrganization = async (req, res) => {
         updates.maxWorkspaces = maxWorkspaces ?? planConfig.maxWorkspaces;
         updates.maxUsersPerWorkspace = maxUsersPerWorkspace ?? planConfig.maxUsersPerWorkspace;
         updates.maxLeadsTotal = maxLeadsTotal ?? planConfig.maxLeadsTotal;
-        updates.canUseWebhooks = canUseWebhooks ?? planConfig.canUseWebhooks;
-        updates.canUsePDF = canUsePDF ?? planConfig.canUsePDF;
-        updates.canUseCSVImport = canUseCSVImport ?? planConfig.canUseCSVImport;
-        updates.canUseContentCalendar = canUseContentCalendar ?? planConfig.canUseContentCalendar;
-        updates.canUseAdvancedReports = canUseAdvancedReports ?? planConfig.canUseAdvancedReports;
-        updates.canUseQuotations = canUseQuotations ?? (planConfig.canUseQuotations ?? true);
-        updates.canUseInvoices = canUseInvoices ?? (planConfig.canUseInvoices ?? true);
-        updates.canUseAppointments = canUseAppointments ?? (planConfig.canUseAppointments ?? true);
+        updates.canUseWebhooks = planConfig.canUseWebhooks;
+        updates.canUsePDF = planConfig.canUsePDF;
+        updates.canUseCSVImport = planConfig.canUseCSVImport;
+        updates.canUseContentCalendar = planConfig.canUseContentCalendar;
+        updates.canUseAdvancedReports = planConfig.canUseAdvancedReports;
+        updates.canUseQuotations = planConfig.canUseQuotations ?? true;
+        updates.canUseInvoices = planConfig.canUseInvoices ?? true;
+        updates.canUseAppointments = planConfig.canUseAppointments ?? true;
       }
     }
     if (planExpiresAt) updates.planExpiresAt = planExpiresAt;

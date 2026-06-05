@@ -15,7 +15,7 @@ const login = async (req, res) => {
       where: { email: email.toLowerCase().trim() },
       order: [['isActive', 'DESC'], ['createdAt', 'DESC']],
       include: [
-        { model: Organization, as: 'organization', required: false, attributes: ['id', 'name', 'slug', 'plan', 'planExpiresAt', 'isActive', 'isSuspended', 'suspendedReason', 'settings', 'maxWorkspaces', 'maxUsersPerWorkspace', 'maxLeadsTotal', 'canUseWebhooks', 'canUsePDF', 'canUseCSVImport', 'canUseContentCalendar', 'canUseAdvancedReports'] },
+        { model: Organization, as: 'organization', required: false, attributes: ['id', 'name', 'slug', 'plan', 'planExpiresAt', 'isActive', 'isSuspended', 'suspendedReason', 'settings', 'maxWorkspaces', 'maxUsersPerWorkspace', 'maxLeadsTotal', 'canUseWebhooks', 'canUsePDF', 'canUseCSVImport', 'canUseContentCalendar', 'canUseAdvancedReports', 'canUseQuotations', 'canUseInvoices', 'canUseAppointments'] },
         { model: Workspace, as: 'workspace', required: false, attributes: ['id', 'name', 'slug', 'settings'] },
       ],
     });
@@ -68,7 +68,7 @@ const getMe = async (req, res) => {
       where: { id: req.user.id },
       attributes: { exclude: ['password'] },
       include: [
-        { model: Organization, as: 'organization', required: false, attributes: ['id', 'name', 'slug', 'plan', 'planExpiresAt', 'isActive', 'settings', 'maxWorkspaces', 'maxUsersPerWorkspace', 'maxLeadsTotal', 'canUseWebhooks', 'canUsePDF', 'canUseCSVImport', 'canUseContentCalendar', 'canUseAdvancedReports', 'webhookToken'] },
+        { model: Organization, as: 'organization', required: false, attributes: ['id', 'name', 'slug', 'plan', 'planExpiresAt', 'isActive', 'settings', 'maxWorkspaces', 'maxUsersPerWorkspace', 'maxLeadsTotal', 'canUseWebhooks', 'canUsePDF', 'canUseCSVImport', 'canUseContentCalendar', 'canUseAdvancedReports', 'canUseQuotations', 'canUseInvoices', 'canUseAppointments', 'webhookToken'] },
         { model: Workspace, as: 'workspace', required: false, attributes: ['id', 'name', 'slug', 'settings'] },
       ],
     });
