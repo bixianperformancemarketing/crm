@@ -68,7 +68,7 @@ const OwnerUsers = () => {
     e.preventDefault();
     setSaving(true);
     try {
-      await api.put(`/users/${editUser.id}`, { name: form.name, phone: form.phone, label: form.label, assignType: form.assignType, canUseContentCalendar: form.canUseContentCalendar });
+      await api.put(`/users/${editUser.id}`, { name: form.name, phone: form.phone, role: form.role, label: form.label, assignType: form.assignType, canUseContentCalendar: form.canUseContentCalendar });
       toast.success('User updated');
       setEditUser(null);
       loadUsers();
@@ -214,16 +214,14 @@ const OwnerUsers = () => {
                 </div>
               )}
               <div className="form-row">
-                {showCreate && (
-                  <div className="form-group">
-                    <label className="form-label">Role</label>
-                    <select className="form-control" value={form.role} onChange={e => setForm({ ...form, role: e.target.value, label: e.target.value === 'admin' ? '' : form.label, assignType: e.target.value === 'admin' ? '' : form.assignType })}>
-                      {['admin', 'employee'].map(r => (
-                        <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
+                <div className="form-group">
+                  <label className="form-label">Role</label>
+                  <select className="form-control" value={form.role} onChange={e => setForm({ ...form, role: e.target.value, label: e.target.value === 'admin' ? '' : form.label, assignType: e.target.value === 'admin' ? '' : form.assignType })}>
+                    {['admin', 'employee'].map(r => (
+                      <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>
+                    ))}
+                  </select>
+                </div>
                 <div className="form-group">
                   <label className="form-label">Label {form.role === 'employee' ? '*' : ''}</label>
                   <select className="form-control" value={form.label} onChange={e => setForm({ ...form, label: e.target.value })} disabled={form.role === 'admin'}>
