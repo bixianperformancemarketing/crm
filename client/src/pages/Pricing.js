@@ -103,7 +103,7 @@ const Pricing = () => {
 
                 <button
                   style={{ ...s.getStartedBtn, ...(isPopular ? s.getStartedBtnPopular : {}) }}
-                  onClick={() => navigate(`/register?plan=${plan.id}`)}
+                  onClick={() => navigate(`/register?plan=${plan.id}&billing=${billing}`)}
                 >
                   Get Started
                 </button>
