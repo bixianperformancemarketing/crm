@@ -32,7 +32,7 @@ const Pricing = () => {
   return (
     <div style={s.page}>
       {/* Top Nav */}
-      <div style={s.nav}>
+      <div style={s.nav} className="pricing-nav">
         <div style={s.navBrand}>
           <div style={s.logoIcon}>CRM</div>
           <span style={s.logoText}>Agency CRM</span>
@@ -44,7 +44,7 @@ const Pricing = () => {
       </div>
 
       {/* Hero */}
-      <div style={s.hero}>
+      <div style={s.hero} className="pricing-hero">
         <h1 style={s.heroTitle}>Simple, Transparent Pricing</h1>
         <p style={s.heroSub}>Choose the plan that fits your agency. No hidden fees.</p>
         {hasYearly && (
@@ -61,7 +61,7 @@ const Pricing = () => {
       {loading ? (
         <div style={s.spinnerWrap}><div style={s.spinner} /></div>
       ) : (
-        <div style={s.grid}>
+        <div className="pricing-grid">
           {plans.map((plan, i) => {
             const isPopular = i === Math.floor(plans.length / 2);
             return (
@@ -119,6 +119,15 @@ const Pricing = () => {
 
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
+        .pricing-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; max-width: 1400px; margin: 0 auto; padding: 0 24px; }
+        @media (max-width: 1100px) { .pricing-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 600px) {
+          .pricing-grid { grid-template-columns: 1fr; padding: 0 16px; gap: 16px; }
+          .pricing-nav { padding: 12px 16px !important; }
+          .pricing-hero { padding: 36px 16px 28px !important; }
+          .pricing-hero h1 { font-size: 26px !important; }
+          .pricing-hero p { font-size: 14px !important; }
+        }
       `}</style>
     </div>
   );
@@ -142,7 +151,7 @@ const s = {
   heroSub: { fontSize: 16, color: '#9ca3af', margin: 0 },
   spinnerWrap: { display: 'flex', justifyContent: 'center', padding: 60 },
   spinner: { width: 40, height: 40, border: '3px solid #1e1e3a', borderTopColor: '#e94560', borderRadius: '50%', animation: 'spin 0.8s linear infinite' },
-  grid: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20, maxWidth: 1400, margin: '0 auto', padding: '0 24px' },
+  grid: { },
   card: { background: '#12121f', border: '1px solid #1e1e3a', borderRadius: 16, padding: '24px 20px', position: 'relative', display: 'flex', flexDirection: 'column', gap: 0 },
   cardPopular: { border: '1.5px solid #7c3aed', boxShadow: '0 0 32px rgba(124,58,237,0.15)' },
   popularBadge: { position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)', background: 'linear-gradient(135deg, #e94560, #7c3aed)', color: '#fff', fontSize: 11, fontWeight: 700, padding: '4px 14px', borderRadius: 20, whiteSpace: 'nowrap' },
