@@ -172,45 +172,59 @@ const getAdvancedReports = async (req, res) => {
   try {
     const { user, workspaceId } = req;
     const orgId = user.organizationId;
-    const { dateFrom, dateTo } = req.query;
+    const { startDate, endDate } = req.query;
     const dateFilter = {};
-    if (dateFrom) dateFilter[Op.gte] = new Date(dateFrom);
-    if (dateTo) dateFilter[Op.lte] = new Date(dateTo);
+    if (startDate) dateFilter[Op.gte] = new Date(startDate);
+    if (endDate) dateFilter[Op.lte] = new Date(endDate);
     const hasDateFilter = Object.keys(dateFilter).length > 0;
 
     const leadWhere = { organizationId: orgId, workspaceId };
     if (hasDateFilter) leadWhere.createdAt = dateFilter;
 
-    const [leadBySource, revBySource, agentPerformance, contentStats, revenueByMonth] = await Promise.all([
+    const paymentWhere = { organizationId: orgId, workspaceId, ...(hasDateFilter ? { receivedAt: dateFilter } : {}) };
+    const contentWhere = { organizationId: orgId, workspaceId, ...(hasDateFilter ? { createdAt: dateFilter } : {}) };
+
+    const [leadBySource, agentPerformance, contentStats, revenueByMonth, totalRevenueRow, invoiceStats, pendingRow] = await Promise.all([
       Lead.findAll({
         where: leadWhere,
         attributes: ['source', [fn('COUNT', col('id')), 'count']],
         group: ['source'], raw: true,
       }),
-      Payment.findAll({
-        where: { organizationId: orgId, workspaceId, ...(hasDateFilter ? { receivedAt: dateFilter } : {}) },
-        attributes: [[fn('SUM', col('amount')), 'total']],
-        raw: true,
-      }),
       User.findAll({
         where: { workspaceId, organizationId: orgId, role: { [Op.in]: ['employee', 'admin'] }, isActive: true },
-        attributes: ['id', 'name', 'label'],
+        attributes: ['id', 'name', 'email', 'label', 'role'],
         include: [{
           model: Lead, as: 'assignedLeads',
           attributes: ['status'],
           required: false,
+          where: hasDateFilter ? { createdAt: dateFilter } : undefined,
         }],
       }),
       ContentTask.findAll({
-        where: { organizationId: orgId, workspaceId },
+        where: contentWhere,
         attributes: ['status', [fn('COUNT', col('id')), 'count']],
         group: ['status'], raw: true,
       }),
       Payment.findAll({
-        where: { organizationId: orgId, workspaceId },
+        where: paymentWhere,
         attributes: [[fn('YEAR', col('receivedAt')), 'year'], [fn('MONTH', col('receivedAt')), 'month'], [fn('SUM', col('amount')), 'total']],
         group: [fn('YEAR', col('receivedAt')), fn('MONTH', col('receivedAt'))],
         order: [[fn('YEAR', col('receivedAt')), 'ASC'], [fn('MONTH', col('receivedAt')), 'ASC']],
+        raw: true,
+      }),
+      Payment.findOne({
+        where: paymentWhere,
+        attributes: [[fn('SUM', col('amount')), 'total']],
+        raw: true,
+      }),
+      Invoice.findAll({
+        where: { organizationId: orgId, workspaceId, ...(hasDateFilter ? { createdAt: dateFilter } : {}) },
+        attributes: ['status', 'dueAmount', [fn('COUNT', col('id')), 'count']],
+        group: ['status'], raw: true,
+      }),
+      Invoice.findOne({
+        where: { organizationId: orgId, workspaceId, status: { [Op.in]: ['Unpaid', 'Partial'] }, ...(hasDateFilter ? { createdAt: dateFilter } : {}) },
+        attributes: [[fn('SUM', col('dueAmount')), 'total']],
         raw: true,
       }),
     ]);
@@ -219,15 +233,22 @@ const getAdvancedReports = async (req, res) => {
       const leads = agent.assignedLeads || [];
       const total = leads.length;
       const won = leads.filter((l) => l.status === 'Won').length;
+      const lost = leads.filter((l) => l.status === 'Lost').length;
+      const active = leads.filter((l) => !['Won', 'Lost'].includes(l.status)).length;
       return {
-        id: agent.id,
-        name: agent.name,
+        agentName: agent.name,
+        agentEmail: agent.email,
         label: agent.label || agent.role,
         totalLeads: total,
         wonLeads: won,
+        lostLeads: lost,
+        activeLeads: active,
         conversionRate: total > 0 ? Math.round((won / total) * 100) : 0,
       };
     });
+
+    const totalInvoices = invoiceStats.reduce((s, r) => s + parseInt(r.count || 0), 0);
+    const paidInvoices = invoiceStats.find((r) => r.status === 'Paid');
 
     res.json({
       success: true,
@@ -235,6 +256,10 @@ const getAdvancedReports = async (req, res) => {
       revenueByMonth,
       agentStats,
       contentStats,
+      totalRevenue: parseFloat(totalRevenueRow?.total || 0),
+      totalInvoices,
+      paidInvoices: parseInt(paidInvoices?.count || 0),
+      pendingAmount: parseFloat(pendingRow?.total || 0),
     });
   } catch (err) {
     console.error('getAdvancedReports error:', err);
