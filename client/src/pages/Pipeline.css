@@ -1,5 +1,8 @@
-.pipeline-board { display: flex; gap: 16px; overflow-x: auto; padding-bottom: 20px; min-height: calc(100vh - 200px); }
+.pipeline-board { display: flex; gap: 16px; overflow-x: auto; padding-bottom: 20px; min-height: calc(100vh - 200px); -webkit-overflow-scrolling: touch; }
 .pipeline-column { flex: 0 0 260px; display: flex; flex-direction: column; }
+@media (max-width: 600px) {
+  .pipeline-column { flex: 0 0 220px; }
+}
 .pipeline-col-header { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px 10px 0 0; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 0; }
 .pipeline-col-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
 .pipeline-col-count { font-size: 11px; background: rgba(255,255,255,0.06); padding: 2px 8px; border-radius: 20px; }

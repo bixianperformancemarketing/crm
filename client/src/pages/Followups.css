@@ -8,3 +8,9 @@
 .fc-note { font-size: 12px; color: var(--text-muted); font-style: italic; }
 .fc-status { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
 .fc-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+@media (max-width: 600px) {
+  .followup-tabs { width: 100%; overflow-x: auto; }
+  .followup-card { flex-direction: column; gap: 10px; }
+  .fc-actions { margin-top: 4px; }
+}

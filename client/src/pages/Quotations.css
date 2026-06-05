@@ -38,7 +38,8 @@
   letter-spacing: 0.5px;
 }
 
-.items-table { width: 100%; border-collapse: collapse; }
+.items-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.items-table { width: 100%; border-collapse: collapse; min-width: 500px; }
 .items-table th {
   background: var(--q-gold-light);
   border-bottom: 2px solid var(--q-gold-border);

@@ -62,3 +62,8 @@
   border-radius: 3px;
   transition: width 0.4s;
 }
+
+@media (max-width: 600px) {
+  .invoice-status-bar { gap: 6px; }
+  .invoice-status-bar .btn { font-size: 11px; padding: 5px 8px; }
+}

@@ -411,7 +411,7 @@ const LeadDetail = () => {
             </div>
             <div className="form-group"><label className="form-label">Address *</label><textarea className="form-control" rows={2} value={quotationForm.clientAddress} onChange={(e) => setQuotationForm({ ...quotationForm, clientAddress: e.target.value })} /></div>
             <h4 style={{ margin: '16px 0 10px', fontSize: 13, color: 'var(--text-muted)' }}>Line Items</h4>
-            <table className="items-table">
+            <div className="items-table-wrap"><table className="items-table">
               <thead><tr><th>Service</th><th style={{ width: 200 }}>Deliverables</th><th style={{ width: 130 }}>Package Price</th><th style={{ width: 40 }}></th></tr></thead>
               <tbody>
                 {quotationForm.items.map((item, i) => (
@@ -435,7 +435,7 @@ const LeadDetail = () => {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
             <button type="button" className="btn btn-ghost btn-sm" style={{ marginTop: 8 }} onClick={() => setQuotationForm({ ...quotationForm, items: [...quotationForm.items, emptyQItem()] })}>+ Add Item</button>
             <div className="totals-box">
               {(() => { const sub = quotationForm.items.reduce((s, i) => s + parseFloat(i.totalPrice || 0), 0); const gst = (sub * parseFloat(quotationForm.gstPercent || 0)) / 100; return (<>

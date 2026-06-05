@@ -1,7 +1,14 @@
 .reports-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
-.reports-date-filter { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.reports-date-filter { display: flex; align-items: center; gap: 8px; font-size: 13px; flex-wrap: wrap; }
 .reports-date-filter input { background: var(--card-bg); border: 1px solid var(--border); color: var(--text); padding: 6px 10px; border-radius: 6px; font-size: 12px; }
 .reports-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 24px; }
+@media (max-width: 600px) {
+  .reports-header { flex-direction: column; align-items: flex-start; }
+  .reports-date-filter { width: 100%; }
+  .reports-date-filter input { flex: 1; min-width: 0; }
+  .reports-grid { grid-template-columns: 1fr; }
+  .agent-table .perf-bar-wrap { width: 50px; }
+}
 .report-chart-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
 .report-chart-title { font-weight: 700; font-size: 14px; margin-bottom: 16px; color: var(--text); }
 .report-chart-container { height: 220px; }

@@ -201,7 +201,16 @@ tr:hover td { background: rgba(255,255,255,0.015); }
 .btn-loading { position: relative; }
 .btn-loading::after { content: ''; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; }
 
-/* ─── RESPONSIVE ──────────────────────────────────────────────────── */
+/* ─── HAMBURGER BUTTON ──────────────────────────────────────────────── */
+.hamburger-btn { display: none; flex-direction: column; justify-content: center; gap: 5px; background: none; border: none; cursor: pointer; padding: 6px; border-radius: 6px; flex-shrink: 0; }
+.hamburger-btn span { display: block; width: 20px; height: 2px; background: var(--text); border-radius: 2px; transition: background 0.2s; }
+.hamburger-btn:hover span { background: var(--accent); }
+[data-theme="light"] .hamburger-btn span { background: #1a1a2e; }
+
+/* ─── MOBILE OVERLAY ────────────────────────────────────────────────── */
+.mobile-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 99; }
+
+/* ─── RESPONSIVE — TABLET (≤ 860px) ────────────────────────────────── */
 @media (max-width: 860px) {
   .sidebar { width: 60px; }
   .sidebar .logo-text, .sidebar .nav-label, .sidebar .nav-section-title, .sidebar .user-info { display: none; }
@@ -210,12 +219,59 @@ tr:hover td { background: rgba(255,255,255,0.015); }
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
   .form-row { grid-template-columns: 1fr; }
 }
+
+/* ─── RESPONSIVE — MOBILE (≤ 600px) ────────────────────────────────── */
 @media (max-width: 600px) {
-  .page { padding: 16px; }
-  .stats-grid { grid-template-columns: 1fr 1fr; }
-  .modal { padding: 20px; }
-  .filters-bar { flex-direction: column; align-items: stretch; }
+  .hamburger-btn { display: flex; }
+  .mobile-overlay { display: block; }
+
+  .sidebar {
+    width: var(--sidebar-width) !important;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease, width 0.2s;
+    z-index: 100;
+  }
+  .sidebar.mobile-open { transform: translateX(0); }
+  .sidebar.mobile-open .logo-text,
+  .sidebar.mobile-open .nav-label,
+  .sidebar.mobile-open .nav-section-title { display: block; }
+  .sidebar.mobile-open .user-info { display: flex; flex-direction: column; }
+  .sidebar-collapse-btn { display: none; }
+
+  .main-content { margin-left: 0 !important; }
+
+  .page { padding: 14px; }
+  .header { padding: 0 14px; gap: 10px; }
+  .header-title { font-size: 15px; }
+  .workspace-label { display: none; }
+
+  .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stat-card { padding: 14px; }
+  .stat-value { font-size: 20px; }
+  .charts-grid { grid-template-columns: 1fr; gap: 14px; }
+
+  .filters-bar { flex-direction: column; align-items: stretch; gap: 8px; }
   .search-input { min-width: unset; width: 100%; }
+  .filter-select { width: 100%; }
+
+  th, td { padding: 10px 12px; }
+
+  .modal-overlay { padding: 0; align-items: flex-end; }
+  .modal { border-radius: 16px 16px 0 0; max-width: 100%; max-height: 92vh; padding: 20px 16px; }
+
+  .page-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .page-header .btn { width: 100%; justify-content: center; }
+
+  .pagination { flex-direction: column; align-items: center; gap: 10px; }
+  .pagination-controls { flex-wrap: wrap; justify-content: center; }
+
+  .notif-dropdown { width: calc(100vw - 28px); right: -60px; }
+}
+
+/* ─── RESPONSIVE — SMALL MOBILE (≤ 400px) ──────────────────────────── */
+@media (max-width: 400px) {
+  .stats-grid { grid-template-columns: 1fr; }
+  .stat-value { font-size: 18px; }
 }
 
 /* ─── THEME TOGGLE BUTTON ─────────────────────────────────────────────── */

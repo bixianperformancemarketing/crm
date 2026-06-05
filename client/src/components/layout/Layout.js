@@ -51,6 +51,7 @@ const Layout = ({ children, title }) => {
   const { user, org, workspace, logout, hasFeature } = useAuth();
   const { unreadCount, resetUnread } = useSocket();
   const [collapsed, setCollapsed] = useState(window.innerWidth < 860);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [showNotifs, setShowNotifs] = useState(false);
   const [theme, setTheme] = useState(() => {
     const saved = localStorage.getItem('crm-theme') || 'dark';
@@ -83,6 +84,12 @@ const Layout = ({ children, title }) => {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  useEffect(() => {
+    const onResize = () => { if (window.innerWidth > 600) setMobileOpen(false); };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
   const openNotifs = async () => {
     setShowNotifs((s) => !s);
     if (!showNotifs) {
@@ -105,7 +112,8 @@ const Layout = ({ children, title }) => {
 
   return (
     <div className="layout">
-      <aside className={`sidebar${collapsed ? ' collapsed' : ''}`}>
+      {mobileOpen && <div className="mobile-overlay" onClick={() => setMobileOpen(false)} />}
+      <aside className={`sidebar${collapsed ? ' collapsed' : ''}${mobileOpen ? ' mobile-open' : ''}`}>
         <div className="sidebar-logo">
           <div className="logo-icon">CRM</div>
           {!collapsed && <span className="logo-text">{org?.name || 'Agency CRM'}</span>}
@@ -115,7 +123,7 @@ const Layout = ({ children, title }) => {
           <div className="nav-section">
             {!collapsed && <div className="nav-section-title">Navigation</div>}
             {navItems.map((item) => (
-              <NavLink key={item.to} to={item.to} className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`} title={collapsed ? item.label : undefined}>
+              <NavLink key={item.to} to={item.to} className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`} title={collapsed ? item.label : undefined} onClick={() => setMobileOpen(false)}>
                 <span className="nav-icon">{item.icon}</span>
                 {!collapsed && <span className="nav-label">{item.label}</span>}
               </NavLink>
@@ -141,6 +149,9 @@ const Layout = ({ children, title }) => {
 
       <div className={`main-content${collapsed ? ' collapsed' : ''}`}>
         <header className="header">
+          <button className="hamburger-btn" onClick={() => setMobileOpen(o => !o)} aria-label="Menu">
+            <span /><span /><span />
+          </button>
           <h1 className="header-title">{pageTitle}</h1>
           <div className="header-actions">
             {workspace && !collapsed && (

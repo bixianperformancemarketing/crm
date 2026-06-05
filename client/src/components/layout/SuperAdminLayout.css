@@ -10,3 +10,15 @@
 .sa-main { flex: 1; margin-left: 220px; }
 .sa-header { height: 60px; background: #05050f; border-bottom: 1px solid #1a1a2e; display: flex; align-items: center; padding: 0 24px; justify-content: space-between; }
 .sa-header h1 { font-size: 18px; font-weight: 600; }
+
+@media (max-width: 860px) {
+  .sa-sidebar { width: 60px; overflow: hidden; }
+  .sa-sidebar .sa-logo h2, .sa-sidebar .sa-tag, .sa-nav a span { display: none; }
+  .sa-nav a { justify-content: center; padding: 12px; }
+  .sa-main { margin-left: 60px; }
+}
+@media (max-width: 600px) {
+  .sa-sidebar { display: none; }
+  .sa-main { margin-left: 0; }
+  .sa-header { padding: 0 16px; }
+}
