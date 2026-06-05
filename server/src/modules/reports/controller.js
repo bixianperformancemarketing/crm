@@ -173,12 +173,10 @@ const getAdvancedReports = async (req, res) => {
     const { user, workspaceId } = req;
     const orgId = user.organizationId;
     const { startDate, endDate } = req.query;
-    console.log('[Reports] startDate:', startDate, 'endDate:', endDate);
     const dateFilter = {};
     if (startDate) dateFilter[Op.gte] = new Date(startDate);
     if (endDate) dateFilter[Op.lte] = new Date(endDate);
-    const hasDateFilter = Object.keys(dateFilter).length > 0;
-    console.log('[Reports] hasDateFilter:', hasDateFilter, 'dateFilter:', dateFilter);
+    const hasDateFilter = !!(startDate || endDate);
 
     const leadWhere = { organizationId: orgId, workspaceId };
     if (hasDateFilter) leadWhere.createdAt = dateFilter;
@@ -244,7 +242,6 @@ const getAdvancedReports = async (req, res) => {
     const totalInvoices = invoiceStats.reduce((s, r) => s + parseInt(r.count || 0), 0);
     const paidInvoices = invoiceStats.find((r) => r.status === 'Paid');
 
-    console.log('[Reports] totalRevenue raw:', totalRevenue);
     res.json({
       success: true,
       leadBySource,
