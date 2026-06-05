@@ -671,6 +671,14 @@ const syncDatabase = async () => {
       }
     } catch (e) { /* ignore */ }
 
+    // Add yearlyPrice column to plans if missing
+    try {
+      const planCols = await qi.describeTable('plans');
+      if (!planCols.yearlyPrice) {
+        await qi.addColumn('plans', 'yearlyPrice', { type: DataTypes.DECIMAL(10, 2), defaultValue: 0, allowNull: true });
+      }
+    } catch (e) { /* ignore */ }
+
     // Backfill city column from metadata for existing leads
     try {
       const leadsWithoutCity = await Lead.findAll({ where: { city: null }, attributes: ['id', 'metadata'] });
