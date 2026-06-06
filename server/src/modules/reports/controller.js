@@ -1,7 +1,6 @@
-const { Op, fn, col, literal } = require('sequelize');
-const moment = require('moment-timezone');
+const { Op, fn, col } = require('sequelize');
 const { Lead, Payment, Invoice, Followup, Appointment, ContentTask, User, Quotation } = require('../../config/models');
-const { startOfTodayIST, endOfTodayIST, IST } = require('../../utils/helpers');
+const { startOfTodayIST, endOfTodayIST } = require('../../utils/helpers');
 
 const getLoginSummary = async (req, res) => {
   try {
@@ -9,12 +8,13 @@ const getLoginSummary = async (req, res) => {
     const orgId = user.organizationId;
     const now = new Date();
     const isEmployee = user.role === 'employee';
+    const ws = workspaceId ? { workspaceId } : {};
 
-    const leadWhere   = { organizationId: orgId, workspaceId, ...(isEmployee ? { assignedTo: user.id } : {}) };
-    const fupWhere    = { organizationId: orgId, workspaceId, ...(isEmployee ? { userId: user.id } : {}) };
-    const quotWhere   = { organizationId: orgId, workspaceId, ...(isEmployee ? { createdBy: user.id } : {}) };
-    const contentWhere= { organizationId: orgId, workspaceId, ...(isEmployee ? { assignedTo: user.id } : {}) };
-    const apptWhere   = { organizationId: orgId, workspaceId, ...(isEmployee ? { assignedTo: user.id } : {}), status: 'Scheduled' };
+    const leadWhere    = { organizationId: orgId, ...ws, ...(isEmployee ? { assignedTo: user.id } : {}) };
+    const fupWhere     = { organizationId: orgId, ...ws, ...(isEmployee ? { userId: user.id } : {}) };
+    const quotWhere    = { organizationId: orgId, ...ws, ...(isEmployee ? { createdBy: user.id } : {}) };
+    const contentWhere = { organizationId: orgId, ...ws, ...(isEmployee ? { assignedTo: user.id } : {}) };
+    const apptWhere    = { organizationId: orgId, ...ws, ...(isEmployee ? { assignedTo: user.id } : {}), status: 'Scheduled' };
 
     const [
       overdueFollowups,
@@ -42,7 +42,6 @@ const getLoginSummary = async (req, res) => {
       }),
       Lead.count({ where: { ...leadWhere, status: { [Op.notIn]: ['Won', 'Lost'] } } }),
       Lead.count({ where: { ...leadWhere, status: 'New' } }),
-      // Leads converted (Won) today
       Lead.findAll({
         where: { ...leadWhere, status: 'Won', updatedAt: { [Op.between]: [startOfTodayIST(), endOfTodayIST()] } },
         attributes: ['id', 'name', 'updatedAt'],
@@ -78,7 +77,9 @@ const getDashboard = async (req, res) => {
     const orgId = user.organizationId;
     const now = new Date();
     const isEmployee = user.role === 'employee';
-    const leadWhere = { organizationId: orgId, workspaceId, ...(isEmployee ? { assignedTo: user.id } : {}) };
+    const ws = workspaceId ? { workspaceId } : {};
+    const leadWhere = { organizationId: orgId, ...ws, ...(isEmployee ? { assignedTo: user.id } : {}) };
+    const baseWhere = { organizationId: orgId, ...ws };
 
     const [
       totalLeads, activeLeads, wonLeads, hotLeads,
@@ -90,22 +91,22 @@ const getDashboard = async (req, res) => {
       Lead.count({ where: { ...leadWhere, status: { [Op.notIn]: ['Won', 'Lost'] } } }),
       Lead.count({ where: { ...leadWhere, status: 'Won' } }),
       Lead.count({ where: { ...leadWhere, isHot: true } }),
-      Payment.sum('amount', { where: { organizationId: orgId, workspaceId } }),
-      Invoice.sum('dueAmount', { where: { organizationId: orgId, workspaceId, status: { [Op.in]: ['Unpaid', 'Partial'] } } }),
-      Invoice.count({ where: { organizationId: orgId, workspaceId, status: 'Overdue' } }),
-      Followup.count({ where: { organizationId: orgId, workspaceId, status: 'pending', scheduledAt: { [Op.gte]: now } } }),
-      Followup.count({ where: { organizationId: orgId, workspaceId, status: { [Op.in]: ['pending', 'overdue'] }, scheduledAt: { [Op.lt]: now } } }),
-      Appointment.count({ where: { organizationId: orgId, workspaceId, startTime: { [Op.between]: [startOfTodayIST(), endOfTodayIST()] }, status: 'Scheduled' } }),
+      Payment.sum('amount', { where: baseWhere }),
+      Invoice.sum('dueAmount', { where: { ...baseWhere, status: { [Op.in]: ['Unpaid', 'Partial'] } } }),
+      Invoice.count({ where: { ...baseWhere, status: 'Overdue' } }),
+      Followup.count({ where: { ...baseWhere, status: 'pending', scheduledAt: { [Op.gte]: now } } }),
+      Followup.count({ where: { ...baseWhere, status: { [Op.in]: ['pending', 'overdue'] }, scheduledAt: { [Op.lt]: now } } }),
+      Appointment.count({ where: { ...baseWhere, startTime: { [Op.between]: [startOfTodayIST(), endOfTodayIST()] }, status: 'Scheduled' } }),
       Lead.findAll({ where: leadWhere, order: [['createdAt', 'DESC']], limit: 5, attributes: ['id', 'name', 'status', 'priority', 'source', 'createdAt'] }),
     ]);
 
     const conversionRate = totalLeads > 0 ? Math.round((wonLeads / totalLeads) * 100) : 0;
-    const wonInvoices = await Invoice.findAll({ where: { organizationId: orgId, workspaceId, status: 'Paid' } });
+    const wonInvoices = await Invoice.findAll({ where: { ...baseWhere, status: 'Paid' } });
     const avgDealSize = wonInvoices.length ? wonInvoices.reduce((s, i) => s + parseFloat(i.totalAmount), 0) / wonInvoices.length : 0;
 
     const since12mo = new Date(); since12mo.setMonth(since12mo.getMonth() - 12);
     const monthlyRevenue = await Payment.findAll({
-      where: { organizationId: orgId, workspaceId, receivedAt: { [Op.gte]: since12mo } },
+      where: { ...baseWhere, receivedAt: { [Op.gte]: since12mo } },
       attributes: [[fn('YEAR', col('receivedAt')), 'year'], [fn('MONTH', col('receivedAt')), 'month'], [fn('SUM', col('amount')), 'total']],
       group: [fn('YEAR', col('receivedAt')), fn('MONTH', col('receivedAt'))],
       order: [[fn('YEAR', col('receivedAt')), 'ASC'], [fn('MONTH', col('receivedAt')), 'ASC']],
@@ -134,13 +135,13 @@ const getDashboard = async (req, res) => {
     });
 
     const todayFollowups = await Followup.findAll({
-      where: { organizationId: orgId, workspaceId, status: 'pending', scheduledAt: { [Op.between]: [startOfTodayIST(), endOfTodayIST()] } },
+      where: { ...baseWhere, status: 'pending', scheduledAt: { [Op.between]: [startOfTodayIST(), endOfTodayIST()] } },
       include: [{ model: Lead, as: 'lead', attributes: ['id', 'name', 'phone'], required: false }],
       order: [['scheduledAt', 'ASC']], limit: 10,
     });
 
     const todayAppointments = await Appointment.findAll({
-      where: { organizationId: orgId, workspaceId, startTime: { [Op.between]: [startOfTodayIST(), endOfTodayIST()] }, status: 'Scheduled' },
+      where: { ...baseWhere, startTime: { [Op.between]: [startOfTodayIST(), endOfTodayIST()] }, status: 'Scheduled' },
       include: [
         { model: Lead, as: 'lead', attributes: ['id', 'name'], required: false },
         { model: User, as: 'assignee', attributes: ['id', 'name'], required: false },
@@ -177,12 +178,11 @@ const getAdvancedReports = async (req, res) => {
     if (startDate) dateFilter[Op.gte] = new Date(startDate);
     if (endDate) { const d = new Date(endDate); d.setDate(d.getDate() + 1); dateFilter[Op.lt] = d; }
     const hasDateFilter = !!(startDate || endDate);
+    const ws = workspaceId ? { workspaceId } : {};
 
-    const leadWhere = { organizationId: orgId, workspaceId };
-    if (hasDateFilter) leadWhere.createdAt = dateFilter;
-
-    const paymentWhere = { organizationId: orgId, workspaceId, ...(hasDateFilter ? { receivedAt: dateFilter } : {}) };
-    const contentWhere = { organizationId: orgId, workspaceId, ...(hasDateFilter ? { createdAt: dateFilter } : {}) };
+    const leadWhere    = { organizationId: orgId, ...ws, ...(hasDateFilter ? { createdAt: dateFilter } : {}) };
+    const paymentWhere = { organizationId: orgId, ...ws, ...(hasDateFilter ? { receivedAt: dateFilter } : {}) };
+    const contentWhere = { organizationId: orgId, ...ws, ...(hasDateFilter ? { createdAt: dateFilter } : {}) };
 
     const [leadBySource, agentPerformance, contentStats, revenueByMonth, totalRevenue, invoiceStats, pendingAmount] = await Promise.all([
       Lead.findAll({
@@ -191,7 +191,7 @@ const getAdvancedReports = async (req, res) => {
         group: ['source'], raw: true,
       }),
       User.findAll({
-        where: { workspaceId, organizationId: orgId, role: { [Op.in]: ['employee', 'admin'] }, isActive: true },
+        where: { ...ws, organizationId: orgId, role: { [Op.in]: ['employee', 'admin'] }, isActive: true },
         attributes: ['id', 'name', 'email', 'label', 'role'],
         include: [{
           model: Lead, as: 'assignedLeads',
@@ -214,11 +214,11 @@ const getAdvancedReports = async (req, res) => {
       }),
       Payment.sum('amount', { where: paymentWhere }),
       Invoice.findAll({
-        where: { organizationId: orgId, workspaceId, ...(hasDateFilter ? { createdAt: dateFilter } : {}) },
+        where: { organizationId: orgId, ...ws, ...(hasDateFilter ? { createdAt: dateFilter } : {}) },
         attributes: ['status', [fn('COUNT', col('id')), 'count']],
         group: ['status'], raw: true,
       }),
-      Invoice.sum('dueAmount', { where: { organizationId: orgId, workspaceId, status: { [Op.in]: ['Unpaid', 'Partial'] }, ...(hasDateFilter ? { createdAt: dateFilter } : {}) } }),
+      Invoice.sum('dueAmount', { where: { organizationId: orgId, ...ws, status: { [Op.in]: ['Unpaid', 'Partial'] }, ...(hasDateFilter ? { createdAt: dateFilter } : {}) } }),
     ]);
 
     const agentStats = agentPerformance.map((agent) => {
