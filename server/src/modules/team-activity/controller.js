@@ -120,15 +120,14 @@ const getEmployeeStats = async (req, res) => {
 
     const employee = await User.findOne({
       where: { id: userId, organizationId: orgId },
-      attributes: ['id', 'name', 'email', 'label', 'role'],
+      attributes: ['id', 'name', 'email', 'label', 'role', 'workspaceId'],
     });
     if (!employee) return res.status(404).json({ success: false, message: 'Employee not found' });
 
-    const leadWhere = { organizationId: orgId, ...ws, assignedTo: userId };
-
-    const leadIds = await Lead.findAll({ where: leadWhere, attributes: ['id'], raw: true }).then(r => r.map(l => l.id));
-
-    const invoiceWhere = leadIds.length ? { organizationId: orgId, leadId: { [Op.in]: leadIds } } : null;
+    // Use the employee's own workspaceId so stats match exactly what they see on their dashboard
+    const empWs = employee.workspaceId ? { workspaceId: employee.workspaceId } : {};
+    const baseWhere = { organizationId: orgId, ...empWs };
+    const leadWhere = { ...baseWhere, assignedTo: userId };
 
     const [
       totalLeads, activeLeads, wonLeads, hotLeads,
@@ -139,17 +138,15 @@ const getEmployeeStats = async (req, res) => {
       Lead.count({ where: { ...leadWhere, status: { [Op.notIn]: ['Won', 'Lost'] } } }),
       Lead.count({ where: { ...leadWhere, status: 'Won' } }),
       Lead.count({ where: { ...leadWhere, isHot: true } }),
-      invoiceWhere ? Payment.sum('amount', { where: { organizationId: orgId, leadId: { [Op.in]: leadIds } } }) : Promise.resolve(0),
-      invoiceWhere ? Invoice.sum('dueAmount', { where: { ...invoiceWhere, status: { [Op.in]: ['Unpaid', 'Partial'] } } }) : Promise.resolve(0),
-      invoiceWhere ? Invoice.count({ where: { ...invoiceWhere, status: 'Overdue' } }) : Promise.resolve(0),
-      Followup.count({ where: { organizationId: orgId, ...ws, userId, status: 'pending', scheduledAt: { [Op.gte]: now } } }),
-      Followup.count({ where: { organizationId: orgId, ...ws, userId, status: { [Op.in]: ['pending', 'overdue'] }, scheduledAt: { [Op.lt]: now } } }),
-      Appointment.count({ where: { organizationId: orgId, ...ws, assignedTo: userId, startTime: { [Op.between]: [startOfTodayIST(), endOfTodayIST()] }, status: 'Scheduled' } }),
+      Payment.sum('amount', { where: baseWhere }),
+      Invoice.sum('dueAmount', { where: { ...baseWhere, status: { [Op.in]: ['Unpaid', 'Partial'] } } }),
+      Invoice.count({ where: { ...baseWhere, status: 'Overdue' } }),
+      Followup.count({ where: { ...baseWhere, status: 'pending', scheduledAt: { [Op.gte]: now } } }),
+      Followup.count({ where: { ...baseWhere, status: { [Op.in]: ['pending', 'overdue'] }, scheduledAt: { [Op.lt]: now } } }),
+      Appointment.count({ where: { ...baseWhere, startTime: { [Op.between]: [startOfTodayIST(), endOfTodayIST()] }, status: 'Scheduled' } }),
     ]);
 
-    const wonInvoices = invoiceWhere
-      ? await Invoice.findAll({ where: { ...invoiceWhere, status: 'Paid' }, attributes: ['totalAmount'], raw: true })
-      : [];
+    const wonInvoices = await Invoice.findAll({ where: { ...baseWhere, status: 'Paid' }, attributes: ['totalAmount'], raw: true });
     const avgDealSize = wonInvoices.length
       ? wonInvoices.reduce((s, i) => s + parseFloat(i.totalAmount), 0) / wonInvoices.length
       : 0;
