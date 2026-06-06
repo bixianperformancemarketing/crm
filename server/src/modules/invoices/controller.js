@@ -13,7 +13,8 @@ const getInvoices = async (req, res) => {
     const { user, workspaceId } = req;
     const { page = 1, limit = 20, status, leadId } = req.query;
     const { limit: lim, offset } = paginate(page, limit);
-    const where = { organizationId: user.organizationId, workspaceId };
+    const ws = workspaceId ? { workspaceId } : {};
+    const where = { organizationId: user.organizationId, ...ws };
     if (status) where.status = status;
     if (leadId) where.leadId = leadId;
 
@@ -36,8 +37,9 @@ const getInvoice = async (req, res) => {
   try {
     const { id } = req.params;
     const { user, workspaceId } = req;
+    const ws = workspaceId ? { workspaceId } : {};
     const inv = await Invoice.findOne({
-      where: { id, organizationId: user.organizationId, workspaceId },
+      where: { id, organizationId: user.organizationId, ...ws },
       include: [
         { model: InvoiceItem, as: 'items', required: false },
         { model: Payment, as: 'payments', include: [{ model: User, as: 'receiver', attributes: ['id', 'name'], required: false }] },
@@ -55,6 +57,7 @@ const getInvoice = async (req, res) => {
 const createInvoice = async (req, res) => {
   try {
     const { user, workspaceId } = req;
+    if (!workspaceId) return res.status(400).json({ success: false, message: 'Workspace context required for this action' });
     const { leadId, clientName, clientEmail, clientPhone, clientAddress, clientGST, items = [], gstPercent = 18, notes, terms, dueDate } = req.body;
 
     if (!clientName?.trim()) return res.status(400).json({ success: false, message: 'Client name is required' });
@@ -127,7 +130,8 @@ const updateInvoice = async (req, res) => {
   try {
     const { id } = req.params;
     const { user, workspaceId } = req;
-    const inv = await Invoice.findOne({ where: { id, organizationId: user.organizationId, workspaceId } });
+    const ws = workspaceId ? { workspaceId } : {};
+    const inv = await Invoice.findOne({ where: { id, organizationId: user.organizationId, ...ws } });
     if (!inv) return res.status(404).json({ success: false, message: 'Invoice not found' });
 
     const hasPayments = parseFloat(inv.paidAmount) > 0;
@@ -186,14 +190,15 @@ const downloadPDF = async (req, res) => {
   try {
     const { id } = req.params;
     const { user, workspaceId } = req;
+    const ws = workspaceId ? { workspaceId } : {};
     const inv = await Invoice.findOne({
-      where: { id, organizationId: user.organizationId, workspaceId },
+      where: { id, organizationId: user.organizationId, ...ws },
       include: [{ model: InvoiceItem, as: 'items', required: false }],
     });
     if (!inv) return res.status(404).json({ success: false, message: 'Invoice not found' });
     const org = await Organization.findByPk(user.organizationId, { attributes: ['settings'] });
     const pdf = await generateInvoicePDF(inv, org?.settings, inv.items);
-    await logUsage(user.organizationId, workspaceId, 'pdf_generated');
+    await logUsage(user.organizationId, inv.workspaceId, 'pdf_generated');
     res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': `attachment; filename="${inv.invoiceNumber}.pdf"` });
     res.send(pdf);
   } catch (err) {
@@ -206,8 +211,9 @@ const sendEmail = async (req, res) => {
   try {
     const { id } = req.params;
     const { user, workspaceId } = req;
+    const ws = workspaceId ? { workspaceId } : {};
     const inv = await Invoice.findOne({
-      where: { id, organizationId: user.organizationId, workspaceId },
+      where: { id, organizationId: user.organizationId, ...ws },
       include: [{ model: InvoiceItem, as: 'items', required: false }],
     });
     if (!inv) return res.status(404).json({ success: false, message: 'Invoice not found' });
@@ -232,8 +238,9 @@ const whatsappShare = async (req, res) => {
   try {
     const { id } = req.params;
     const { user, workspaceId } = req;
+    const ws = workspaceId ? { workspaceId } : {};
     const inv = await Invoice.findOne({
-      where: { id, organizationId: user.organizationId, workspaceId },
+      where: { id, organizationId: user.organizationId, ...ws },
       include: [{ model: InvoiceItem, as: 'items', required: false }],
     });
     if (!inv) return res.status(404).json({ success: false, message: 'Invoice not found' });
@@ -258,7 +265,8 @@ const deleteInvoice = async (req, res) => {
   try {
     const { id } = req.params;
     const { user, workspaceId } = req;
-    const inv = await Invoice.findOne({ where: { id, organizationId: user.organizationId, workspaceId } });
+    const ws = workspaceId ? { workspaceId } : {};
+    const inv = await Invoice.findOne({ where: { id, organizationId: user.organizationId, ...ws } });
     if (!inv) return res.status(404).json({ success: false, message: 'Invoice not found' });
     if (parseFloat(inv.paidAmount) > 0) {
       return res.status(400).json({ success: false, message: 'Cannot delete an invoice with recorded payments' });

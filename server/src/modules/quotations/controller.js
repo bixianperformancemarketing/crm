@@ -14,7 +14,8 @@ const getQuotations = async (req, res) => {
     const { user, workspaceId } = req;
     const { page = 1, limit = 20, status, leadId } = req.query;
     const { limit: lim, offset } = paginate(page, limit);
-    const where = { organizationId: user.organizationId, workspaceId };
+    const ws = workspaceId ? { workspaceId } : {};
+    const where = { organizationId: user.organizationId, ...ws };
     if (user.role === 'employee') where.createdBy = user.id;
     if (status) where.status = status;
     if (leadId) where.leadId = leadId;
@@ -39,8 +40,9 @@ const getQuotation = async (req, res) => {
   try {
     const { id } = req.params;
     const { user, workspaceId } = req;
+    const ws = workspaceId ? { workspaceId } : {};
     const q = await Quotation.findOne({
-      where: { id, organizationId: user.organizationId, workspaceId },
+      where: { id, organizationId: user.organizationId, ...ws },
       include: [
         { model: QuotationItem, as: 'items' },
         { model: Lead, as: 'lead', attributes: ['id', 'name', 'phone', 'email'], required: false },
@@ -58,6 +60,7 @@ const getQuotation = async (req, res) => {
 const createQuotation = async (req, res) => {
   try {
     const { user, workspaceId } = req;
+    if (!workspaceId) return res.status(400).json({ success: false, message: 'Workspace context required for this action' });
     const { leadId, clientName, clientEmail, clientPhone, clientAddress, clientGST, items = [], gstPercent = 18, terms, notes, validUntil } = req.body;
 
     if (!clientName?.trim()) return res.status(400).json({ success: false, message: 'Client name is required' });
@@ -139,7 +142,8 @@ const updateQuotation = async (req, res) => {
   try {
     const { id } = req.params;
     const { user, workspaceId } = req;
-    const q = await Quotation.findOne({ where: { id, organizationId: user.organizationId, workspaceId } });
+    const ws = workspaceId ? { workspaceId } : {};
+    const q = await Quotation.findOne({ where: { id, organizationId: user.organizationId, ...ws } });
     if (!q) return res.status(404).json({ success: false, message: 'Quotation not found' });
     if (q.status === 'Approved') return res.status(400).json({ success: false, message: 'Cannot edit an approved quotation' });
 
@@ -188,8 +192,9 @@ const updateStatus = async (req, res) => {
     const { id } = req.params;
     const { user, workspaceId } = req;
     const { status } = req.body;
+    const ws = workspaceId ? { workspaceId } : {};
     const q = await Quotation.findOne({
-      where: { id, organizationId: user.organizationId, workspaceId },
+      where: { id, organizationId: user.organizationId, ...ws },
       include: [{ model: QuotationItem, as: 'items' }],
     });
     if (!q) return res.status(404).json({ success: false, message: 'Quotation not found' });
@@ -200,9 +205,9 @@ const updateStatus = async (req, res) => {
     await q.update(updates);
 
     if (status === 'Approved') {
-      const invNumber = await getNextNumber(Invoice, 'invoiceNumber', 'INV-', workspaceId, user.organizationId);
+      const invNumber = await getNextNumber(Invoice, 'invoiceNumber', 'INV-', q.workspaceId, user.organizationId);
       const inv = await Invoice.create({
-        organizationId: user.organizationId, workspaceId, invoiceNumber: invNumber,
+        organizationId: user.organizationId, workspaceId: q.workspaceId, invoiceNumber: invNumber,
         quotationId: q.id, leadId: q.leadId, createdBy: user.id,
         clientName: q.clientName, clientEmail: q.clientEmail,
         clientPhone: q.clientPhone, clientAddress: q.clientAddress, clientGST: q.clientGST,
@@ -226,13 +231,13 @@ const updateStatus = async (req, res) => {
 
       if (q.leadId) {
         await LeadActivity.create({
-          leadId: q.leadId, organizationId: user.organizationId, workspaceId,
+          leadId: q.leadId, organizationId: user.organizationId, workspaceId: q.workspaceId,
           userId: user.id, type: 'invoice_generated',
           description: `Invoice ${invNumber} generated from quotation ${q.quotationNumber}`,
           metadata: { invoiceId: inv.id, quotationId: q.id },
         });
       }
-      await notificationService.notifyQuotationApproved({ quotation: q, creatorId: q.createdBy, organizationId: user.organizationId, workspaceId });
+      await notificationService.notifyQuotationApproved({ quotation: q, creatorId: q.createdBy, organizationId: user.organizationId, workspaceId: q.workspaceId });
     }
 
     res.json({ success: true, message: 'Status updated', quotation: q });
@@ -246,15 +251,16 @@ const downloadPDF = async (req, res) => {
   try {
     const { id } = req.params;
     const { user, workspaceId } = req;
+    const ws = workspaceId ? { workspaceId } : {};
     const q = await Quotation.findOne({
-      where: { id, organizationId: user.organizationId, workspaceId },
+      where: { id, organizationId: user.organizationId, ...ws },
       include: [{ model: QuotationItem, as: 'items' }],
     });
     if (!q) return res.status(404).json({ success: false, message: 'Quotation not found' });
 
     const org = await Organization.findByPk(user.organizationId, { attributes: ['settings'] });
     const pdf = await generateQuotationPDF(q, q.items, org?.settings);
-    await logUsage(user.organizationId, workspaceId, 'pdf_generated');
+    await logUsage(user.organizationId, q.workspaceId, 'pdf_generated');
 
     res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': `attachment; filename="${q.quotationNumber}.pdf"` });
     res.send(pdf);
@@ -268,8 +274,9 @@ const sendEmail = async (req, res) => {
   try {
     const { id } = req.params;
     const { user, workspaceId } = req;
+    const ws = workspaceId ? { workspaceId } : {};
     const q = await Quotation.findOne({
-      where: { id, organizationId: user.organizationId, workspaceId },
+      where: { id, organizationId: user.organizationId, ...ws },
       include: [{ model: QuotationItem, as: 'items' }],
     });
     if (!q) return res.status(404).json({ success: false, message: 'Quotation not found' });
@@ -294,8 +301,9 @@ const whatsappShare = async (req, res) => {
   try {
     const { id } = req.params;
     const { user, workspaceId } = req;
+    const ws = workspaceId ? { workspaceId } : {};
     const q = await Quotation.findOne({
-      where: { id, organizationId: user.organizationId, workspaceId },
+      where: { id, organizationId: user.organizationId, ...ws },
       include: [{ model: QuotationItem, as: 'items' }],
     });
     if (!q) return res.status(404).json({ success: false, message: 'Quotation not found' });
@@ -320,7 +328,8 @@ const deleteQuotation = async (req, res) => {
   try {
     const { id } = req.params;
     const { user, workspaceId } = req;
-    const q = await Quotation.findOne({ where: { id, organizationId: user.organizationId, workspaceId } });
+    const ws = workspaceId ? { workspaceId } : {};
+    const q = await Quotation.findOne({ where: { id, organizationId: user.organizationId, ...ws } });
     if (!q) return res.status(404).json({ success: false, message: 'Quotation not found' });
     await q.destroy();
     res.json({ success: true, message: 'Quotation deleted' });

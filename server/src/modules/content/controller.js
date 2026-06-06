@@ -8,7 +8,8 @@ const getTasks = async (req, res) => {
     const { page = 1, limit = 20, status, assignedTo, dateFrom, dateTo } = req.query;
     const { limit: lim, offset } = paginate(page, limit);
 
-    const where = { organizationId: user.organizationId, workspaceId };
+    const ws = workspaceId ? { workspaceId } : {};
+    const where = { organizationId: user.organizationId, ...ws };
     if (user.role === 'employee') where.assignedTo = user.id;
     if (status) where.status = status;
     if (assignedTo && user.role !== 'employee') where.assignedTo = assignedTo;
@@ -44,8 +45,9 @@ const getCalendarTasks = async (req, res) => {
     const startDate = `${y}-${String(m).padStart(2, '0')}-01`;
     const endDate = `${y}-${String(m).padStart(2, '0')}-${new Date(y, m, 0).getDate()}`;
 
+    const ws = workspaceId ? { workspaceId } : {};
     const where = {
-      organizationId: user.organizationId, workspaceId,
+      organizationId: user.organizationId, ...ws,
       dueDate: { [Op.between]: [startDate, endDate] },
     };
     if (user.role === 'employee') where.assignedTo = user.id;
@@ -68,7 +70,8 @@ const getTask = async (req, res) => {
   try {
     const { id } = req.params;
     const { user, workspaceId } = req;
-    const where = { id, organizationId: user.organizationId, workspaceId };
+    const ws = workspaceId ? { workspaceId } : {};
+    const where = { id, organizationId: user.organizationId, ...ws };
     if (user.role === 'employee') where.assignedTo = user.id;
     const task = await ContentTask.findOne({
       where,
@@ -88,6 +91,7 @@ const getTask = async (req, res) => {
 const createTask = async (req, res) => {
   try {
     const { user, workspaceId } = req;
+    if (!workspaceId) return res.status(400).json({ success: false, message: 'Workspace context required for this action' });
     const { leadId, title, description, assignedTo, dueDate, priority, notes } = req.body;
     if (!title) return res.status(400).json({ success: false, message: 'Title is required' });
 
@@ -109,7 +113,8 @@ const updateTask = async (req, res) => {
   try {
     const { id } = req.params;
     const { user, workspaceId } = req;
-    const where = { id, organizationId: user.organizationId, workspaceId };
+    const ws = workspaceId ? { workspaceId } : {};
+    const where = { id, organizationId: user.organizationId, ...ws };
     if (user.role === 'employee') where.assignedTo = user.id;
     const task = await ContentTask.findOne({ where });
     if (!task) return res.status(404).json({ success: false, message: 'Task not found' });
@@ -128,7 +133,8 @@ const deleteTask = async (req, res) => {
   try {
     const { id } = req.params;
     const { user, workspaceId } = req;
-    const task = await ContentTask.findOne({ where: { id, organizationId: user.organizationId, workspaceId } });
+    const ws = workspaceId ? { workspaceId } : {};
+    const task = await ContentTask.findOne({ where: { id, organizationId: user.organizationId, ...ws } });
     if (!task) return res.status(404).json({ success: false, message: 'Task not found' });
     await task.destroy();
     res.json({ success: true, message: 'Task deleted' });

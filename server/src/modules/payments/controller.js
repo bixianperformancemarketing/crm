@@ -8,7 +8,8 @@ const getPayments = async (req, res) => {
     const { user, workspaceId } = req;
     const { page = 1, limit = 20, mode, dateFrom, dateTo } = req.query;
     const { limit: lim, offset } = paginate(page, limit);
-    const where = { organizationId: user.organizationId, workspaceId };
+    const ws = workspaceId ? { workspaceId } : {};
+    const where = { organizationId: user.organizationId, ...ws };
     if (mode) where.mode = mode;
     if (dateFrom || dateTo) {
       where.receivedAt = {};
@@ -39,7 +40,8 @@ const addPayment = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invoice, amount, and mode are required' });
     }
 
-    const inv = await Invoice.findOne({ where: { id: invoiceId, organizationId: user.organizationId, workspaceId } });
+    const ws = workspaceId ? { workspaceId } : {};
+    const inv = await Invoice.findOne({ where: { id: invoiceId, organizationId: user.organizationId, ...ws } });
     if (!inv) return res.status(404).json({ success: false, message: 'Invoice not found' });
     if (inv.status === 'Paid') return res.status(400).json({ success: false, message: 'Invoice is already fully paid' });
     if (parseFloat(amount) > parseFloat(inv.dueAmount)) {
@@ -47,7 +49,7 @@ const addPayment = async (req, res) => {
     }
 
     const payment = await Payment.create({
-      organizationId: user.organizationId, workspaceId,
+      organizationId: user.organizationId, workspaceId: inv.workspaceId,
       invoiceId, leadId: inv.leadId, receivedBy: user.id,
       amount: parseFloat(amount), mode, reference: reference || null,
       note: note || null, receivedAt: receivedAt || new Date(),
@@ -63,7 +65,7 @@ const addPayment = async (req, res) => {
 
     if (inv.leadId) {
       await LeadActivity.create({
-        leadId: inv.leadId, organizationId: user.organizationId, workspaceId,
+        leadId: inv.leadId, organizationId: user.organizationId, workspaceId: inv.workspaceId,
         userId: user.id, type: 'payment_received',
         description: `Payment of ₹${parseFloat(amount).toLocaleString('en-IN')} received via ${mode}`,
         metadata: { paymentId: payment.id, invoiceId },
@@ -71,12 +73,12 @@ const addPayment = async (req, res) => {
     }
 
     const admins = await User.findAll({
-      where: { workspaceId, organizationId: user.organizationId, role: 'admin', isActive: true },
+      where: { workspaceId: inv.workspaceId, organizationId: user.organizationId, role: 'admin', isActive: true },
       attributes: ['id'],
     });
     await notificationService.notifyPaymentReceived({
       payment, invoice: inv, adminIds: admins.map((a) => a.id),
-      organizationId: user.organizationId, workspaceId,
+      organizationId: user.organizationId, workspaceId: inv.workspaceId,
     });
 
     res.status(201).json({ success: true, message: 'Payment recorded', payment, invoice: inv });
@@ -92,9 +94,10 @@ const getPaymentStats = async (req, res) => {
     const { months = 12 } = req.query;
     const since = new Date(); since.setMonth(since.getMonth() - parseInt(months));
 
+    const ws = workspaceId ? { workspaceId } : {};
     const [monthly, byMode] = await Promise.all([
       Payment.findAll({
-        where: { organizationId: user.organizationId, workspaceId, receivedAt: { [Op.gte]: since } },
+        where: { organizationId: user.organizationId, ...ws, receivedAt: { [Op.gte]: since } },
         attributes: [
           [fn('YEAR', col('receivedAt')), 'year'],
           [fn('MONTH', col('receivedAt')), 'month'],
@@ -105,7 +108,7 @@ const getPaymentStats = async (req, res) => {
         raw: true,
       }),
       Payment.findAll({
-        where: { organizationId: user.organizationId, workspaceId },
+        where: { organizationId: user.organizationId, ...ws },
         attributes: ['mode', [fn('SUM', col('amount')), 'total']],
         group: ['mode'],
         raw: true,

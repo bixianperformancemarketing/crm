@@ -9,7 +9,8 @@ const getAppointments = async (req, res) => {
     const { page = 1, limit = 20, status, type, assignedTo, dateFrom, dateTo } = req.query;
     const { limit: lim, offset } = paginate(page, limit);
 
-    const where = { organizationId: user.organizationId, workspaceId };
+    const ws = workspaceId ? { workspaceId } : {};
+    const where = { organizationId: user.organizationId, ...ws };
     if (user.role === 'employee') where.assignedTo = user.id;
     if (status) where.status = status;
     if (type) where.type = type;
@@ -49,9 +50,10 @@ const getCalendar = async (req, res) => {
     const start = new Date(y, m - 1, 1);
     const end = new Date(y, m, 0, 23, 59, 59);
 
+    const ws = workspaceId ? { workspaceId } : {};
     const where = {
       organizationId: user.organizationId,
-      workspaceId,
+      ...ws,
       startTime: { [Op.between]: [start, end] },
     };
     if (user.role === 'employee') where.assignedTo = user.id;
@@ -74,9 +76,10 @@ const getCalendar = async (req, res) => {
 const getTodayAppointments = async (req, res) => {
   try {
     const { user, workspaceId } = req;
+    const ws = workspaceId ? { workspaceId } : {};
     const where = {
       organizationId: user.organizationId,
-      workspaceId,
+      ...ws,
       startTime: { [Op.between]: [startOfTodayIST(), endOfTodayIST()] },
     };
     if (user.role === 'employee') where.assignedTo = user.id;
@@ -98,8 +101,9 @@ const getTodayAppointments = async (req, res) => {
 const getUpcoming = async (req, res) => {
   try {
     const { user, workspaceId } = req;
+    const ws = workspaceId ? { workspaceId } : {};
     const where = {
-      organizationId: user.organizationId, workspaceId,
+      organizationId: user.organizationId, ...ws,
       startTime: { [Op.gte]: new Date() },
       status: 'Scheduled',
     };
@@ -123,6 +127,7 @@ const getUpcoming = async (req, res) => {
 const createAppointment = async (req, res) => {
   try {
     const { user, workspaceId } = req;
+    if (!workspaceId) return res.status(400).json({ success: false, message: 'Workspace context required for this action' });
     const { leadId, title, description, startTime, endTime, type, assignedTo, location, meetingLink, notes } = req.body;
     if (!title || !startTime || !endTime) {
       return res.status(400).json({ success: false, message: 'Title, start time, and end time are required' });
@@ -157,7 +162,8 @@ const updateAppointment = async (req, res) => {
   try {
     const { id } = req.params;
     const { user, workspaceId } = req;
-    const appt = await Appointment.findOne({ where: { id, organizationId: user.organizationId, workspaceId } });
+    const ws = workspaceId ? { workspaceId } : {};
+    const appt = await Appointment.findOne({ where: { id, organizationId: user.organizationId, ...ws } });
     if (!appt) return res.status(404).json({ success: false, message: 'Appointment not found' });
     const allowed = ['title', 'description', 'startTime', 'endTime', 'type', 'assignedTo', 'location', 'meetingLink', 'notes'];
     const updates = {};
@@ -174,12 +180,13 @@ const updateStatus = async (req, res) => {
     const { id } = req.params;
     const { user, workspaceId } = req;
     const { status, notes } = req.body;
-    const appt = await Appointment.findOne({ where: { id, organizationId: user.organizationId, workspaceId } });
+    const ws = workspaceId ? { workspaceId } : {};
+    const appt = await Appointment.findOne({ where: { id, organizationId: user.organizationId, ...ws } });
     if (!appt) return res.status(404).json({ success: false, message: 'Appointment not found' });
     await appt.update({ status, notes: notes || appt.notes });
     if (appt.leadId) {
       await LeadActivity.create({
-        leadId: appt.leadId, organizationId: user.organizationId, workspaceId,
+        leadId: appt.leadId, organizationId: user.organizationId, workspaceId: appt.workspaceId,
         userId: user.id, type: 'note_added',
         description: `Appointment ${status}: ${appt.title}. ${notes || ''}`,
         metadata: { appointmentId: appt.id },
@@ -195,7 +202,8 @@ const deleteAppointment = async (req, res) => {
   try {
     const { id } = req.params;
     const { user, workspaceId } = req;
-    const appt = await Appointment.findOne({ where: { id, organizationId: user.organizationId, workspaceId } });
+    const ws = workspaceId ? { workspaceId } : {};
+    const appt = await Appointment.findOne({ where: { id, organizationId: user.organizationId, ...ws } });
     if (!appt) return res.status(404).json({ success: false, message: 'Appointment not found' });
     await appt.destroy();
     res.json({ success: true, message: 'Appointment deleted' });

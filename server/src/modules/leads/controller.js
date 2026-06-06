@@ -27,7 +27,8 @@ const getLeads = async (req, res) => {
     const { page = 1, limit = 50, search, status, source, priority, assignedTo, city, dateFrom, dateTo, sort = 'createdAt', order = 'DESC' } = req.query;
     const { limit: lim, offset } = paginate(page, limit);
 
-    const where = { organizationId: user.organizationId, workspaceId };
+    const ws = workspaceId ? { workspaceId } : {};
+    const where = { organizationId: user.organizationId, ...ws };
     if (user.role === 'employee') where.assignedTo = user.id;
     if (search) {
       where[Op.or] = [
@@ -70,7 +71,8 @@ const getLead = async (req, res) => {
   try {
     const { id } = req.params;
     const { user, workspaceId } = req;
-    const where = { id, organizationId: user.organizationId, workspaceId };
+    const ws = workspaceId ? { workspaceId } : {};
+    const where = { id, organizationId: user.organizationId, ...ws };
     if (user.role === 'employee') where.assignedTo = user.id;
 
     const lead = await Lead.findOne({
@@ -86,6 +88,14 @@ const getLead = async (req, res) => {
     });
 
     if (!lead) return res.status(404).json({ success: false, message: 'Lead not found' });
+
+    if (user.role === 'owner') {
+      LeadActivity.create({
+        leadId: lead.id, organizationId: user.organizationId, workspaceId: lead.workspaceId,
+        userId: user.id, type: 'viewed', description: `Lead viewed by ${user.name || 'owner'}`, metadata: {}
+      }).catch(() => {});
+    }
+
     res.json({ success: true, lead });
   } catch (err) {
     console.error('getLead error:', err);
@@ -96,6 +106,7 @@ const getLead = async (req, res) => {
 const createLead = async (req, res) => {
   try {
     const { user, workspaceId, org } = req;
+    if (!workspaceId) return res.status(400).json({ success: false, message: 'Workspace context required for this action' });
     const {
       name, phone, email, source, campaign, priority, status,
       assignedTo, city, clientAddress, clientGST, clientType, nextFollowup,
@@ -151,7 +162,8 @@ const updateLead = async (req, res) => {
   try {
     const { id } = req.params;
     const { user, workspaceId } = req;
-    const where = { id, organizationId: user.organizationId, workspaceId };
+    const ws = workspaceId ? { workspaceId } : {};
+    const where = { id, organizationId: user.organizationId, ...ws };
     if (user.role === 'employee') where.assignedTo = user.id;
 
     const lead = await Lead.findOne({ where });
@@ -174,7 +186,7 @@ const updateLead = async (req, res) => {
 
     if (updates.status && updates.status !== prevStatus) {
       await LeadActivity.create({
-        leadId: lead.id, organizationId: user.organizationId, workspaceId,
+        leadId: lead.id, organizationId: user.organizationId, workspaceId: lead.workspaceId,
         userId: user.id, type: 'status_changed',
         description: `Status changed from ${prevStatus} to ${updates.status}`, metadata: {},
       });
@@ -183,10 +195,10 @@ const updateLead = async (req, res) => {
     if (updates.assignedTo && updates.assignedTo !== lead.assignedTo) {
       const assignedUser = await User.findByPk(updates.assignedTo, { attributes: ['id', 'name'] });
       if (assignedUser) {
-        await notificationService.notifyLeadAssigned({ lead: { ...lead.toJSON(), name: lead.name }, assignedUser, organizationId: user.organizationId, workspaceId });
+        await notificationService.notifyLeadAssigned({ lead: { ...lead.toJSON(), name: lead.name }, assignedUser, organizationId: user.organizationId, workspaceId: lead.workspaceId });
       }
       await LeadActivity.create({
-        leadId: lead.id, organizationId: user.organizationId, workspaceId,
+        leadId: lead.id, organizationId: user.organizationId, workspaceId: lead.workspaceId,
         userId: user.id, type: 'assigned',
         description: `Lead assigned to ${assignedUser?.name || 'agent'}`, metadata: {},
       });
@@ -203,7 +215,8 @@ const deleteLead = async (req, res) => {
   try {
     const { id } = req.params;
     const { user, workspaceId } = req;
-    const lead = await Lead.findOne({ where: { id, organizationId: user.organizationId, workspaceId } });
+    const ws = workspaceId ? { workspaceId } : {};
+    const lead = await Lead.findOne({ where: { id, organizationId: user.organizationId, ...ws } });
     if (!lead) return res.status(404).json({ success: false, message: 'Lead not found' });
     await lead.destroy();
     res.json({ success: true, message: 'Lead deleted' });
@@ -215,7 +228,8 @@ const deleteLead = async (req, res) => {
 const getPipeline = async (req, res) => {
   try {
     const { user, workspaceId } = req;
-    const where = { organizationId: user.organizationId, workspaceId };
+    const ws = workspaceId ? { workspaceId } : {};
+    const where = { organizationId: user.organizationId, ...ws };
     if (user.role === 'employee') where.assignedTo = user.id;
 
     const leads = await Lead.findAll({
@@ -243,11 +257,12 @@ const addNote = async (req, res) => {
     const { user, workspaceId } = req;
     if (!note) return res.status(400).json({ success: false, message: 'Note is required' });
 
-    const lead = await Lead.findOne({ where: { id, organizationId: user.organizationId, workspaceId } });
+    const ws = workspaceId ? { workspaceId } : {};
+    const lead = await Lead.findOne({ where: { id, organizationId: user.organizationId, ...ws } });
     if (!lead) return res.status(404).json({ success: false, message: 'Lead not found' });
 
     const activity = await LeadActivity.create({
-      leadId: lead.id, organizationId: user.organizationId, workspaceId,
+      leadId: lead.id, organizationId: user.organizationId, workspaceId: lead.workspaceId,
       userId: user.id, type: 'note_added',
       description: note, metadata: {},
     });
@@ -261,6 +276,7 @@ const addNote = async (req, res) => {
 const importCSV = async (req, res) => {
   try {
     const { user, workspaceId, org } = req;
+    if (!workspaceId) return res.status(400).json({ success: false, message: 'Workspace context required for this action' });
     if (!req.file) return res.status(400).json({ success: false, message: 'CSV file required' });
 
     // Detect UTF-16 LE BOM (Meta Ads exports) and decode accordingly
@@ -340,8 +356,9 @@ const bulkAssign = async (req, res) => {
       return res.status(400).json({ success: false, message: 'assignedTo is required' });
     }
 
+    const ws = workspaceId ? { workspaceId } : {};
     const assignedUser = await User.findOne({
-      where: { id: assignedTo, organizationId: user.organizationId, workspaceId, isActive: true },
+      where: { id: assignedTo, organizationId: user.organizationId, ...ws, isActive: true },
       attributes: ['id', 'name'],
     });
     if (!assignedUser) {
@@ -350,14 +367,14 @@ const bulkAssign = async (req, res) => {
 
     const [count] = await Lead.update(
       { assignedTo },
-      { where: { id: { [Op.in]: leadIds }, organizationId: user.organizationId, workspaceId } }
+      { where: { id: { [Op.in]: leadIds }, organizationId: user.organizationId, ...ws } }
     );
 
     await LeadActivity.bulkCreate(
       leadIds.map((leadId) => ({
         leadId,
         organizationId: user.organizationId,
-        workspaceId,
+        workspaceId: workspaceId || null,
         userId: user.id,
         type: 'assigned',
         description: `Lead bulk-assigned to ${assignedUser.name}`,
@@ -369,7 +386,7 @@ const bulkAssign = async (req, res) => {
       lead: { name: `${count} leads` },
       assignedUser,
       organizationId: user.organizationId,
-      workspaceId,
+      workspaceId: workspaceId || null,
     });
 
     res.json({ success: true, message: `${count} lead(s) assigned to ${assignedUser.name}`, count });
@@ -388,8 +405,9 @@ const bulkDelete = async (req, res) => {
       return res.status(400).json({ success: false, message: 'leadIds must be a non-empty array' });
     }
 
+    const ws = workspaceId ? { workspaceId } : {};
     const count = await Lead.destroy({
-      where: { id: { [Op.in]: leadIds }, organizationId: user.organizationId, workspaceId },
+      where: { id: { [Op.in]: leadIds }, organizationId: user.organizationId, ...ws },
     });
 
     res.json({ success: true, message: `${count} lead(s) deleted`, count });

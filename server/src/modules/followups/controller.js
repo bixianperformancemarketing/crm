@@ -10,7 +10,8 @@ const getFollowups = async (req, res) => {
     const { limit: lim, offset } = paginate(page, limit);
     const now = new Date();
 
-    const where = { organizationId: user.organizationId, workspaceId };
+    const ws = workspaceId ? { workspaceId } : {};
+    const where = { organizationId: user.organizationId, ...ws };
     if (user.role === 'employee') where.userId = user.id;
 
     let order = [['scheduledAt', 'ASC']];
@@ -60,18 +61,19 @@ const createFollowup = async (req, res) => {
     const { leadId, scheduledAt, note, userId } = req.body;
     if (!leadId || !scheduledAt) return res.status(400).json({ success: false, message: 'Lead and scheduled time required' });
 
-    const lead = await Lead.findOne({ where: { id: leadId, organizationId: user.organizationId, workspaceId } });
+    const ws = workspaceId ? { workspaceId } : {};
+    const lead = await Lead.findOne({ where: { id: leadId, organizationId: user.organizationId, ...ws } });
     if (!lead) return res.status(404).json({ success: false, message: 'Lead not found' });
 
     const assignedUserId = userId || user.id;
     const followup = await Followup.create({
-      leadId, organizationId: user.organizationId, workspaceId,
+      leadId, organizationId: user.organizationId, workspaceId: lead.workspaceId,
       userId: assignedUserId, scheduledAt, note: note || '', status: 'pending',
     });
 
     await Lead.update({ nextFollowup: scheduledAt }, { where: { id: leadId } });
     await LeadActivity.create({
-      leadId, organizationId: user.organizationId, workspaceId,
+      leadId, organizationId: user.organizationId, workspaceId: lead.workspaceId,
       userId: user.id, type: 'followup_set',
       description: `Followup scheduled for ${new Date(scheduledAt).toLocaleString('en-IN')}`,
       metadata: { followupId: followup.id },
@@ -79,7 +81,7 @@ const createFollowup = async (req, res) => {
 
     if (assignedUserId !== user.id) {
       await notificationService.create({
-        organizationId: user.organizationId, workspaceId, userId: assignedUserId,
+        organizationId: user.organizationId, workspaceId: lead.workspaceId, userId: assignedUserId,
         type: 'followup_due',
         title: 'Followup Assigned',
         message: `Followup with ${lead.name} scheduled for ${new Date(scheduledAt).toLocaleString('en-IN')}`,
@@ -98,7 +100,8 @@ const updateFollowup = async (req, res) => {
   try {
     const { id } = req.params;
     const { user, workspaceId } = req;
-    const followup = await Followup.findOne({ where: { id, organizationId: user.organizationId, workspaceId } });
+    const ws = workspaceId ? { workspaceId } : {};
+    const followup = await Followup.findOne({ where: { id, organizationId: user.organizationId, ...ws } });
     if (!followup) return res.status(404).json({ success: false, message: 'Followup not found' });
 
     const { scheduledAt, note, status } = req.body;
@@ -119,15 +122,16 @@ const completeFollowup = async (req, res) => {
     const { user, workspaceId } = req;
     const { outcome, nextFollowupDate } = req.body;
 
+    const ws = workspaceId ? { workspaceId } : {};
     const followup = await Followup.findOne({
-      where: { id, organizationId: user.organizationId, workspaceId },
+      where: { id, organizationId: user.organizationId, ...ws },
       include: [{ model: Lead, as: 'lead', attributes: ['id', 'name'] }],
     });
     if (!followup) return res.status(404).json({ success: false, message: 'Followup not found' });
 
     await followup.update({ status: 'completed', completedAt: new Date(), outcome: outcome || '' });
     await LeadActivity.create({
-      leadId: followup.leadId, organizationId: user.organizationId, workspaceId,
+      leadId: followup.leadId, organizationId: user.organizationId, workspaceId: followup.workspaceId,
       userId: user.id, type: 'followup_set',
       description: `Followup completed. Outcome: ${outcome || 'No outcome noted'}`,
       metadata: { followupId: followup.id },
@@ -135,8 +139,8 @@ const completeFollowup = async (req, res) => {
 
     if (nextFollowupDate) {
       await Followup.create({
-        leadId: followup.leadId, organizationId: user.organizationId, workspaceId,
-        userId: user.userId, scheduledAt: nextFollowupDate, status: 'pending',
+        leadId: followup.leadId, organizationId: user.organizationId, workspaceId: followup.workspaceId,
+        userId: followup.userId, scheduledAt: nextFollowupDate, status: 'pending',
         note: `Follow-up after: ${outcome || 'previous call'}`,
       });
       await Lead.update({ nextFollowup: nextFollowupDate }, { where: { id: followup.leadId } });
@@ -153,7 +157,8 @@ const cancelFollowup = async (req, res) => {
   try {
     const { id } = req.params;
     const { user, workspaceId } = req;
-    const followup = await Followup.findOne({ where: { id, organizationId: user.organizationId, workspaceId } });
+    const ws = workspaceId ? { workspaceId } : {};
+    const followup = await Followup.findOne({ where: { id, organizationId: user.organizationId, ...ws } });
     if (!followup) return res.status(404).json({ success: false, message: 'Followup not found' });
     await followup.update({ status: 'cancelled' });
     res.json({ success: true, message: 'Followup cancelled' });
@@ -165,7 +170,8 @@ const cancelFollowup = async (req, res) => {
 const getOverdueCount = async (req, res) => {
   try {
     const { user, workspaceId } = req;
-    const where = { organizationId: user.organizationId, workspaceId, status: { [Op.in]: ['pending', 'overdue'] }, scheduledAt: { [Op.lt]: new Date() } };
+    const ws = workspaceId ? { workspaceId } : {};
+    const where = { organizationId: user.organizationId, ...ws, status: { [Op.in]: ['pending', 'overdue'] }, scheduledAt: { [Op.lt]: new Date() } };
     if (user.role === 'employee') where.userId = user.id;
     const count = await Followup.count({ where });
     res.json({ success: true, overdueCount: count });
