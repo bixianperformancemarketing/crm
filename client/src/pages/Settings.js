@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import Layout from '../components/layout/Layout';
 import { orgAPI, workspaceAPI, metaIntegrationAPI, authAPI } from '../services/api';
@@ -885,7 +886,8 @@ const ImageUpload = ({ label, value, onChange, hint }) => {
 
 const Settings = () => {
   const { org, isRole, refreshUser, user } = useAuth();
-  const [tab, setTab] = useState(isRole('owner') ? 'org' : 'workspace');
+  const [searchParams] = useSearchParams();
+  const [tab, setTab] = useState(() => searchParams.get('tab') || (isRole('owner') ? 'org' : 'workspace'));
   const [saving, setSaving] = useState(false);
   const [pwForm, setPwForm] = useState({ currentPassword: '', newPassword: '', confirm: '' });
   const [pwSaving, setPwSaving] = useState(false);
@@ -1138,8 +1140,8 @@ const Settings = () => {
 
       {tab === 'smtp' && (
         <div style={{ maxWidth: 540 }}>
-          <div style={{ marginBottom: 20, padding: 14, background: 'rgba(245,158,11,0.08)', borderRadius: 8, fontSize: 13, color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)' }}>
-            Configure your own SMTP server to send emails from your domain. Leave blank to use the platform default.
+          <div style={{ marginBottom: 20, padding: 14, background: 'rgba(239,68,68,0.08)', borderRadius: 8, fontSize: 13, color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)' }}>
+            ⚠️ <strong>SMTP setup is required</strong> to send any emails (quotations, invoices, lead emails). Without this, all email actions will be blocked.
           </div>
           <form onSubmit={saveSMTP}>
             <div className="form-row">
