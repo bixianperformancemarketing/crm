@@ -144,7 +144,7 @@ const getEmployeeStats = async (req, res) => {
       invoiceWhere ? Invoice.count({ where: { ...invoiceWhere, status: 'Overdue' } }) : Promise.resolve(0),
       Followup.count({ where: { organizationId: orgId, ...ws, userId, status: 'pending', scheduledAt: { [Op.gte]: now } } }),
       Followup.count({ where: { organizationId: orgId, ...ws, userId, status: { [Op.in]: ['pending', 'overdue'] }, scheduledAt: { [Op.lt]: now } } }),
-      Appointment.count({ where: { organizationId: orgId, ...ws, userId, startTime: { [Op.between]: [startOfTodayIST(), endOfTodayIST()] }, status: 'Scheduled' } }),
+      Appointment.count({ where: { organizationId: orgId, ...ws, assignedTo: userId, startTime: { [Op.between]: [startOfTodayIST(), endOfTodayIST()] }, status: 'Scheduled' } }),
     ]);
 
     const wonInvoices = invoiceWhere
