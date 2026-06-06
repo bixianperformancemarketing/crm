@@ -75,7 +75,11 @@ const sendEmail = async (req, res) => {
     if (!lead.email) return res.status(400).json({ success: false, message: 'Lead has no email address' });
 
     const org = await Organization.findByPk(user.organizationId, { attributes: ['settings'] });
-    const result = await emailService.sendCustomEmail({ to: lead.email, subject, body, orgSettings: org?.settings, smtpConfig: org?.settings?.smtpConfig });
+    const smtp = org?.settings?.smtpConfig;
+    if (!smtp?.host || !smtp?.user || !smtp?.pass) {
+      return res.status(400).json({ success: false, message: 'Email not configured. Please set up your SMTP settings in Settings → Email & Notifications before sending emails.' });
+    }
+    const result = await emailService.sendCustomEmail({ to: lead.email, subject, body, orgSettings: org?.settings, smtpConfig: smtp });
 
     const emailLog = await EmailLog.create({
       leadId, organizationId: user.organizationId, workspaceId, userId: user.id,

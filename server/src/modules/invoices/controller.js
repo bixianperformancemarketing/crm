@@ -220,8 +220,12 @@ const sendEmail = async (req, res) => {
     if (!inv.clientEmail) return res.status(400).json({ success: false, message: 'Client email not set on this invoice' });
 
     const org = await Organization.findByPk(user.organizationId, { attributes: ['settings'] });
+    const smtp = org?.settings?.smtpConfig;
+    if (!smtp?.host || !smtp?.user || !smtp?.pass) {
+      return res.status(400).json({ success: false, message: 'Email not configured. Please set up your SMTP settings in Settings → Email & Notifications before sending emails.' });
+    }
     const pdf = await generateInvoicePDF(inv, org?.settings, inv.items);
-    const result = await emailService.sendInvoiceEmail(inv, inv.items || [], pdf, org?.settings, org?.settings?.smtpConfig);
+    const result = await emailService.sendInvoiceEmail(inv, inv.items || [], pdf, org?.settings, smtp);
 
     if (result.success) {
       res.json({ success: true, message: 'Invoice email sent' });

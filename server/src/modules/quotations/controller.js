@@ -283,8 +283,12 @@ const sendEmail = async (req, res) => {
     if (!q.clientEmail) return res.status(400).json({ success: false, message: 'Client email not set' });
 
     const org = await Organization.findByPk(user.organizationId, { attributes: ['settings'] });
+    const smtp = org?.settings?.smtpConfig;
+    if (!smtp?.host || !smtp?.user || !smtp?.pass) {
+      return res.status(400).json({ success: false, message: 'Email not configured. Please set up your SMTP settings in Settings → Email & Notifications before sending emails.' });
+    }
     const pdf = await generateQuotationPDF(q, q.items, org?.settings);
-    const result = await emailService.sendQuotationEmail(q, q.items, pdf, org?.settings, org?.settings?.smtpConfig);
+    const result = await emailService.sendQuotationEmail(q, q.items, pdf, org?.settings, smtp);
 
     if (result.success) {
       await q.update({ status: q.status === 'Draft' ? 'Sent' : q.status, sentAt: q.sentAt || new Date() });
