@@ -9,8 +9,8 @@ router.use(authenticate, scopeTenant, requireWorkspace, checkFeature('canUseCont
 router.get('/', ctrl.getTasks);
 router.get('/calendar', ctrl.getCalendarTasks);
 router.get('/:id', ctrl.getTask);
-router.post('/', requireRole('admin', 'employee'), ctrl.createTask);
+router.post('/', requireRole('admin', 'employee', 'owner'), ctrl.createTask);
 router.put('/:id', ctrl.updateTask);
-router.delete('/:id', requireRole('admin'), ctrl.deleteTask);
+router.delete('/:id', requireRole('admin', 'owner'), ctrl.deleteTask);
 
 module.exports = router;

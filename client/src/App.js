@@ -81,18 +81,18 @@ const AppRoutes = () => (
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password/:token" element={<ResetPassword />} />
 
-      {/* Employee / Admin shared routes */}
-      <Route path="/dashboard" element={<PrivateRoute roles={['admin', 'employee']}><Dashboard /></PrivateRoute>} />
-      <Route path="/leads" element={<PrivateRoute roles={['admin', 'employee']}><Leads /></PrivateRoute>} />
-      <Route path="/leads/:id" element={<PrivateRoute roles={['admin', 'employee']}><LeadDetail /></PrivateRoute>} />
-      <Route path="/pipeline" element={<PrivateRoute roles={['admin', 'employee']}><Pipeline /></PrivateRoute>} />
-      <Route path="/followups" element={<PrivateRoute roles={['admin', 'employee']}><Followups /></PrivateRoute>} />
-      <Route path="/appointments" element={<PrivateRoute roles={['admin', 'employee']}><Appointments /></PrivateRoute>} />
-      <Route path="/quotations" element={<PrivateRoute roles={['admin', 'employee']}><Quotations /></PrivateRoute>} />
-      <Route path="/invoices" element={<PrivateRoute roles={['admin', 'employee']}><Invoices /></PrivateRoute>} />
-      <Route path="/payments" element={<PrivateRoute roles={['admin', 'employee']}><Payments /></PrivateRoute>} />
-      <Route path="/content" element={<PrivateRoute roles={['admin', 'employee']}><Content /></PrivateRoute>} />
-      <Route path="/reports" element={<PrivateRoute roles={['admin']}><Reports /></PrivateRoute>} />
+      {/* Employee / Admin / Owner shared routes */}
+      <Route path="/dashboard" element={<PrivateRoute roles={['admin', 'employee', 'owner']}><Dashboard /></PrivateRoute>} />
+      <Route path="/leads" element={<PrivateRoute roles={['admin', 'employee', 'owner']}><Leads /></PrivateRoute>} />
+      <Route path="/leads/:id" element={<PrivateRoute roles={['admin', 'employee', 'owner']}><LeadDetail /></PrivateRoute>} />
+      <Route path="/pipeline" element={<PrivateRoute roles={['admin', 'employee', 'owner']}><Pipeline /></PrivateRoute>} />
+      <Route path="/followups" element={<PrivateRoute roles={['admin', 'employee', 'owner']}><Followups /></PrivateRoute>} />
+      <Route path="/appointments" element={<PrivateRoute roles={['admin', 'employee', 'owner']}><Appointments /></PrivateRoute>} />
+      <Route path="/quotations" element={<PrivateRoute roles={['admin', 'employee', 'owner']}><Quotations /></PrivateRoute>} />
+      <Route path="/invoices" element={<PrivateRoute roles={['admin', 'employee', 'owner']}><Invoices /></PrivateRoute>} />
+      <Route path="/payments" element={<PrivateRoute roles={['admin', 'employee', 'owner']}><Payments /></PrivateRoute>} />
+      <Route path="/content" element={<PrivateRoute roles={['admin', 'employee', 'owner']}><Content /></PrivateRoute>} />
+      <Route path="/reports" element={<PrivateRoute roles={['admin', 'owner']}><Reports /></PrivateRoute>} />
       <Route path="/notifications" element={<PrivateRoute roles={['admin', 'employee']}><Notifications /></PrivateRoute>} />
       <Route path="/users" element={<PrivateRoute roles={['admin', 'owner']}><Users /></PrivateRoute>} />
       <Route path="/settings" element={<PrivateRoute roles={['admin', 'owner']}><Settings /></PrivateRoute>} />

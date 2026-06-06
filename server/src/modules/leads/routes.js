@@ -13,10 +13,10 @@ router.get('/', ctrl.getLeads);
 router.get('/pipeline', ctrl.getPipeline);
 router.get('/:id', ctrl.getLead);
 router.post('/', checkLeadLimit, ctrl.createLead);
-router.put('/bulk-assign', requireRole('admin'), ctrl.bulkAssign);
-router.delete('/bulk-delete', requireRole('admin'), ctrl.bulkDelete);
+router.put('/bulk-assign', requireRole('admin', 'owner'), ctrl.bulkAssign);
+router.delete('/bulk-delete', requireRole('admin', 'owner'), ctrl.bulkDelete);
 router.put('/:id', ctrl.updateLead);
-router.delete('/:id', requireRole('admin'), ctrl.deleteLead);
+router.delete('/:id', requireRole('admin', 'owner'), ctrl.deleteLead);
 router.post('/:id/note', ctrl.addNote);
 router.post('/import/csv', checkFeature('canUseCSVImport'), checkLeadLimit, upload.single('file'), ctrl.importCSV);
 

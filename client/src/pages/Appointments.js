@@ -43,7 +43,7 @@ const Appointments = () => {
   }, [month, year]);
 
   useEffect(() => { if (view === 'list') loadList(); else loadCalendar(); }, [view, loadList, loadCalendar]);
-  useEffect(() => { if (user?.role === 'admin') usersAPI.getAll({ role: 'employee', limit: 100 }).then(({ data }) => setAgents(data.data || [])).catch(() => {}); }, [user]);
+  useEffect(() => { if (user?.role === 'admin' || user?.role === 'owner') usersAPI.getAll({ role: 'employee', limit: 100 }).then(({ data }) => setAgents(data.data || [])).catch(() => {}); }, [user]);
 
   const handleCreate = async (e) => {
     e.preventDefault();
@@ -169,7 +169,7 @@ const Appointments = () => {
               </div>
               <div className="form-row">
                 <div className="form-group"><label className="form-label">Type</label><select className="form-control" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>{ENUMS.APPOINTMENT_TYPES.map((t) => <option key={t}>{t}</option>)}</select></div>
-                {user?.role === 'admin' && agents.length > 0 && <div className="form-group"><label className="form-label">Assign To</label><select className="form-control" value={form.assignedTo} onChange={(e) => setForm({ ...form, assignedTo: e.target.value })}><option value="">Self</option>{agents.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></div>}
+                {(user?.role === 'admin' || user?.role === 'owner') && agents.length > 0 && <div className="form-group"><label className="form-label">Assign To</label><select className="form-control" value={form.assignedTo} onChange={(e) => setForm({ ...form, assignedTo: e.target.value })}><option value="">Self</option>{agents.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></div>}
               </div>
               <div className="form-group"><label className="form-label">Location</label><input className="form-control" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} /></div>
               <div className="form-group"><label className="form-label">Meeting Link</label><input className="form-control" value={form.meetingLink} onChange={(e) => setForm({ ...form, meetingLink: e.target.value })} placeholder="https://meet.google.com/..." /></div>

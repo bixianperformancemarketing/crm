@@ -68,7 +68,7 @@ const LeadDetail = () => {
   };
 
   useEffect(() => { loadLead(); }, [id]);
-  useEffect(() => { if (user?.role === 'admin') usersAPI.getAll({ role: 'employee', limit: 100 }).then(({ data }) => setAgents(data.data || [])).catch(() => {}); }, [user]);
+  useEffect(() => { if (user?.role === 'admin' || user?.role === 'owner') usersAPI.getAll({ role: 'employee', limit: 100 }).then(({ data }) => setAgents(data.data || [])).catch(() => {}); }, [user]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -233,7 +233,7 @@ const LeadDetail = () => {
                 <div className="form-group"><label className="form-label">Source</label><select className="form-control" value={editForm.source} onChange={(e) => setEditForm({ ...editForm, source: e.target.value })}>{ENUMS.LEAD_SOURCES.map((s) => <option key={s}>{s}</option>)}</select></div>
                 <div className="form-group"><label className="form-label">Client Type</label><select className="form-control" value={editForm.clientType} onChange={(e) => setEditForm({ ...editForm, clientType: e.target.value })}>{ENUMS.CLIENT_TYPES.map((t) => <option key={t}>{t}</option>)}</select></div>
               </div>
-              {user?.role === 'admin' && agents.length > 0 && <div className="form-group"><label className="form-label">Assign To</label><select className="form-control" value={editForm.assignedTo} onChange={(e) => setEditForm({ ...editForm, assignedTo: e.target.value })}><option value="">Unassigned</option>{agents.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></div>}
+              {(user?.role === 'admin' || user?.role === 'owner') && agents.length > 0 && <div className="form-group"><label className="form-label">Assign To</label><select className="form-control" value={editForm.assignedTo} onChange={(e) => setEditForm({ ...editForm, assignedTo: e.target.value })}><option value="">Unassigned</option>{agents.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></div>}
               <div className="form-row">
                 <div className="form-group"><label className="form-label">City</label><input className="form-control" value={editForm.city} onChange={(e) => setEditForm({ ...editForm, city: e.target.value })} placeholder="e.g. Mumbai" /></div>
                 <div className="form-group"><label className="form-label">GST Number</label><input className="form-control" value={editForm.clientGST} onChange={(e) => setEditForm({ ...editForm, clientGST: e.target.value })} /></div>

@@ -67,7 +67,7 @@ const Leads = () => {
   useEffect(() => { loadLeads(); }, [loadLeads]);
 
   useEffect(() => {
-    if (user?.role === 'admin') {
+    if (user?.role === 'admin' || user?.role === 'owner' || user?.role === 'owner') {
       usersAPI.getAll({ role: 'employee', limit: 100 }).then(({ data }) => setAgents(data.data || [])).catch(() => {});
     }
   }, [user]);
@@ -241,7 +241,7 @@ const Leads = () => {
           {ENUMS.LEAD_SOURCES.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
         <input className="search-input" placeholder="🏙 Filter by city..." value={filters.city} onChange={(e) => updateFilter('city', e.target.value)} style={{ maxWidth: 160 }} />
-        {user?.role === 'admin' && agents.length > 0 && (
+        {user?.role === 'admin' || user?.role === 'owner' && agents.length > 0 && (
           <select className="filter-select" value={filters.assignedTo} onChange={(e) => updateFilter('assignedTo', e.target.value)}>
             <option value="">All Agents</option>
             {agents.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
@@ -250,7 +250,7 @@ const Leads = () => {
       </div>
 
       {/* bulk action bar — only visible for admins with selection */}
-      {user?.role === 'admin' && someSelected && (
+      {user?.role === 'admin' || user?.role === 'owner' && someSelected && (
         <div style={{
           display: 'flex', alignItems: 'center', gap: 12,
           background: 'var(--surface)', border: '1px solid var(--border)',
@@ -302,7 +302,7 @@ const Leads = () => {
             <table>
               <thead>
                 <tr>
-                  {user?.role === 'admin' && (
+                  {user?.role === 'admin' || user?.role === 'owner' && (
                     <th style={{ width: 36 }}>
                       <input
                         type="checkbox"
@@ -316,10 +316,10 @@ const Leads = () => {
                   <th>Lead</th><th>Phone</th><th>City</th><th>Source</th><th>Priority</th><th>Status</th><th>Agent</th><th>Created</th><th>Actions</th>
                 </tr>
               </thead>
-              <tbody onTouchMove={user?.role === 'admin' ? handleTouchMove : undefined} onTouchEnd={user?.role === 'admin' ? handleTouchEnd : undefined}>
+              <tbody onTouchMove={user?.role === 'admin' || user?.role === 'owner' ? handleTouchMove : undefined} onTouchEnd={user?.role === 'admin' || user?.role === 'owner' ? handleTouchEnd : undefined}>
                 {leads.map((lead, index) => (
                   <tr key={lead.id} data-lead-index={index} style={selected.has(lead.id) ? { background: 'rgba(99,102,241,0.06)' } : {}}>
-                    {user?.role === 'admin' && (
+                    {user?.role === 'admin' || user?.role === 'owner' && (
                       <td>
                         <input
                           type="checkbox"
@@ -363,7 +363,7 @@ const Leads = () => {
                     <td>
                       <div style={{ display: 'flex', gap: 6 }}>
                         <Link to={`/leads/${lead.id}`} className="btn btn-ghost btn-sm">View</Link>
-                        {user?.role === 'admin' && <button className="btn btn-sm" style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444', border: 'none' }} onClick={() => setConfirmDelete(lead)}>Del</button>}
+                        {user?.role === 'admin' || user?.role === 'owner' && <button className="btn btn-sm" style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444', border: 'none' }} onClick={() => setConfirmDelete(lead)}>Del</button>}
                       </div>
                     </td>
                   </tr>
@@ -395,7 +395,7 @@ const Leads = () => {
               </div>
               <div className="form-row">
                 <div className="form-group"><label className="form-label">Client Type</label><select className="form-control" value={form.clientType} onChange={(e) => setForm({ ...form, clientType: e.target.value })}>{ENUMS.CLIENT_TYPES.map((t) => <option key={t}>{t}</option>)}</select></div>
-                {user?.role === 'admin' && agents.length > 0 && <div className="form-group"><label className="form-label">Assign To</label><select className="form-control" value={form.assignedTo} onChange={(e) => setForm({ ...form, assignedTo: e.target.value })}><option value="">Unassigned</option>{agents.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></div>}
+                {user?.role === 'admin' || user?.role === 'owner' && agents.length > 0 && <div className="form-group"><label className="form-label">Assign To</label><select className="form-control" value={form.assignedTo} onChange={(e) => setForm({ ...form, assignedTo: e.target.value })}><option value="">Unassigned</option>{agents.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></div>}
               </div>
               <div className="form-row">
                 <div className="form-group"><label className="form-label">City</label><input className="form-control" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} placeholder="e.g. Mumbai" /></div>

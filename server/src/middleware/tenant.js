@@ -9,6 +9,7 @@ const requireWorkspace = (req, res, next) => {
   if (!req.user) return res.status(401).json({ success: false, message: 'Not authenticated' });
   const wsId = req.user.workspaceId || req.headers['x-workspace-id'] || req.query.workspaceId;
   if (!wsId) {
+    if (req.user.role === 'owner') { req.workspaceId = undefined; return next(); }
     return res.status(400).json({ success: false, message: 'Workspace context required' });
   }
   req.workspaceId = parseInt(wsId);
