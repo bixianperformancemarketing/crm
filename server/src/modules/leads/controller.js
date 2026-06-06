@@ -93,9 +93,16 @@ const getLead = async (req, res) => {
 
     if (!lead) return res.status(404).json({ success: false, message: 'Lead not found' });
 
-    LeadActivity.create({
-      leadId: lead.id, organizationId: user.organizationId, workspaceId: lead.workspaceId,
-      userId: user.id, type: 'viewed', description: `Lead viewed by ${user.name || user.role}`, metadata: {}
+    const cooldown = new Date(Date.now() - 30 * 60 * 1000);
+    LeadActivity.findOne({
+      where: { leadId: lead.id, userId: user.id, type: 'viewed', createdAt: { [Op.gte]: cooldown } },
+    }).then((recent) => {
+      if (!recent) {
+        LeadActivity.create({
+          leadId: lead.id, organizationId: user.organizationId, workspaceId: lead.workspaceId,
+          userId: user.id, type: 'viewed', description: `Lead viewed by ${user.name || user.role}`, metadata: {}
+        }).catch(() => {});
+      }
     }).catch(() => {});
 
     res.json({ success: true, lead });
