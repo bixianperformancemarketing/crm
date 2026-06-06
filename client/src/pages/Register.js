@@ -27,6 +27,8 @@ const Register = () => {
     });
   }, [planId]);
 
+  const withGST = (val) => Math.round(Number(val) * 1.18);
+
   const CYCLE_META = {
     monthly:    { field: 'price',           label: 'Monthly',     per: '/month'     },
     quarterly:  { field: 'quarterlyPrice',  label: 'Quarterly',   per: '/quarter'   },
@@ -42,8 +44,8 @@ const Register = () => {
   const getDisplayPrice = (plan) => {
     if (Number(plan.price) === 0) return 'Free';
     const val = Number(plan[activeMeta.field]);
-    if (val > 0) return `₹${val.toLocaleString('en-IN')}${activeMeta.per}`;
-    return `₹${Number(plan.price).toLocaleString('en-IN')}/month`;
+    if (val > 0) return `₹${withGST(val).toLocaleString('en-IN')}${activeMeta.per}`;
+    return `₹${withGST(plan.price).toLocaleString('en-IN')}/month`;
   };
 
   const handleWhatsApp = (e) => {
@@ -61,7 +63,7 @@ const Register = () => {
       `📧 Email: ${form.email}`,
       `📱 Phone: ${form.phone}`,
       ``,
-      `*Selected Plan:* ${selectedPlan.displayName || selectedPlan.name} — ${planPrice}`,
+      `*Selected Plan:* ${selectedPlan.displayName || selectedPlan.name} — ${planPrice} (incl. 18% GST)`,
       `*Billing Cycle:* ${activeMeta.label}`,
       ``,
       `Please help me get started!`,

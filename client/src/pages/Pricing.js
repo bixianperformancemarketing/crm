@@ -39,6 +39,8 @@ const Pricing = () => {
     c.key === 'monthly' || plans.some(p => Number(p[c.field]) > 0)
   );
 
+    const withGST = (val) => Math.round(Number(val) * 1.18);
+
   const getPrice = (plan, cycle) => {
     if (cycle.key === 'monthly') return plan.price;
     return plan[cycle.field];
@@ -47,8 +49,8 @@ const Pricing = () => {
   const getSaving = (plan, cycle) => {
     if (cycle.key === 'monthly') return null;
     const months = cycle.key === 'quarterly' ? 3 : cycle.key === 'halfYearly' ? 6 : 12;
-    const monthlyTotal = Number(plan.price) * months;
-    const cyclePrice = Number(plan[cycle.field]);
+    const monthlyTotal = withGST(plan.price) * months;
+    const cyclePrice = withGST(plan[cycle.field]);
     if (!cyclePrice || !monthlyTotal) return null;
     const saved = monthlyTotal - cyclePrice;
     if (saved <= 0) return null;
@@ -110,10 +112,13 @@ const Pricing = () => {
                   {plan.price === 0 || plan.price === '0.00'
                     ? <span style={s.priceNum}>Free</span>
                     : Number(price) > 0
-                      ? <><span style={s.priceNum}>₹{Number(price).toLocaleString('en-IN')}</span><span style={s.pricePer}>{activeCycle.per}</span></>
-                      : <><span style={s.priceNum}>₹{Number(plan.price).toLocaleString('en-IN')}</span><span style={s.pricePer}>/mo</span></>
+                      ? <><span style={s.priceNum}>₹{withGST(price).toLocaleString('en-IN')}</span><span style={s.pricePer}>{activeCycle.per}</span></>
+                      : <><span style={s.priceNum}>₹{withGST(plan.price).toLocaleString('en-IN')}</span><span style={s.pricePer}>/mo</span></>
                   }
                 </div>
+                {plan.price !== 0 && plan.price !== '0.00' && (
+                  <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 4 }}>incl. 18% GST</div>
+                )}
                 {saving && (
                   <div style={{ fontSize: 12, color: '#22c55e', marginBottom: 4 }}>
                     Save ₹{saving.saved.toLocaleString('en-IN')} ({saving.pct}% off vs monthly)
