@@ -173,7 +173,7 @@ const LeadActivity = sequelize.define('LeadActivity', {
       'created', 'call_logged', 'whatsapp_sent', 'email_sent',
       'status_changed', 'note_added', 'quotation_created',
       'invoice_generated', 'payment_received', 'followup_set',
-      'duplicate_detected', 'assigned', 'csv_imported', 'webhook_received'
+      'duplicate_detected', 'assigned', 'csv_imported', 'webhook_received', 'viewed'
     ),
   },
   description: { type: DataTypes.TEXT },
@@ -677,6 +677,11 @@ const syncDatabase = async () => {
       if (!planCols.yearlyPrice) {
         await qi.addColumn('plans', 'yearlyPrice', { type: DataTypes.DECIMAL(10, 2), defaultValue: 0, allowNull: true });
       }
+    } catch (e) { /* ignore */ }
+
+    // Expand lead_activities type ENUM to include 'viewed'
+    try {
+      await sequelize.query(`ALTER TABLE lead_activities MODIFY type ENUM('created','call_logged','whatsapp_sent','email_sent','status_changed','note_added','quotation_created','invoice_generated','payment_received','followup_set','duplicate_detected','assigned','csv_imported','webhook_received','viewed')`);
     } catch (e) { /* ignore */ }
 
     // Backfill city column from metadata for existing leads
