@@ -1,6 +1,6 @@
 const { Op, fn, col } = require('sequelize');
 const {
-  Lead, LeadActivity, User, Followup, Quotation, Invoice, Appointment, ContentTask,
+  Lead, LeadActivity, User, Followup, Quotation, Invoice, Appointment, ContentTask, Workspace,
 } = require('../../config/models');
 const { paginate, paginateResponse, calculateLeadScore, isHotLead, parseCSV, mapCSVFieldToLead } = require('../../utils/helpers');
 const notificationService = require('../../services/notificationService');
@@ -54,7 +54,10 @@ const getLeads = async (req, res) => {
 
     const { count, rows } = await Lead.findAndCountAll({
       where,
-      include: [{ model: User, as: 'assignedAgent', attributes: ['id', 'name', 'email', 'avatar'], required: false }],
+      include: [
+        { model: User, as: 'assignedAgent', attributes: ['id', 'name', 'email', 'avatar'], required: false },
+        { model: Workspace, as: 'workspace', attributes: ['id', 'name'], required: false },
+      ],
       order: [[sortCol, sortOrder]],
       limit: lim,
       offset,
@@ -79,6 +82,7 @@ const getLead = async (req, res) => {
       where,
       include: [
         { model: User, as: 'assignedAgent', attributes: ['id', 'name', 'email', 'avatar'] },
+        { model: Workspace, as: 'workspace', attributes: ['id', 'name'], required: false },
         { model: LeadActivity, as: 'activities', include: [{ model: User, as: 'user', attributes: ['id', 'name'], required: false }], order: [['createdAt', 'DESC']], limit: 50 },
         { model: Followup, as: 'followups', where: { status: { [Op.ne]: 'cancelled' } }, required: false, order: [['scheduledAt', 'DESC']] },
         { model: Quotation, as: 'quotations', required: false, order: [['createdAt', 'DESC']] },

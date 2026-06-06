@@ -7,7 +7,7 @@ import { formatDateTime, getStatusColor, getPriorityColor, ENUMS, timeAgo } from
 import { useAuth } from '../context/AuthContext';
 import './LeadDetail.css';
 
-const ACTIVITY_ICONS = { created: '🌱', call_logged: '📞', whatsapp_sent: '💬', email_sent: '✉️', status_changed: '🔄', note_added: '📝', quotation_created: '📋', invoice_generated: '🧾', payment_received: '💰', followup_set: '⏰', duplicate_detected: '⚠️', assigned: '👤', csv_imported: '📁', webhook_received: '🔗' };
+const ACTIVITY_ICONS = { created: '🌱', call_logged: '📞', whatsapp_sent: '💬', email_sent: '✉️', status_changed: '🔄', note_added: '📝', quotation_created: '📋', invoice_generated: '🧾', payment_received: '💰', followup_set: '⏰', duplicate_detected: '⚠️', assigned: '👤', csv_imported: '📁', webhook_received: '🔗', viewed: '👁️' };
 
 const SYSTEM_META_KEYS = new Set([
   'metaLeadId', 'metaFormId', 'metaFormName', 'metaPageId', 'rawFields', 'createdTime',
@@ -187,6 +187,7 @@ const LeadDetail = () => {
           {lead.email && <div className="lead-meta-item">✉️ {lead.email}</div>}
           <div className="lead-meta-item">📢 {lead.source}</div>
           {lead.assignedAgent && <div className="lead-meta-item">👤 {lead.assignedAgent.name}</div>}
+          {lead.workspace && <div className="lead-meta-item">🏗️ {lead.workspace.name}</div>}
           <div className="lead-meta-item">🕒 {timeAgo(lead.createdAt)}</div>
         </div>
         <div className="quick-actions">
@@ -267,7 +268,7 @@ const LeadDetail = () => {
             <div className="info-section">
               <h4>Lead Information</h4>
               {[
-                ['Source', lead.source], ['Campaign', lead.campaign], ['Client Type', lead.clientType],
+                ['Workspace', lead.workspace?.name], ['Source', lead.source], ['Campaign', lead.campaign], ['Client Type', lead.clientType],
                 ['City', lead.city || (() => { const m = lead.metadata || {}; for (const k of Object.keys(m)) { if (/^city$/i.test(k) && m[k]) return m[k]; } if (m.rawFields) { for (const k of Object.keys(m.rawFields)) { if (/^city$/i.test(k) && m.rawFields[k]) return m.rawFields[k]; } } return null; })()], ['Address', lead.clientAddress], ['GST', lead.clientGST],
                 ['Next Followup', lead.nextFollowup ? formatDateTime(lead.nextFollowup) : null],
                 ['Last Note', lead.lastCallNote],

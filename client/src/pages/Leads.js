@@ -313,7 +313,7 @@ const Leads = () => {
                       />
                     </th>
                   )}
-                  <th>Lead</th><th>Phone</th><th>City</th><th>Source</th><th>Priority</th><th>Status</th><th>Agent</th><th>Created</th><th>Actions</th>
+                  <th>Lead</th><th>Phone</th><th>City</th><th>Source</th><th>Priority</th><th>Status</th><th>Agent</th>{user?.role === 'owner' && <th>Workspace</th>}<th>Created</th><th>Actions</th>
                 </tr>
               </thead>
               <tbody onTouchMove={user?.role === 'admin' || user?.role === 'owner' ? handleTouchMove : undefined} onTouchEnd={user?.role === 'admin' || user?.role === 'owner' ? handleTouchEnd : undefined}>
@@ -359,6 +359,7 @@ const Leads = () => {
                       </span>
                     </td>
                     <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>{lead.assignedAgent?.name || '—'}</td>
+                    {user?.role === 'owner' && <td style={{ fontSize: 12, color: '#7c3aed', fontWeight: 500 }}>{lead.workspace?.name || '—'}</td>}
                     <td style={{ fontSize: 11, color: 'var(--text-muted)' }}>{formatDateTime(lead.createdAt)}</td>
                     <td>
                       <div style={{ display: 'flex', gap: 6 }}>
