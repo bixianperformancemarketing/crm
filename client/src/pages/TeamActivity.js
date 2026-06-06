@@ -38,12 +38,7 @@ const STAT_CARDS = [
   { key: 'avgDealSize',      label: 'Avg Deal Size',     icon: '💎', color: '#7c3aed', currency: true  },
 ];
 
-const formatCurrency = (v) => {
-  if (v >= 1e7) return `₹${(v / 1e7).toFixed(1)}Cr`;
-  if (v >= 1e5) return `₹${(v / 1e5).toFixed(1)}L`;
-  if (v >= 1e3) return `₹${(v / 1e3).toFixed(1)}K`;
-  return `₹${v}`;
-};
+const formatCurrency = (v) => `₹${Number(v).toLocaleString('en-IN')}`;
 
 const TeamActivity = () => {
   const { user } = useAuth();
@@ -330,7 +325,7 @@ const TeamActivity = () => {
           onClick={() => setStatsModal(null)}
         >
           <div
-            style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 14, width: '100%', maxWidth: 740, maxHeight: '90vh', overflow: 'auto', padding: 24 }}
+            style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 14, width: '100%', maxWidth: 960, maxHeight: '90vh', overflow: 'auto', padding: 30 }}
             onClick={e => e.stopPropagation()}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
@@ -344,7 +339,7 @@ const TeamActivity = () => {
             {statsLoading || !statsModal.stats ? (
               <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-muted)' }}>Loading stats…</div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(155px, 1fr))', gap: 10 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(185px, 1fr))', gap: 12 }}>
                 {STAT_CARDS.map(card => {
                   const raw = statsModal.stats[card.key] ?? 0;
                   const display = card.currency ? formatCurrency(raw) : card.pct ? `${raw}%` : raw;
@@ -355,14 +350,14 @@ const TeamActivity = () => {
                       style={{
                         background: 'var(--surface)',
                         border: `1px solid ${isAlert ? '#ef4444' : 'var(--border)'}`,
-                        borderRadius: 10,
-                        padding: '14px 14px 12px',
+                        borderRadius: 12,
+                        padding: '18px 16px 14px',
                         textAlign: 'center',
                       }}
                     >
-                      <div style={{ fontSize: 22, marginBottom: 6 }}>{card.icon}</div>
-                      <div style={{ fontSize: 20, fontWeight: 800, color: isAlert ? '#ef4444' : card.color, lineHeight: 1 }}>{display}</div>
-                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 5 }}>{card.label}</div>
+                      <div style={{ fontSize: 26, marginBottom: 8 }}>{card.icon}</div>
+                      <div style={{ fontSize: 22, fontWeight: 800, color: isAlert ? '#ef4444' : card.color, lineHeight: 1 }}>{display}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 7, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{card.label}</div>
                     </div>
                   );
                 })}
