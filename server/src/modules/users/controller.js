@@ -6,13 +6,12 @@ const { paginate, paginateResponse } = require('../../utils/helpers');
 const getUsers = async (req, res) => {
   try {
     const { user, workspaceId } = req;
-    const { page = 1, limit = 50, role, search, assignType } = req.query;
+    const { page = 1, limit = 50, role, search } = req.query;
     const { limit: lim, offset } = paginate(page, limit);
 
     const where = { organizationId: user.organizationId };
     if (workspaceId) where.workspaceId = workspaceId;
     if (role) where.role = role;
-    if (assignType) where.assignType = assignType;
     if (search) {
       where[Op.or] = [
         { name: { [Op.like]: `%${search}%` } },
@@ -50,12 +49,9 @@ const getUser = async (req, res) => {
 const createUser = async (req, res) => {
   try {
     const { user, workspaceId } = req;
-    const { name, email, password, role, phone, label, assignType, canUseContentCalendar } = req.body;
+    const { name, email, password, role, phone, label, canUseContentCalendar } = req.body;
     if (!name || !email || !password || !role) {
       return res.status(400).json({ success: false, message: 'Name, email, password, and role are required' });
-    }
-    if (role === 'employee' && !assignType) {
-      return res.status(400).json({ success: false, message: 'Please specify what this employee will handle: leads or tasks' });
     }
 
     const allowedRoles = user.role === 'owner' ? ['admin', 'employee'] : ['employee'];
@@ -71,7 +67,6 @@ const createUser = async (req, res) => {
       organizationId: user.organizationId,
       workspaceId,
       name, email: email.toLowerCase(), password: hash, role, label: label || null,
-      assignType: role === 'employee' ? (assignType || null) : null,
       phone: phone || null,
       canUseContentCalendar: role === 'employee' ? !!canUseContentCalendar : false,
       isActive: true,
@@ -92,16 +87,15 @@ const updateUser = async (req, res) => {
     const target = await User.findOne({ where: { id, organizationId: user.organizationId } });
     if (!target) return res.status(404).json({ success: false, message: 'User not found' });
 
-    const { name, phone, isActive, password, label, assignType, canUseContentCalendar, role } = req.body;
+    const { name, phone, isActive, password, label, canUseContentCalendar, role } = req.body;
     const updates = {};
     if (name) updates.name = name;
     if (phone !== undefined) updates.phone = phone;
     if (label !== undefined) updates.label = label;
-    if (assignType !== undefined) updates.assignType = assignType;
     if (canUseContentCalendar !== undefined) updates.canUseContentCalendar = !!canUseContentCalendar;
     if (role && ['admin', 'employee'].includes(role) && user.role === 'owner') {
       updates.role = role;
-      if (role === 'admin') { updates.assignType = null; updates.canUseContentCalendar = false; }
+      if (role === 'admin') { updates.canUseContentCalendar = false; }
     }
     if (isActive !== undefined) updates.isActive = isActive;
     if (password) {

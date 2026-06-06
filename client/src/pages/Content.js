@@ -60,7 +60,7 @@ const Content = () => {
   }, [view, loadList, loadCal]);
 
   useEffect(() => {
-    usersAPI.getAll({ role: 'employee', assignType: 'tasks', limit: 100 }).then(({ data }) => setUsers(data.data || [])).catch(() => {});
+    usersAPI.getAll({ role: 'employee', limit: 100 }).then(({ data }) => setUsers(data.data || [])).catch(() => {});
   }, []);
 
   const handleCreate = async (e) => {

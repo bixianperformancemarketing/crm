@@ -21,7 +21,7 @@ const Users = () => {
   const [labelSaving, setLabelSaving] = useState(false);
 
   const allowedRoles = isRole('owner') ? ['admin', 'employee'] : ['employee'];
-  const emptyForm = { name: '', email: '', password: '', role: 'employee', label: '', assignType: '', phone: '', canUseContentCalendar: false };
+  const emptyForm = { name: '', email: '', password: '', role: 'employee', label: '', phone: '', canUseContentCalendar: false };
   const [form, setForm] = useState(emptyForm);
 
   const load = useCallback(async () => {
@@ -46,7 +46,6 @@ const Users = () => {
   const handleCreate = async (e) => {
     e.preventDefault();
     if (!form.name || !form.email || !form.password) return toast.error('Name, email, and password required');
-    if (form.role === 'employee' && !form.assignType) return toast.error('Please select what this employee will handle: Tasks or Leads');
     setSaving(true);
     try {
       await usersAPI.create(form);
@@ -63,7 +62,7 @@ const Users = () => {
     e.preventDefault();
     setSaving(true);
     try {
-      await usersAPI.update(editUser.id, { name: form.name, phone: form.phone, label: form.label, assignType: form.assignType, canUseContentCalendar: form.canUseContentCalendar });
+      await usersAPI.update(editUser.id, { name: form.name, phone: form.phone, label: form.label, canUseContentCalendar: form.canUseContentCalendar });
       toast.success('User updated');
       setEditUser(null);
       load();
@@ -82,7 +81,7 @@ const Users = () => {
   };
 
   const openEdit = (u) => {
-    setForm({ name: u.name, email: u.email, password: '', role: u.role, label: u.label || '', assignType: u.assignType || '', phone: u.phone || '', canUseContentCalendar: !!u.canUseContentCalendar });
+    setForm({ name: u.name, email: u.email, password: '', role: u.role, label: u.label || '', phone: u.phone || '', canUseContentCalendar: !!u.canUseContentCalendar });
     setEditUser(u);
   };
 
@@ -133,7 +132,7 @@ const Users = () => {
         <div className="table-wrap">
           <table>
             <thead>
-              <tr><th>User</th><th>Role</th><th>Designation</th><th>Handles</th><th>Phone</th><th>Status</th><th>Actions</th></tr>
+              <tr><th>User</th><th>Role</th><th>Designation</th><th>Phone</th><th>Status</th><th>Actions</th></tr>
             </thead>
             <tbody>
               {users.map(u => (
@@ -153,13 +152,6 @@ const Users = () => {
                   <td>
                     {u.label ? (
                       <span style={{ background: `${getLabelColor(u.label)}22`, color: getLabelColor(u.label), padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700 }}>{u.label}</span>
-                    ) : <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>—</span>}
-                  </td>
-                  <td>
-                    {u.assignType ? (
-                      <span style={{ background: u.assignType === 'leads' ? 'rgba(14,165,233,0.12)' : 'rgba(139,92,246,0.12)', color: u.assignType === 'leads' ? '#0ea5e9' : '#8b5cf6', padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, textTransform: 'capitalize' }}>{u.assignType}</span>
-                    ) : u.role === 'employee' ? (
-                      <span style={{ background: 'rgba(245,158,11,0.12)', color: '#f59e0b', padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700 }} title="Edit this employee to set their type">! Not set</span>
                     ) : <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>—</span>}
                   </td>
                   <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>{u.phone || '—'}</td>
@@ -194,7 +186,7 @@ const Users = () => {
               {showCreate && isRole('owner') && (
                 <div className="form-group">
                   <label className="form-label">Role</label>
-                  <select className="form-control" value={form.role} onChange={e => setForm({ ...form, role: e.target.value, label: e.target.value === 'admin' ? '' : form.label, assignType: e.target.value === 'admin' ? '' : form.assignType })}>
+                  <select className="form-control" value={form.role} onChange={e => setForm({ ...form, role: e.target.value, label: e.target.value === 'admin' ? '' : form.label })}>
                     {allowedRoles.map(r => <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>)}
                   </select>
                 </div>
@@ -203,19 +195,6 @@ const Users = () => {
                 <label className="form-label">Designation / Cadre</label>
                 <input className="form-control" value={form.label} onChange={e => setForm({ ...form, label: e.target.value })} placeholder="e.g. Sales Executive, Team Lead, BDE..." disabled={form.role === 'admin'} />
               </div>
-              {form.role === 'employee' && (
-                <div className="form-group">
-                  <label className="form-label">What will this employee handle? *</label>
-                  <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-                    {['leads', 'tasks'].map(opt => (
-                      <button key={opt} type="button" onClick={() => setForm({ ...form, assignType: opt })}
-                        style={{ flex: 1, padding: '10px 0', borderRadius: 8, border: `2px solid ${form.assignType === opt ? (opt === 'leads' ? '#0ea5e9' : '#8b5cf6') : 'var(--border)'}`, background: form.assignType === opt ? (opt === 'leads' ? 'rgba(14,165,233,0.1)' : 'rgba(139,92,246,0.1)') : 'var(--input-bg)', color: form.assignType === opt ? (opt === 'leads' ? '#0ea5e9' : '#8b5cf6') : 'var(--text-muted)', fontWeight: form.assignType === opt ? 700 : 400, fontSize: 13, cursor: 'pointer', textTransform: 'capitalize', transition: 'all 0.15s' }}>
-                        {opt === 'leads' ? 'Leads' : 'Tasks'}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
               <div className="form-group"><label className="form-label">Phone</label><input className="form-control" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value.replace(/[^0-9+]/g, '') })} placeholder="+91 9876543210" /></div>
               <div className="modal-actions">
                 <button type="button" className="btn btn-ghost" onClick={() => { setShowCreate(false); setEditUser(null); }}>Cancel</button>

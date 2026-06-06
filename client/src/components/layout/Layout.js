@@ -36,13 +36,13 @@ const NAV_ITEMS = {
   ],
   employee: [
     { to: '/dashboard', icon: '📊', label: 'Dashboard' },
-    { to: '/leads', icon: '👥', label: 'My Leads', assignType: 'leads' },
-    { to: '/pipeline', icon: '🔄', label: 'Pipeline', assignType: 'leads' },
-    { to: '/followups', icon: '📞', label: 'Followups', assignType: 'leads' },
-    { to: '/appointments', icon: '📅', label: 'Appointments', feature: 'canUseAppointments', assignType: 'leads' },
-    { to: '/quotations', icon: '📋', label: 'Quotations', feature: 'canUseQuotations', assignType: 'leads' },
-    { to: '/invoices', icon: '🧾', label: 'Invoices', feature: 'canUseInvoices', assignType: 'leads' },
-    { to: '/content', icon: '✅', label: 'Tasks', feature: 'canUseContentCalendar', assignType: 'tasks' },
+    { to: '/leads', icon: '👥', label: 'My Leads' },
+    { to: '/pipeline', icon: '🔄', label: 'Pipeline' },
+    { to: '/followups', icon: '📞', label: 'Followups' },
+    { to: '/appointments', icon: '📅', label: 'Appointments', feature: 'canUseAppointments' },
+    { to: '/quotations', icon: '📋', label: 'Quotations', feature: 'canUseQuotations' },
+    { to: '/invoices', icon: '🧾', label: 'Invoices', feature: 'canUseInvoices' },
+    { to: '/content', icon: '✅', label: 'Tasks', feature: 'canUseContentCalendar' },
     { to: '/notifications', icon: '🔔', label: 'Notifications' },
   ],
 };
@@ -73,7 +73,6 @@ const Layout = ({ children, title }) => {
   const role = user?.role;
   const navItems = (NAV_ITEMS[role] || []).filter((item) => {
     if (item.feature && !hasFeature(item.feature)) return false;
-    if (item.assignType && user?.assignType && user.assignType !== item.assignType) return false;
     return true;
   });
   const initials = user?.name?.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2) || '?';

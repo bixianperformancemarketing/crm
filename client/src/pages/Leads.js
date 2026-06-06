@@ -68,7 +68,7 @@ const Leads = () => {
 
   useEffect(() => {
     if (user?.role === 'admin') {
-      usersAPI.getAll({ role: 'employee', assignType: 'leads', limit: 100 }).then(({ data }) => setAgents(data.data || [])).catch(() => {});
+      usersAPI.getAll({ role: 'employee', limit: 100 }).then(({ data }) => setAgents(data.data || [])).catch(() => {});
     }
   }, [user]);
 
