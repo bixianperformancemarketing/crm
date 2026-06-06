@@ -78,6 +78,11 @@ const Reports = () => {
     datasets: [{ data: Object.values(data.contentStats), backgroundColor: COLORS }],
   } : null;
 
+  const appointmentTypeChart = data?.appointmentByType?.length ? {
+    labels: (data.appointmentByType || []).map(a => a.type),
+    datasets: [{ data: (data.appointmentByType || []).map(a => parseInt(a.count || 0)), backgroundColor: COLORS }],
+  } : null;
+
   return (
     <Layout title="Reports">
       <div className="reports-header">
@@ -108,6 +113,12 @@ const Reports = () => {
               <div className="report-chart-card">
                 <div className="report-chart-title">Content Tasks by Status</div>
                 <div className="report-chart-container"><Doughnut data={contentChart} options={PIE_OPTS} /></div>
+              </div>
+            )}
+            {appointmentTypeChart && (
+              <div className="report-chart-card">
+                <div className="report-chart-title">Appointments by Type</div>
+                <div className="report-chart-container"><Doughnut data={appointmentTypeChart} options={PIE_OPTS} /></div>
               </div>
             )}
           </div>
@@ -176,6 +187,158 @@ const Reports = () => {
                   </div>
                 ))}
               </div>
+            </>
+          )}
+
+          {/* Quotations Breakdown */}
+          {data.quotationByStatus && (
+            <>
+              <div className="reports-section-title">Quotations Breakdown</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 14, marginBottom: 12 }}>
+                {['Draft', 'Sent', 'Approved', 'Rejected', 'Not Responding'].map((status) => {
+                  const entry = (data.quotationByStatus || []).find(q => q.status === status);
+                  const colors = { Draft: '#9ca3af', Sent: '#0ea5e9', Approved: '#22c55e', Rejected: '#ef4444', 'Not Responding': '#f59e0b' };
+                  return (
+                    <div key={status} style={{ background: 'var(--card-bg)', border: `1px solid ${colors[status]}33`, borderRadius: 10, padding: '14px 16px' }}>
+                      <div style={{ fontSize: 22, fontWeight: 800, color: colors[status] }}>{parseInt(entry?.count || 0)}</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>{status}</div>
+                    </div>
+                  );
+                })}
+                <div style={{ background: 'var(--card-bg)', border: '1px solid #22c55e33', borderRadius: 10, padding: '14px 16px' }}>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: '#22c55e' }}>{formatCurrency(data.quotationTotalValue || 0)}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>Total Value</div>
+                </div>
+                <div style={{ background: 'var(--card-bg)', border: '1px solid #10b98133', borderRadius: 10, padding: '14px 16px' }}>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: '#10b981' }}>{formatCurrency(data.quotationApprovedValue || 0)}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>Approved Value</div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Appointments Breakdown */}
+          {data.appointmentByStatus && (
+            <>
+              <div className="reports-section-title">Appointments Breakdown</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 14, marginBottom: 12 }}>
+                {['Scheduled', 'Completed', 'Cancelled', 'No Show'].map((status) => {
+                  const entry = (data.appointmentByStatus || []).find(a => a.status === status);
+                  const colors = { Scheduled: '#0ea5e9', Completed: '#22c55e', Cancelled: '#9ca3af', 'No Show': '#ef4444' };
+                  return (
+                    <div key={status} style={{ background: 'var(--card-bg)', border: `1px solid ${colors[status]}33`, borderRadius: 10, padding: '14px 16px' }}>
+                      <div style={{ fontSize: 22, fontWeight: 800, color: colors[status] }}>{parseInt(entry?.count || 0)}</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>{status}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          {/* Followups Breakdown */}
+          {data.followupByStatus && (
+            <>
+              <div className="reports-section-title">Followups Breakdown</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 14, marginBottom: 16 }}>
+                {['pending', 'completed', 'overdue', 'cancelled'].map((status) => {
+                  const entry = (data.followupByStatus || []).find(f => f.status === status);
+                  const colors = { pending: '#f59e0b', completed: '#22c55e', overdue: '#ef4444', cancelled: '#9ca3af' };
+                  return (
+                    <div key={status} style={{ background: 'var(--card-bg)', border: `1px solid ${colors[status]}33`, borderRadius: 10, padding: '14px 16px' }}>
+                      <div style={{ fontSize: 22, fontWeight: 800, color: colors[status] }}>{parseInt(entry?.count || 0)}</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, textTransform: 'capitalize' }}>{status}</div>
+                    </div>
+                  );
+                })}
+              </div>
+              {data.followupAgentStats && data.followupAgentStats.length > 0 && (
+                <>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 10 }}>Followups per Agent</div>
+                  <div className="table-wrap">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Agent</th>
+                          <th>Total</th>
+                          <th>Completed</th>
+                          <th>Pending</th>
+                          <th>Overdue</th>
+                          <th>Completion Rate</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {data.followupAgentStats.map((a, i) => (
+                          <tr key={i}>
+                            <td>
+                              <div style={{ fontWeight: 500 }}>{a.agentName}</div>
+                              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{a.agentEmail}</div>
+                            </td>
+                            <td style={{ fontWeight: 700 }}>{a.total}</td>
+                            <td style={{ color: '#22c55e', fontWeight: 600 }}>{a.completed}</td>
+                            <td style={{ color: '#f59e0b' }}>{a.pending}</td>
+                            <td style={{ color: '#ef4444' }}>{a.overdue}</td>
+                            <td>
+                              <span style={{ fontWeight: 700, color: a.completionRate >= 70 ? '#22c55e' : a.completionRate >= 40 ? '#f59e0b' : 'var(--text-muted)' }}>
+                                {a.completionRate}%
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
+            </>
+          )}
+
+          {/* Payments Breakdown */}
+          {data.paymentByMode && (
+            <>
+              <div className="reports-section-title">Payments Breakdown</div>
+              {data.paymentByMode.length > 0 && (
+                <>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 10 }}>By Payment Mode</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 14, marginBottom: 16 }}>
+                    {(data.paymentByMode || []).map((m, i) => (
+                      <div key={i} style={{ background: 'var(--card-bg)', border: `1px solid ${COLORS[i % COLORS.length]}33`, borderRadius: 10, padding: '14px 16px' }}>
+                        <div style={{ fontSize: 20, fontWeight: 800, color: COLORS[i % COLORS.length] }}>{formatCurrency(parseFloat(m.total || 0))}</div>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>{m.mode}</div>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{parseInt(m.count || 0)} transactions</div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+              {data.paymentAgentStats && data.paymentAgentStats.length > 0 && (
+                <>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 10 }}>Revenue Collected per Agent</div>
+                  <div className="table-wrap">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Agent</th>
+                          <th>Transactions</th>
+                          <th>Total Collected</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {data.paymentAgentStats.map((a, i) => (
+                          <tr key={i}>
+                            <td>
+                              <div style={{ fontWeight: 500 }}>{a.agentName}</div>
+                              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{a.agentEmail}</div>
+                            </td>
+                            <td>{a.count}</td>
+                            <td style={{ color: '#22c55e', fontWeight: 700 }}>{formatCurrency(a.total)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
             </>
           )}
         </>

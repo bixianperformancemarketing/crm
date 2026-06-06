@@ -184,6 +184,10 @@ const getAdvancedReports = async (req, res) => {
     const paymentWhere = { organizationId: orgId, ...ws, ...(hasDateFilter ? { receivedAt: dateFilter } : {}) };
     const contentWhere = { organizationId: orgId, ...ws, ...(hasDateFilter ? { createdAt: dateFilter } : {}) };
 
+    const quotationWhere  = { organizationId: orgId, ...ws, ...(hasDateFilter ? { createdAt: dateFilter } : {}) };
+    const appointmentWhere = { organizationId: orgId, ...ws, ...(hasDateFilter ? { startTime: dateFilter } : {}) };
+    const followupWhere   = { organizationId: orgId, ...ws, ...(hasDateFilter ? { scheduledAt: dateFilter } : {}) };
+
     const [leadBySource, agentPerformance, contentStats, revenueByMonth, totalRevenue, invoiceStats, pendingAmount] = await Promise.all([
       Lead.findAll({
         where: leadWhere,
@@ -221,6 +225,48 @@ const getAdvancedReports = async (req, res) => {
       Invoice.sum('dueAmount', { where: { organizationId: orgId, ...ws, status: { [Op.in]: ['Unpaid', 'Partial'] }, ...(hasDateFilter ? { createdAt: dateFilter } : {}) } }),
     ]);
 
+    const [quotationByStatus, quotationTotalValue, quotationApprovedValue, appointmentByStatus, appointmentByType, followupByStatus, followupByAgentRaw, paymentByMode, paymentByAgentRaw] = await Promise.all([
+      Quotation.findAll({ where: quotationWhere, attributes: ['status', [fn('COUNT', col('id')), 'count']], group: ['status'], raw: true }),
+      Quotation.sum('totalAmount', { where: quotationWhere }),
+      Quotation.sum('totalAmount', { where: { ...quotationWhere, status: 'Approved' } }),
+      Appointment.findAll({ where: appointmentWhere, attributes: ['status', [fn('COUNT', col('id')), 'count']], group: ['status'], raw: true }),
+      Appointment.findAll({ where: appointmentWhere, attributes: ['type', [fn('COUNT', col('id')), 'count']], group: ['type'], raw: true }),
+      Followup.findAll({ where: followupWhere, attributes: ['status', [fn('COUNT', col('id')), 'count']], group: ['status'], raw: true }),
+      Followup.findAll({ where: followupWhere, attributes: ['userId', 'status', [fn('COUNT', col('id')), 'count']], group: ['userId', 'status'], raw: true }),
+      Payment.findAll({ where: paymentWhere, attributes: ['mode', [fn('COUNT', col('id')), 'count'], [fn('SUM', col('amount')), 'total']], group: ['mode'], raw: true }),
+      Payment.findAll({ where: paymentWhere, attributes: ['receivedBy', [fn('COUNT', col('id')), 'count'], [fn('SUM', col('amount')), 'total']], group: ['receivedBy'], raw: true }),
+    ]);
+
+    // Resolve agent names for followup and payment per-agent stats
+    const agentIdSet = [...new Set([
+      ...followupByAgentRaw.map(f => f.userId),
+      ...paymentByAgentRaw.map(p => p.receivedBy),
+    ].filter(Boolean))];
+    const agentUserMap = {};
+    if (agentIdSet.length > 0) {
+      const agentUsers = await User.findAll({ where: { id: { [Op.in]: agentIdSet }, organizationId: orgId }, attributes: ['id', 'name', 'email', 'label', 'role'], raw: true });
+      agentUsers.forEach(u => { agentUserMap[u.id] = u; });
+    }
+
+    const fupAgentMap = {};
+    followupByAgentRaw.forEach(f => {
+      if (!fupAgentMap[f.userId]) fupAgentMap[f.userId] = { total: 0, completed: 0, overdue: 0, pending: 0 };
+      const cnt = parseInt(f.count || 0);
+      fupAgentMap[f.userId].total += cnt;
+      if (f.status === 'completed') fupAgentMap[f.userId].completed += cnt;
+      else if (f.status === 'overdue') fupAgentMap[f.userId].overdue += cnt;
+      else if (f.status === 'pending') fupAgentMap[f.userId].pending += cnt;
+    });
+    const followupAgentStats = Object.keys(fupAgentMap).map(uid => {
+      const d = fupAgentMap[uid]; const u = agentUserMap[uid] || {};
+      return { agentId: parseInt(uid), agentName: u.name || 'Unknown', agentEmail: u.email || '', label: u.label || u.role || 'Agent', total: d.total, completed: d.completed, overdue: d.overdue, pending: d.pending, completionRate: d.total > 0 ? Math.round((d.completed / d.total) * 100) : 0 };
+    }).sort((a, b) => b.total - a.total);
+
+    const paymentAgentStats = paymentByAgentRaw.map(p => {
+      const u = agentUserMap[p.receivedBy] || {};
+      return { agentId: p.receivedBy, agentName: u.name || 'Unknown', agentEmail: u.email || '', label: u.label || u.role || 'Agent', count: parseInt(p.count || 0), total: parseFloat(p.total || 0) };
+    }).sort((a, b) => b.total - a.total);
+
     const agentStats = agentPerformance.map((agent) => {
       const leads = agent.assignedLeads || [];
       const total = leads.length;
@@ -252,6 +298,15 @@ const getAdvancedReports = async (req, res) => {
       totalInvoices,
       paidInvoices: parseInt(paidInvoices?.count || 0),
       pendingAmount: parseFloat(pendingAmount || 0),
+      quotationByStatus,
+      quotationTotalValue: parseFloat(quotationTotalValue || 0),
+      quotationApprovedValue: parseFloat(quotationApprovedValue || 0),
+      appointmentByStatus,
+      appointmentByType,
+      followupByStatus,
+      followupAgentStats,
+      paymentByMode,
+      paymentAgentStats,
     });
   } catch (err) {
     console.error('getAdvancedReports error:', err);
