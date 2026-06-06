@@ -303,7 +303,7 @@ const TeamActivity = () => {
                   <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{timeAgo(a.createdAt)}</span>
                 </div>
               </div>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap', paddingTop: 2, flexShrink: 0 }}>
+              <div className="feed-action-label" style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap', paddingTop: 2, flexShrink: 0 }}>
                 {ACTION_LABELS[a.type] || a.type}
               </div>
             </div>
@@ -325,7 +325,7 @@ const TeamActivity = () => {
           onClick={() => setStatsModal(null)}
         >
           <div
-            style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 14, width: '100%', maxWidth: 960, maxHeight: '90vh', overflow: 'auto', padding: 30 }}
+            style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 14, width: '100%', maxWidth: 960, maxHeight: '90vh', overflow: 'auto', padding: 'clamp(16px, 4vw, 30px)' }}
             onClick={e => e.stopPropagation()}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
@@ -339,7 +339,7 @@ const TeamActivity = () => {
             {statsLoading || !statsModal.stats ? (
               <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-muted)' }}>Loading stats…</div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(185px, 1fr))', gap: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(145px, 1fr))', gap: 10 }}>
                 {STAT_CARDS.map(card => {
                   const raw = statsModal.stats[card.key] ?? 0;
                   const display = card.currency ? formatCurrency(raw) : card.pct ? `${raw}%` : raw;
@@ -366,6 +366,7 @@ const TeamActivity = () => {
           </div>
         </div>
       )}
+      <style>{`@media (max-width: 480px) { .feed-action-label { display: none; } }`}</style>
     </Layout>
   );
 };
