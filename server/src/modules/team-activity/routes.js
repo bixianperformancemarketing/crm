@@ -7,5 +7,6 @@ router.use(authenticate, scopeTenant, requireWorkspace, requireRole('admin', 'ow
 
 router.get('/summary', ctrl.getTeamSummary);
 router.get('/feed', ctrl.getTeamFeed);
+router.get('/employee-stats/:userId', ctrl.getEmployeeStats);
 
 module.exports = router;

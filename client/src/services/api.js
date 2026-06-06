@@ -184,6 +184,7 @@ export const reportsAPI = {
 export const teamActivityAPI = {
   getSummary: () => api.get('/team-activity/summary'),
   getFeed: (params) => api.get('/team-activity/feed', { params }),
+  getEmployeeStats: (userId) => api.get(`/team-activity/employee-stats/${userId}`),
 };
 
 // ─── NOTIFICATIONS ────────────────────────────────────────────────────────

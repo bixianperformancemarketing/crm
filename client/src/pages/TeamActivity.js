@@ -23,6 +23,28 @@ const ACTION_LABELS = {
   webhook_received: 'Webhook',
 };
 
+const STAT_CARDS = [
+  { key: 'totalLeads',       label: 'Total Leads',       icon: '👥', color: '#0ea5e9', currency: false },
+  { key: 'activeLeads',      label: 'Active Leads',      icon: '🔥', color: '#f59e0b', currency: false },
+  { key: 'wonLeads',         label: 'Won Leads',         icon: '✅', color: '#22c55e', currency: false },
+  { key: 'hotLeads',         label: 'Hot Leads',         icon: '⚡', color: '#ef4444', currency: false },
+  { key: 'totalRevenue',     label: 'Total Revenue',     icon: '💰', color: '#22c55e', currency: true  },
+  { key: 'pendingRevenue',   label: 'Pending Revenue',   icon: '⏳', color: '#f59e0b', currency: true  },
+  { key: 'overdueInvoices',  label: 'Overdue Invoices',  icon: '🧾', color: '#ef4444', currency: false },
+  { key: 'todayAppts',       label: "Today's Appts",     icon: '📅', color: '#7c3aed', currency: false },
+  { key: 'pendingFollowups', label: 'Pending Followups', icon: '📞', color: '#0ea5e9', currency: false },
+  { key: 'overdueFollowups', label: 'Overdue Followups', icon: '⏰', color: '#ef4444', currency: false },
+  { key: 'conversionRate',   label: 'Conversion Rate',   icon: '📈', color: '#22c55e', currency: false, pct: true },
+  { key: 'avgDealSize',      label: 'Avg Deal Size',     icon: '💎', color: '#7c3aed', currency: true  },
+];
+
+const formatCurrency = (v) => {
+  if (v >= 1e7) return `₹${(v / 1e7).toFixed(1)}Cr`;
+  if (v >= 1e5) return `₹${(v / 1e5).toFixed(1)}L`;
+  if (v >= 1e3) return `₹${(v / 1e3).toFixed(1)}K`;
+  return `₹${v}`;
+};
+
 const TeamActivity = () => {
   const { user } = useAuth();
   const isOwner = user?.role === 'owner';
@@ -37,6 +59,20 @@ const TeamActivity = () => {
   const [page, setPage] = useState(1);
   const [autoRefresh, setAutoRefresh] = useState(false);
   const intervalRef = useRef(null);
+
+  const [statsModal, setStatsModal] = useState(null); // { employee, stats } or null
+  const [statsLoading, setStatsLoading] = useState(false);
+
+  const openStats = async (e, emp) => {
+    e.stopPropagation();
+    setStatsLoading(true);
+    setStatsModal({ employee: emp, stats: null });
+    try {
+      const { data } = await teamActivityAPI.getEmployeeStats(emp.id);
+      setStatsModal({ employee: emp, stats: data.stats });
+    } catch { toast.error('Failed to load stats'); setStatsModal(null); }
+    finally { setStatsLoading(false); }
+  };
 
   const loadSummary = async () => {
     try {
@@ -138,11 +174,20 @@ const TeamActivity = () => {
                           <div style={{ fontSize: 11, color: '#7c3aed', marginTop: 2 }}>🏗️ {emp.workspace}</div>
                         )}
                       </div>
-                      <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: 8 }}>
-                        <div style={{ fontSize: 24, fontWeight: 800, color: emp.todayActions > 0 ? '#22c55e' : 'var(--text-muted)', lineHeight: 1 }}>
-                          {emp.todayActions}
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0, marginLeft: 8 }}>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: 24, fontWeight: 800, color: emp.todayActions > 0 ? '#22c55e' : 'var(--text-muted)', lineHeight: 1 }}>
+                            {emp.todayActions}
+                          </div>
+                          <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>actions today</div>
                         </div>
-                        <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>actions today</div>
+                        <button
+                          onClick={(e) => openStats(e, emp)}
+                          style={{ fontSize: 10, background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 5, padding: '3px 7px', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                          title="View this employee's dashboard stats"
+                        >
+                          📊 Stats
+                        </button>
                       </div>
                     </div>
 
@@ -276,6 +321,55 @@ const TeamActivity = () => {
           pagination={pagination}
           onPageChange={(p) => loadFeed(p, selectedEmployee, selectedType)}
         />
+      )}
+
+      {/* Employee stats modal */}
+      {statsModal && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+          onClick={() => setStatsModal(null)}
+        >
+          <div
+            style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 14, width: '100%', maxWidth: 740, maxHeight: '90vh', overflow: 'auto', padding: 24 }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 16 }}>{statsModal.employee.name}</div>
+                <div style={{ fontSize: 12, color: 'var(--accent)', marginTop: 2 }}>{statsModal.employee.label}</div>
+              </div>
+              <button onClick={() => setStatsModal(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>✕</button>
+            </div>
+
+            {statsLoading || !statsModal.stats ? (
+              <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-muted)' }}>Loading stats…</div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(155px, 1fr))', gap: 10 }}>
+                {STAT_CARDS.map(card => {
+                  const raw = statsModal.stats[card.key] ?? 0;
+                  const display = card.currency ? formatCurrency(raw) : card.pct ? `${raw}%` : raw;
+                  const isAlert = (card.key === 'overdueInvoices' || card.key === 'overdueFollowups') && raw > 0;
+                  return (
+                    <div
+                      key={card.key}
+                      style={{
+                        background: 'var(--surface)',
+                        border: `1px solid ${isAlert ? '#ef4444' : 'var(--border)'}`,
+                        borderRadius: 10,
+                        padding: '14px 14px 12px',
+                        textAlign: 'center',
+                      }}
+                    >
+                      <div style={{ fontSize: 22, marginBottom: 6 }}>{card.icon}</div>
+                      <div style={{ fontSize: 20, fontWeight: 800, color: isAlert ? '#ef4444' : card.color, lineHeight: 1 }}>{display}</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 5 }}>{card.label}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </Layout>
   );

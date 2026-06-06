@@ -1,5 +1,5 @@
 const { Op, fn, col } = require('sequelize');
-const { User, Lead, LeadActivity, ContentTask, Workspace } = require('../../config/models');
+const { User, Lead, LeadActivity, ContentTask, Workspace, Payment, Invoice, Followup, Appointment } = require('../../config/models');
 const { paginate, paginateResponse, startOfTodayIST, endOfTodayIST } = require('../../utils/helpers');
 
 const getTeamSummary = async (req, res) => {
@@ -110,4 +110,66 @@ const getTeamFeed = async (req, res) => {
   }
 };
 
-module.exports = { getTeamSummary, getTeamFeed };
+const getEmployeeStats = async (req, res) => {
+  try {
+    const { user, workspaceId } = req;
+    const { userId } = req.params;
+    const orgId = user.organizationId;
+    const now = new Date();
+    const ws = workspaceId ? { workspaceId } : {};
+
+    const employee = await User.findOne({
+      where: { id: userId, organizationId: orgId },
+      attributes: ['id', 'name', 'email', 'label', 'role'],
+    });
+    if (!employee) return res.status(404).json({ success: false, message: 'Employee not found' });
+
+    const leadWhere = { organizationId: orgId, ...ws, assignedTo: userId };
+
+    const leadIds = await Lead.findAll({ where: leadWhere, attributes: ['id'], raw: true }).then(r => r.map(l => l.id));
+
+    const invoiceWhere = leadIds.length ? { organizationId: orgId, leadId: { [Op.in]: leadIds } } : null;
+
+    const [
+      totalLeads, activeLeads, wonLeads, hotLeads,
+      totalRevenue, pendingRevenue, overdueInvoices,
+      pendingFollowups, overdueFollowups, todayAppts,
+    ] = await Promise.all([
+      Lead.count({ where: leadWhere }),
+      Lead.count({ where: { ...leadWhere, status: { [Op.notIn]: ['Won', 'Lost'] } } }),
+      Lead.count({ where: { ...leadWhere, status: 'Won' } }),
+      Lead.count({ where: { ...leadWhere, isHot: true } }),
+      invoiceWhere ? Payment.sum('amount', { where: { organizationId: orgId, leadId: { [Op.in]: leadIds } } }) : Promise.resolve(0),
+      invoiceWhere ? Invoice.sum('dueAmount', { where: { ...invoiceWhere, status: { [Op.in]: ['Unpaid', 'Partial'] } } }) : Promise.resolve(0),
+      invoiceWhere ? Invoice.count({ where: { ...invoiceWhere, status: 'Overdue' } }) : Promise.resolve(0),
+      Followup.count({ where: { organizationId: orgId, ...ws, userId, status: 'pending', scheduledAt: { [Op.gte]: now } } }),
+      Followup.count({ where: { organizationId: orgId, ...ws, userId, status: { [Op.in]: ['pending', 'overdue'] }, scheduledAt: { [Op.lt]: now } } }),
+      Appointment.count({ where: { organizationId: orgId, ...ws, userId, startTime: { [Op.between]: [startOfTodayIST(), endOfTodayIST()] }, status: 'Scheduled' } }),
+    ]);
+
+    const wonInvoices = invoiceWhere
+      ? await Invoice.findAll({ where: { ...invoiceWhere, status: 'Paid' }, attributes: ['totalAmount'], raw: true })
+      : [];
+    const avgDealSize = wonInvoices.length
+      ? wonInvoices.reduce((s, i) => s + parseFloat(i.totalAmount), 0) / wonInvoices.length
+      : 0;
+    const conversionRate = totalLeads > 0 ? Math.round((wonLeads / totalLeads) * 100) : 0;
+
+    res.json({
+      success: true,
+      employee: { id: employee.id, name: employee.name, label: employee.label || employee.role },
+      stats: {
+        totalLeads, activeLeads, wonLeads, hotLeads,
+        totalRevenue: parseFloat(totalRevenue) || 0,
+        pendingRevenue: parseFloat(pendingRevenue) || 0,
+        overdueInvoices, pendingFollowups, overdueFollowups, todayAppts,
+        conversionRate, avgDealSize: Math.round(avgDealSize),
+      },
+    });
+  } catch (err) {
+    console.error('getEmployeeStats error:', err);
+    res.status(500).json({ success: false, message: 'Failed to fetch employee stats' });
+  }
+};
+
+module.exports = { getTeamSummary, getTeamFeed, getEmployeeStats };
