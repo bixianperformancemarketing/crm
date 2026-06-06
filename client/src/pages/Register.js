@@ -55,7 +55,7 @@ const Register = () => {
     const planPrice = getDisplayPrice(selectedPlan);
 
     const message = [
-      `Hi! I'm interested in the *${selectedPlan.displayName || selectedPlan.name}* plan on Agency CRM.`,
+      `Hi! I'm interested in the *${selectedPlan.displayName || selectedPlan.name}* plan on Bixian CRM.`,
       ``,
       `*My Details:*`,
       `👤 Name: ${form.name}`,
@@ -81,7 +81,7 @@ const Register = () => {
       <div style={s.nav}>
         <div style={s.navBrand}>
           <div style={s.logoIcon}>CRM</div>
-          <span style={s.logoText}>Agency CRM</span>
+          <span style={s.logoText}>Bixian CRM</span>
         </div>
         <div style={s.navActions}>
           <button style={s.navLink} onClick={() => navigate('/pricing')}>Plans</button>

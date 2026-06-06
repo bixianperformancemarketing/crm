@@ -65,7 +65,7 @@ const Pricing = () => {
       <div style={s.nav} className="pricing-nav">
         <div style={s.navBrand}>
           <div style={s.logoIcon}>CRM</div>
-          <span style={s.logoText}>Agency CRM</span>
+          <span style={s.logoText}>Bixian CRM</span>
         </div>
         <div style={s.navActions}>
           <button style={s.navLink} onClick={() => navigate('/login')}>Login</button>

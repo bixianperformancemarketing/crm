@@ -126,7 +126,7 @@ const Layout = ({ children, title }) => {
       <aside className={`sidebar${collapsed ? ' collapsed' : ''}${mobileOpen ? ' mobile-open' : ''}`}>
         <div className="sidebar-logo">
           <div className="logo-icon">CRM</div>
-          {(!collapsed || mobileOpen) && <span className="logo-text">{org?.name || 'Agency CRM'}</span>}
+          {(!collapsed || mobileOpen) && <span className="logo-text">{org?.name || 'Bixian CRM'}</span>}
         </div>
 
         <nav className="sidebar-nav">
@@ -205,6 +205,14 @@ const Layout = ({ children, title }) => {
             <button className="btn btn-ghost btn-sm" onClick={logout}>Logout</button>
           </div>
         </header>
+        {role === 'admin' && org?.settings && !org.settings?.smtp?.host && (
+          <div style={{ background: 'rgba(239,68,68,0.1)', borderBottom: '1px solid rgba(239,68,68,0.25)', padding: '8px 20px', fontSize: 12, color: '#ef4444', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span>⚠️ <strong>SMTP not configured</strong> — email features (quotations, invoices, lead emails) are disabled until you set up SMTP.</span>
+            <button onClick={() => navigate('/settings?tab=smtp')} style={{ marginLeft: 'auto', background: '#ef4444', color: '#fff', border: 'none', borderRadius: 6, padding: '3px 12px', fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              Set up now →
+            </button>
+          </div>
+        )}
         <main className="page">{children}</main>
       </div>
     </div>

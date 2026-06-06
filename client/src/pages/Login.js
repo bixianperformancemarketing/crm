@@ -34,7 +34,7 @@ const Login = () => {
       <div style={styles.topNav}>
         <div style={styles.topNavBrand}>
           <div style={styles.logoIcon}>CRM</div>
-          <span style={styles.logoText}>Agency CRM</span>
+          <span style={styles.logoText}>Bixian CRM</span>
         </div>
         <div style={styles.topNavActions}>
           <Link to="/pricing" style={styles.navLink}>Plans</Link>
@@ -45,7 +45,7 @@ const Login = () => {
       <div style={styles.box}>
         <div style={styles.logo}>
           <div style={styles.logoIcon}>CRM</div>
-          <h1 style={styles.logoText}>Agency CRM</h1>
+          <h1 style={styles.logoText}>Bixian CRM</h1>
           <p style={styles.logoSub}>Digital Marketing Management Platform</p>
         </div>
         <form onSubmit={handleSubmit}>
