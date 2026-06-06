@@ -93,12 +93,10 @@ const getLead = async (req, res) => {
 
     if (!lead) return res.status(404).json({ success: false, message: 'Lead not found' });
 
-    if (user.role === 'owner') {
-      LeadActivity.create({
-        leadId: lead.id, organizationId: user.organizationId, workspaceId: lead.workspaceId,
-        userId: user.id, type: 'viewed', description: `Lead viewed by ${user.name || 'owner'}`, metadata: {}
-      }).catch(() => {});
-    }
+    LeadActivity.create({
+      leadId: lead.id, organizationId: user.organizationId, workspaceId: lead.workspaceId,
+      userId: user.id, type: 'viewed', description: `Lead viewed by ${user.name || user.role}`, metadata: {}
+    }).catch(() => {});
 
     res.json({ success: true, lead });
   } catch (err) {
