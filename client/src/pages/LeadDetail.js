@@ -43,6 +43,7 @@ const LeadDetail = () => {
   const [agents, setAgents] = useState([]);
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState({});
+  const [showViewHistory, setShowViewHistory] = useState(false);
   const [showNote, setShowNote] = useState(false);
   const [note, setNote] = useState('');
   const [showCall, setShowCall] = useState(false);
@@ -246,19 +247,49 @@ const LeadDetail = () => {
           <div className="card" style={{ marginBottom: 20 }}>
             <div className="card-header"><h3 className="card-title">Activity Timeline</h3></div>
             <div className="activity-timeline">
-              {(!lead.activities || lead.activities.length === 0) ? (
-                <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>No activities yet</div>
-              ) : (
-                lead.activities.map((a) => (
-                  <div className="activity-item" key={a.id}>
-                    <div className="activity-dot">{ACTIVITY_ICONS[a.type] || '📌'}</div>
-                    <div className="activity-content">
-                      <div className="activity-desc">{a.description}</div>
-                      <div className="activity-meta">{a.user?.name && `by ${a.user.name} · `}{timeAgo(a.createdAt)}</div>
-                    </div>
-                  </div>
-                ))
-              )}
+              {(() => {
+                const actions = (lead.activities || []).filter(a => a.type !== 'viewed');
+                const views = (lead.activities || []).filter(a => a.type === 'viewed');
+                return (
+                  <>
+                    {actions.length === 0 ? (
+                      <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>No activities yet</div>
+                    ) : (
+                      actions.map((a) => (
+                        <div className="activity-item" key={a.id}>
+                          <div className="activity-dot">{ACTIVITY_ICONS[a.type] || '📌'}</div>
+                          <div className="activity-content">
+                            <div className="activity-desc">{a.description}</div>
+                            <div className="activity-meta">{a.user?.name && `by ${a.user.name} · `}{timeAgo(a.createdAt)}</div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                    {views.length > 0 && (
+                      <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
+                        <button
+                          onClick={() => setShowViewHistory(v => !v)}
+                          style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 12, cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: 6 }}
+                        >
+                          👁️ {views.length} view{views.length !== 1 ? 's' : ''} {showViewHistory ? '▲ hide' : '▼ show'}
+                        </button>
+                        {showViewHistory && (
+                          <div style={{ marginTop: 8 }}>
+                            {views.map((a) => (
+                              <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', fontSize: 12, color: 'var(--text-muted)' }}>
+                                <span>👁️</span>
+                                <span>{a.user?.name || 'Unknown'}</span>
+                                <span>·</span>
+                                <span>{timeAgo(a.createdAt)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </div>
           </div>
         </div>

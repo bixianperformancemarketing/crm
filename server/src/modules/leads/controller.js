@@ -93,7 +93,7 @@ const getLead = async (req, res) => {
 
     if (!lead) return res.status(404).json({ success: false, message: 'Lead not found' });
 
-    const cooldown = new Date(Date.now() - 30 * 60 * 1000);
+    const cooldown = new Date(Date.now() - 2 * 60 * 60 * 1000);
     LeadActivity.findOne({
       where: { leadId: lead.id, userId: user.id, type: 'viewed', createdAt: { [Op.gte]: cooldown } },
     }).then((recent) => {
