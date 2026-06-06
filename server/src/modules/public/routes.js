@@ -9,7 +9,7 @@ router.get('/plans', async (req, res) => {
   try {
     const plans = await Plan.findAll({
       attributes: [
-        'id', 'name', 'displayName', 'price', 'yearlyPrice', 'maxWorkspaces',
+        'id', 'name', 'displayName', 'price', 'quarterlyPrice', 'halfYearlyPrice', 'yearlyPrice', 'maxWorkspaces',
         'maxUsersPerWorkspace', 'maxLeadsTotal', 'canUseWebhooks',
         'canUsePDF', 'canUseCSVImport', 'canUseContentCalendar',
         'canUseAdvancedReports', 'canUseQuotations', 'canUseInvoices',

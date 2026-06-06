@@ -7,6 +7,8 @@ const Plan = sequelize.define('Plan', {
   name: { type: DataTypes.STRING(50), allowNull: false, unique: true },
   displayName: { type: DataTypes.STRING(100), allowNull: false },
   price: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
+  quarterlyPrice: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
+  halfYearlyPrice: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
   yearlyPrice: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
   maxWorkspaces: { type: DataTypes.INTEGER, defaultValue: 1 },
   maxUsersPerWorkspace: { type: DataTypes.INTEGER, defaultValue: 3 },
@@ -671,11 +673,17 @@ const syncDatabase = async () => {
       }
     } catch (e) { /* ignore */ }
 
-    // Add yearlyPrice column to plans if missing
+    // Add yearly/quarterly/halfYearly price columns to plans if missing
     try {
       const planCols = await qi.describeTable('plans');
       if (!planCols.yearlyPrice) {
         await qi.addColumn('plans', 'yearlyPrice', { type: DataTypes.DECIMAL(10, 2), defaultValue: 0, allowNull: true });
+      }
+      if (!planCols.quarterlyPrice) {
+        await qi.addColumn('plans', 'quarterlyPrice', { type: DataTypes.DECIMAL(10, 2), defaultValue: 0, allowNull: true });
+      }
+      if (!planCols.halfYearlyPrice) {
+        await qi.addColumn('plans', 'halfYearlyPrice', { type: DataTypes.DECIMAL(10, 2), defaultValue: 0, allowNull: true });
       }
     } catch (e) { /* ignore */ }
 

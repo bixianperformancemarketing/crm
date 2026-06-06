@@ -27,16 +27,30 @@ const Register = () => {
     });
   }, [planId]);
 
+  const CYCLE_META = {
+    monthly:    { field: 'price',           label: 'Monthly',     per: '/month'     },
+    quarterly:  { field: 'quarterlyPrice',  label: 'Quarterly',   per: '/quarter'   },
+    halfYearly: { field: 'halfYearlyPrice', label: 'Half-Yearly', per: '/6 months'  },
+    yearly:     { field: 'yearlyPrice',     label: 'Yearly',      per: '/year'      },
+  };
+
+  const activeMeta = CYCLE_META[billing] || CYCLE_META.monthly;
+  const availableCycles = Object.entries(CYCLE_META).filter(([key, meta]) =>
+    key === 'monthly' || plans.some(p => Number(p[meta.field]) > 0)
+  );
+
+  const getDisplayPrice = (plan) => {
+    if (Number(plan.price) === 0) return 'Free';
+    const val = Number(plan[activeMeta.field]);
+    if (val > 0) return `₹${val.toLocaleString('en-IN')}${activeMeta.per}`;
+    return `₹${Number(plan.price).toLocaleString('en-IN')}/month`;
+  };
+
   const handleWhatsApp = (e) => {
     e.preventDefault();
     if (!selectedPlan) return;
 
-    const isYearly = billing === 'yearly' && Number(selectedPlan.yearlyPrice) > 0;
-    const planPrice = Number(selectedPlan.price) === 0
-      ? 'Free'
-      : isYearly
-        ? `₹${Number(selectedPlan.yearlyPrice).toLocaleString('en-IN')}/year`
-        : `₹${Number(selectedPlan.price).toLocaleString('en-IN')}/month`;
+    const planPrice = getDisplayPrice(selectedPlan);
 
     const message = [
       `Hi! I'm interested in the *${selectedPlan.displayName || selectedPlan.name}* plan on Agency CRM.`,
@@ -48,7 +62,7 @@ const Register = () => {
       `📱 Phone: ${form.phone}`,
       ``,
       `*Selected Plan:* ${selectedPlan.displayName || selectedPlan.name} — ${planPrice}`,
-      `*Billing Cycle:* ${isYearly ? 'Yearly' : 'Monthly'}`,
+      `*Billing Cycle:* ${activeMeta.label}`,
       ``,
       `Please help me get started!`,
     ].join('\n');
@@ -83,37 +97,27 @@ const Register = () => {
             <div style={s.section}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                 <label style={s.label}>Select a Plan</label>
-                {plans.some(p => Number(p.yearlyPrice) > 0) && (
-                  <div style={{ display: 'flex', background: '#0a0a17', border: '1px solid #1e1e3a', borderRadius: 20, padding: 3, gap: 3 }}>
-                    <button type="button" onClick={() => setBilling('monthly')} style={{ background: billing === 'monthly' ? 'linear-gradient(135deg,#e94560,#7c3aed)' : 'none', border: 'none', color: '#e2e2f0', fontSize: 12, fontWeight: 600, padding: '5px 14px', borderRadius: 16, cursor: 'pointer' }}>Monthly</button>
-                    <button type="button" onClick={() => setBilling('yearly')} style={{ background: billing === 'yearly' ? 'linear-gradient(135deg,#e94560,#7c3aed)' : 'none', border: 'none', color: '#e2e2f0', fontSize: 12, fontWeight: 600, padding: '5px 14px', borderRadius: 16, cursor: 'pointer' }}>Yearly</button>
+                {availableCycles.length > 1 && (
+                  <div style={{ display: 'flex', background: '#0a0a17', border: '1px solid #1e1e3a', borderRadius: 20, padding: 3, gap: 3, flexWrap: 'wrap' }}>
+                    {availableCycles.map(([key, meta]) => (
+                      <button key={key} type="button" onClick={() => setBilling(key)} style={{ background: billing === key ? 'linear-gradient(135deg,#e94560,#7c3aed)' : 'none', border: 'none', color: '#e2e2f0', fontSize: 12, fontWeight: 600, padding: '5px 14px', borderRadius: 16, cursor: 'pointer' }}>{meta.label}</button>
+                    ))}
                   </div>
                 )}
               </div>
               <div style={s.planGrid}>
-                {plans.map((plan) => {
-                  const showYearly = billing === 'yearly' && Number(plan.yearlyPrice) > 0;
-                  return (
-                    <div
-                      key={plan.id}
-                      style={{ ...s.planCard, ...(selectedPlan?.id === plan.id ? s.planCardActive : {}) }}
-                      onClick={() => setSelectedPlan(plan)}
-                    >
-                      <div style={s.planCardName}>{plan.displayName || plan.name}</div>
-                      <div style={s.planCardPrice}>
-                        {Number(plan.price) === 0
-                          ? 'Free'
-                          : showYearly
-                            ? `₹${Number(plan.yearlyPrice).toLocaleString('en-IN')}/yr`
-                            : `₹${Number(plan.price).toLocaleString('en-IN')}/mo`}
-                      </div>
-                      <div style={s.planCardMeta}>
-                        {plan.maxUsersPerWorkspace} users · {plan.maxLeadsTotal} leads
-                      </div>
-                      {selectedPlan?.id === plan.id && <div style={s.planCardCheck}>✓</div>}
-                    </div>
-                  );
-                })}
+                {plans.map((plan) => (
+                  <div
+                    key={plan.id}
+                    style={{ ...s.planCard, ...(selectedPlan?.id === plan.id ? s.planCardActive : {}) }}
+                    onClick={() => setSelectedPlan(plan)}
+                  >
+                    <div style={s.planCardName}>{plan.displayName || plan.name}</div>
+                    <div style={s.planCardPrice}>{getDisplayPrice(plan)}</div>
+                    <div style={s.planCardMeta}>{plan.maxUsersPerWorkspace} users · {plan.maxLeadsTotal} leads</div>
+                    {selectedPlan?.id === plan.id && <div style={s.planCardCheck}>✓</div>}
+                  </div>
+                ))}
               </div>
             </div>
 

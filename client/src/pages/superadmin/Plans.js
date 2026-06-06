@@ -35,6 +35,8 @@ const Plans = () => {
     setForm({
       displayName: p.displayName || p.name,
       price: p.price,
+      quarterlyPrice: p.quarterlyPrice || 0,
+      halfYearlyPrice: p.halfYearlyPrice || 0,
       yearlyPrice: p.yearlyPrice || 0,
       maxWorkspaces: p.maxWorkspaces,
       maxUsersPerWorkspace: p.maxUsersPerWorkspace,
@@ -76,6 +78,8 @@ const Plans = () => {
                   <div style={{ fontWeight: 800, fontSize: 18, textTransform: 'capitalize' }}>{p.displayName || p.name}</div>
                   <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--accent)', marginTop: 4 }}>
                     {p.price === 0 ? 'Free' : `₹${Number(p.price || 0).toLocaleString('en-IN')}/mo`}
+                  {p.quarterlyPrice > 0 && <div style={{ fontSize: 13, color: '#0ea5e9', marginTop: 2 }}>₹{Number(p.quarterlyPrice).toLocaleString('en-IN')}/qtr</div>}
+                  {p.halfYearlyPrice > 0 && <div style={{ fontSize: 13, color: '#f59e0b', marginTop: 2 }}>₹{Number(p.halfYearlyPrice).toLocaleString('en-IN')}/6mo</div>}
                   {p.yearlyPrice > 0 && <div style={{ fontSize: 13, color: '#22c55e', marginTop: 2 }}>₹{Number(p.yearlyPrice).toLocaleString('en-IN')}/yr</div>}
                   </div>
                 </div>
@@ -109,7 +113,9 @@ const Plans = () => {
                 <div className="form-group"><label className="form-label">Display Name</label><input className="form-control" value={form.displayName} onChange={e => setForm({ ...form, displayName: e.target.value })} /></div>
                 <div className="form-group"><label className="form-label">Monthly Price (₹)</label><input className="form-control" type="number" min="0" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} /></div>
               </div>
-              <div className="form-group"><label className="form-label">Yearly Price (₹) <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>— leave 0 to hide yearly option</span></label><input className="form-control" type="number" min="0" value={form.yearlyPrice} onChange={e => setForm({ ...form, yearlyPrice: e.target.value })} /></div>
+              <div className="form-group"><label className="form-label">Quarterly Price (₹) <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>— leave 0 to hide</span></label><input className="form-control" type="number" min="0" value={form.quarterlyPrice} onChange={e => setForm({ ...form, quarterlyPrice: e.target.value })} /></div>
+              <div className="form-group"><label className="form-label">Half-Yearly Price (₹) <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>— leave 0 to hide</span></label><input className="form-control" type="number" min="0" value={form.halfYearlyPrice} onChange={e => setForm({ ...form, halfYearlyPrice: e.target.value })} /></div>
+              <div className="form-group"><label className="form-label">Yearly Price (₹) <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>— leave 0 to hide</span></label><input className="form-control" type="number" min="0" value={form.yearlyPrice} onChange={e => setForm({ ...form, yearlyPrice: e.target.value })} /></div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
                 <div className="form-group"><label className="form-label">Max Workspaces</label><input className="form-control" type="number" min="1" value={form.maxWorkspaces} onChange={e => setForm({ ...form, maxWorkspaces: e.target.value })} /></div>
                 <div className="form-group"><label className="form-label">Users/Workspace</label><input className="form-control" type="number" min="1" value={form.maxUsersPerWorkspace} onChange={e => setForm({ ...form, maxUsersPerWorkspace: e.target.value })} /></div>

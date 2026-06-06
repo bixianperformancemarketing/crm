@@ -318,7 +318,7 @@ const updatePlan = async (req, res) => {
     const { id } = req.params;
     const plan = await Plan.findByPk(id);
     if (!plan) return res.status(404).json({ success: false, message: 'Plan not found' });
-    const allowed = ['displayName', 'price', 'yearlyPrice', 'maxWorkspaces', 'maxUsersPerWorkspace', 'maxLeadsTotal',
+    const allowed = ['displayName', 'price', 'quarterlyPrice', 'halfYearlyPrice', 'yearlyPrice', 'maxWorkspaces', 'maxUsersPerWorkspace', 'maxLeadsTotal',
       'canUseWebhooks', 'canUsePDF', 'canUseCSVImport', 'canUseContentCalendar', 'canUseAdvancedReports',
       'canUseQuotations', 'canUseInvoices', 'canUseAppointments', 'description'];
     const updates = {};
