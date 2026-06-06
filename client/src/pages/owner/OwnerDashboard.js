@@ -1,18 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import Layout from '../../components/layout/Layout';
-import { orgAPI } from '../../services/api';
+import { orgAPI, reportsAPI } from '../../services/api';
 import { formatCurrency } from '../../utils/helpers';
 import { useAuth } from '../../context/AuthContext';
+
+const MetricCard = ({ label, value, color, sub }) => (
+  <div style={{ background: 'var(--card-bg)', border: `1px solid ${color}33`, borderRadius: 10, padding: '14px 16px' }}>
+    <div style={{ fontSize: 26, fontWeight: 800, color }}>{value}</div>
+    <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500, marginTop: 4 }}>{label}</div>
+    {sub && <div style={{ fontSize: 11, color, marginTop: 2 }}>{sub}</div>}
+  </div>
+);
 
 const OwnerDashboard = () => {
   const { org } = useAuth();
   const [data, setData] = useState(null);
+  const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    orgAPI.getDashboard()
-      .then(({ data: res }) => setData(res))
+    Promise.all([
+      orgAPI.getDashboard(),
+      reportsAPI.getDashboard(),
+    ])
+      .then(([orgRes, metricsRes]) => {
+        setData(orgRes.data);
+        setMetrics(metricsRes.data);
+      })
       .catch(() => toast.error('Failed to load dashboard'))
       .finally(() => setLoading(false));
   }, []);
@@ -69,6 +84,26 @@ const OwnerDashboard = () => {
               </div>
             ))}
           </div>
+
+          {metrics && (
+            <>
+              <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 14 }}>Live Org Metrics</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12, marginBottom: 28 }}>
+                <MetricCard label="Active Leads" value={metrics.stats?.activeLeads ?? 0} color="#6366f1" />
+                <MetricCard label="Total Leads" value={metrics.stats?.totalLeads ?? 0} color="#10b981" />
+                <MetricCard label="Won Leads" value={metrics.stats?.wonLeads ?? 0} color="#22c55e" />
+                <MetricCard label="Hot Leads" value={metrics.stats?.hotLeads ?? 0} color="#ef4444" />
+                <MetricCard label="Total Revenue" value={formatCurrency(metrics.stats?.totalRevenue ?? 0)} color="#22c55e" />
+                <MetricCard label="Pending Revenue" value={formatCurrency(metrics.stats?.pendingRevenue ?? 0)} color="#f59e0b" />
+                <MetricCard label="Overdue Invoices" value={metrics.stats?.overdueInvoices ?? 0} color="#ef4444" />
+                <MetricCard label="Overdue Followups" value={metrics.stats?.overdueFollowups ?? 0} color="#ef4444" />
+                <MetricCard label="Pending Followups" value={metrics.stats?.pendingFollowups ?? 0} color="#f59e0b" />
+                <MetricCard label="Today's Appointments" value={metrics.stats?.todayAppts ?? 0} color="#6366f1" />
+                <MetricCard label="Conversion Rate" value={`${metrics.stats?.conversionRate ?? 0}%`} color="#10b981" />
+                <MetricCard label="Avg Deal Size" value={formatCurrency(metrics.stats?.avgDealSize ?? 0)} color="#a78bfa" />
+              </div>
+            </>
+          )}
 
           {org && (
             <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 12, padding: 22, marginBottom: 24, maxWidth: 500 }}>

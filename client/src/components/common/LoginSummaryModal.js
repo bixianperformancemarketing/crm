@@ -23,7 +23,7 @@ const LoginSummaryModal = () => {
   const [summary, setSummary] = useState(null);
 
   useEffect(() => {
-    if (!user || !['admin', 'employee'].includes(user.role)) return;
+    if (!user || !['admin', 'employee', 'owner'].includes(user.role)) return;
     const key = `briefingShown_${user.id}`;
     if (sessionStorage.getItem(key)) return;
     reportsAPI.getLoginSummary()
@@ -64,7 +64,7 @@ const LoginSummaryModal = () => {
             {greeting()}, {user.name?.split(' ')[0]}
           </div>
           <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>
-            Here's your daily summary
+            {user.role === 'owner' ? "Here's your organisation's daily summary" : "Here's your daily summary"}
           </div>
         </div>
 
