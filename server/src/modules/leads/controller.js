@@ -138,7 +138,8 @@ const createLead = async (req, res) => {
       }
     }
 
-    const leadData = { organizationId: user.organizationId, workspaceId, name, phone, email, source, campaign, priority: priority || 'Medium', status: status || 'New', assignedTo: assignedTo || null, city, clientAddress, clientGST, clientType: clientType || 'Other', nextFollowup, lastCallNote: '', metadata };
+    const resolvedAssignedTo = assignedTo || (user.role === 'employee' ? user.id : null);
+    const leadData = { organizationId: user.organizationId, workspaceId, name, phone, email, source, campaign, priority: priority || 'Medium', status: status || 'New', assignedTo: resolvedAssignedTo, city, clientAddress, clientGST, clientType: clientType || 'Other', nextFollowup, lastCallNote: '', metadata };
     leadData.score = calculateLeadScore(leadData);
     leadData.isHot = isHotLead(leadData);
 
