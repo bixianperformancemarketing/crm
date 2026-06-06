@@ -27,6 +27,7 @@ const Invoices = lazy(() => import('./pages/Invoices'));
 const Payments = lazy(() => import('./pages/Payments'));
 const Content = lazy(() => import('./pages/Content'));
 const Reports = lazy(() => import('./pages/Reports'));
+const TeamActivity = lazy(() => import('./pages/TeamActivity'));
 const Notifications = lazy(() => import('./pages/Notifications'));
 const Users = lazy(() => import('./pages/Users'));
 const Settings = lazy(() => import('./pages/Settings'));
@@ -93,6 +94,7 @@ const AppRoutes = () => (
       <Route path="/payments" element={<PrivateRoute roles={['admin', 'employee', 'owner']}><Payments /></PrivateRoute>} />
       <Route path="/content" element={<PrivateRoute roles={['admin', 'employee', 'owner']}><Content /></PrivateRoute>} />
       <Route path="/reports" element={<PrivateRoute roles={['admin', 'owner']}><Reports /></PrivateRoute>} />
+      <Route path="/team-activity" element={<PrivateRoute roles={['admin', 'owner']}><TeamActivity /></PrivateRoute>} />
       <Route path="/notifications" element={<PrivateRoute roles={['admin', 'employee']}><Notifications /></PrivateRoute>} />
       <Route path="/users" element={<PrivateRoute roles={['admin', 'owner']}><Users /></PrivateRoute>} />
       <Route path="/settings" element={<PrivateRoute roles={['admin', 'owner']}><Settings /></PrivateRoute>} />

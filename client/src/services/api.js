@@ -180,6 +180,12 @@ export const reportsAPI = {
   getAdvanced: (params) => api.get('/reports/advanced', { params }),
 };
 
+// ─── TEAM ACTIVITY ────────────────────────────────────────────────────────
+export const teamActivityAPI = {
+  getSummary: () => api.get('/team-activity/summary'),
+  getFeed: (params) => api.get('/team-activity/feed', { params }),
+};
+
 // ─── NOTIFICATIONS ────────────────────────────────────────────────────────
 export const notificationsAPI = {
   getAll: (params) => api.get('/notifications', { params }),

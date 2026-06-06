@@ -82,6 +82,7 @@ app.use('/api/users', require('./modules/users/routes'));
 app.use('/api/employee-labels', require('./modules/employee-labels/routes'));
 app.use('/api/communication', require('./modules/communication/routes'));
 app.use('/api/meta-integrations', require('./modules/meta-integrations/routes'));
+app.use('/api/team-activity', require('./modules/team-activity/routes'));
 
 // ─── PUBLIC ROUTES (no auth) ──────────────────────────────────────────────
 app.use('/api/public', require('./modules/public/routes'));
