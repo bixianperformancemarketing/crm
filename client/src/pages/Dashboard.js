@@ -110,22 +110,43 @@ const Dashboard = () => {
         </div>
       )}
 
-      <div className="stats-grid">
-        {canAccessLeads && leadStatCards.map((s) => (
-          <div className="stat-card" key={s.label}>
-            <div className="stat-icon">{s.icon}</div>
-            <div className="stat-value" style={{ color: s.color }}>{s.value}</div>
-            <div className="stat-label">{s.label}</div>
+      {canAccessLeads && (
+        <div style={{ marginBottom: 24 }}>
+          {canUseTasks && (
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
+              Leads & Revenue
+            </div>
+          )}
+          <div className="stats-grid">
+            {leadStatCards.map((s) => (
+              <div className="stat-card" key={s.label}>
+                <div className="stat-icon">{s.icon}</div>
+                <div className="stat-value" style={{ color: s.color }}>{s.value}</div>
+                <div className="stat-label">{s.label}</div>
+              </div>
+            ))}
           </div>
-        ))}
-        {canUseTasks && taskStatCards.map((s) => (
-          <div className="stat-card" key={s.label}>
-            <div className="stat-icon">{s.icon}</div>
-            <div className="stat-value" style={{ color: s.color }}>{s.value}</div>
-            <div className="stat-label">{s.label}</div>
+        </div>
+      )}
+
+      {canUseTasks && (
+        <div style={{ marginBottom: 24 }}>
+          {canAccessLeads && (
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
+              Tasks
+            </div>
+          )}
+          <div className="stats-grid">
+            {taskStatCards.map((s) => (
+              <div className="stat-card" key={s.label}>
+                <div className="stat-icon">{s.icon}</div>
+                <div className="stat-value" style={{ color: s.color }}>{s.value}</div>
+                <div className="stat-label">{s.label}</div>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </div>
+      )}
 
       {canAccessLeads && (
         <div className="charts-grid">
