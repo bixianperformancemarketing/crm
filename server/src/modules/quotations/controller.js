@@ -123,6 +123,7 @@ const createQuotation = async (req, res) => {
     await QuotationItem.bulkCreate(itemsData);
 
     if (lead?.id) {
+      if (leadId) await lead.update({ status: 'Quotation' });
       await LeadActivity.create({
         leadId: lead.id, organizationId: user.organizationId, workspaceId,
         userId: user.id, type: 'quotation_created',
