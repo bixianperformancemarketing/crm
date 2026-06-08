@@ -174,6 +174,29 @@ const updateWorkspace = async (req, res) => {
   }
 };
 
+const removeUserFromWorkspace = async (req, res) => {
+  try {
+    const { workspaceId, userId } = req.params;
+    const orgId = req.user.organizationId;
+
+    const ws = await Workspace.findOne({ where: { id: workspaceId, organizationId: orgId } });
+    if (!ws) return res.status(404).json({ success: false, message: 'Workspace not found' });
+
+    const target = await User.findOne({ where: { id: userId, organizationId: orgId, workspaceId } });
+    if (!target) return res.status(404).json({ success: false, message: 'User not found in this workspace' });
+
+    if (target.role === 'owner') {
+      return res.status(400).json({ success: false, message: 'Cannot remove the owner from a workspace' });
+    }
+
+    await target.update({ workspaceId: null });
+    res.json({ success: true, message: 'User removed from workspace' });
+  } catch (err) {
+    console.error('removeUserFromWorkspace error:', err);
+    res.status(500).json({ success: false, message: 'Failed to remove user from workspace' });
+  }
+};
+
 const deleteWorkspace = async (req, res) => {
   try {
     const { id } = req.params;
@@ -351,7 +374,7 @@ const deleteWebhookRoute = async (req, res) => {
 };
 
 module.exports = {
-  getOwnerDashboard, getWorkspaces, createWorkspace, getWorkspaceById, updateWorkspace, deleteWorkspace,
+  getOwnerDashboard, getWorkspaces, createWorkspace, getWorkspaceById, updateWorkspace, deleteWorkspace, removeUserFromWorkspace,
   getOrgReports, getOrgSettings, updateOrgSettings,
   getWebhookWorkspaces, getWebhookRoutes, createWebhookRoute, updateWebhookRoute, deleteWebhookRoute,
 };

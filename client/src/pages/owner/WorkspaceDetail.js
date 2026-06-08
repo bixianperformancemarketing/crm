@@ -15,6 +15,8 @@ const WorkspaceDetail = () => {
   const [editForm, setEditForm] = useState({ name: '', description: '' });
   const [saving, setSaving] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
+  const [removingUser, setRemovingUser] = useState(null);
+  const [removing, setRemoving] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -65,6 +67,18 @@ const WorkspaceDetail = () => {
       toast.error(err.response?.data?.message || 'Failed to delete workspace');
       setShowDelete(false);
     } finally { setSaving(false); }
+  };
+
+  const handleRemoveUser = async () => {
+    setRemoving(true);
+    try {
+      await orgAPI.removeUserFromWorkspace(id, removingUser.id);
+      toast.success(`${removingUser.name} removed from workspace`);
+      setRemovingUser(null);
+      load();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to remove user');
+    } finally { setRemoving(false); }
   };
 
   const ROLE_COLORS = { admin: '#7c3aed', agent: '#0ea5e9', designer: '#f59e0b', owner: '#e94560' };
@@ -154,7 +168,7 @@ const WorkspaceDetail = () => {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                {['Name', 'Email', 'Role', 'Status', 'Joined'].map(h => (
+                {['Name', 'Email', 'Role', 'Status', 'Joined', ''].map(h => (
                   <th key={h} style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--text-muted)', fontWeight: 600, fontSize: 12 }}>{h}</th>
                 ))}
               </tr>
@@ -177,12 +191,46 @@ const WorkspaceDetail = () => {
                   <td style={{ padding: '10px 12px', color: 'var(--text-muted)' }}>
                     {new Date(u.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </td>
+                  <td style={{ padding: '10px 12px' }}>
+                    {u.role !== 'owner' && (
+                      <button
+                        style={{ fontSize: 12, padding: '3px 10px', borderRadius: 6, border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.07)', color: '#ef4444', cursor: 'pointer' }}
+                        onClick={() => setRemovingUser(u)}
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
       </div>
+
+      {/* Remove User Confirmation Modal */}
+      {removingUser && (
+        <div className="modal-overlay" onClick={() => setRemovingUser(null)}>
+          <div className="modal" style={{ maxWidth: 400 }} onClick={e => e.stopPropagation()}>
+            <h3>Remove User from Workspace</h3>
+            <button className="modal-close" onClick={() => setRemovingUser(null)}>×</button>
+            <div style={{ marginBottom: 20, fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+              Remove <strong style={{ color: 'var(--text)' }}>{removingUser.name}</strong> from this workspace?
+              <br />Their account will remain in the organisation but they will no longer be assigned here.
+            </div>
+            <div className="modal-actions">
+              <button className="btn btn-ghost" onClick={() => setRemovingUser(null)}>Cancel</button>
+              <button
+                style={{ background: '#ef4444', color: '#fff', border: 'none', borderRadius: 6, padding: '7px 16px', cursor: 'pointer', fontSize: 13 }}
+                disabled={removing}
+                onClick={handleRemoveUser}
+              >
+                {removing ? 'Removing...' : 'Remove User'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Delete Confirmation Modal */}
       {showDelete && (

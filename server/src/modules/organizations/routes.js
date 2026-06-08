@@ -10,6 +10,7 @@ router.post('/workspaces', requireRole('owner'), ctrl.createWorkspace);
 router.get('/workspaces/:id', requireRole('owner'), ctrl.getWorkspaceById);
 router.put('/workspaces/:id', requireRole('owner'), ctrl.updateWorkspace);
 router.delete('/workspaces/:id', requireRole('owner'), ctrl.deleteWorkspace);
+router.delete('/workspaces/:workspaceId/users/:userId', requireRole('owner'), ctrl.removeUserFromWorkspace);
 router.get('/reports', requireRole('owner'), ctrl.getOrgReports);
 router.get('/settings', requireRole('owner', 'admin'), ctrl.getOrgSettings);
 router.put('/settings', requireRole('owner'), ctrl.updateOrgSettings);

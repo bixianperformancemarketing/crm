@@ -79,6 +79,7 @@ export const orgAPI = {
   createWebhookRoute: (data) => api.post('/organizations/webhook-routes', data),
   updateWebhookRoute: (id, data) => api.put(`/organizations/webhook-routes/${id}`, data),
   deleteWebhookRoute: (id) => api.delete(`/organizations/webhook-routes/${id}`),
+  removeUserFromWorkspace: (workspaceId, userId) => api.delete(`/organizations/workspaces/${workspaceId}/users/${userId}`),
 };
 
 // ─── WORKSPACE ────────────────────────────────────────────────────────────
