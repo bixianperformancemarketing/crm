@@ -60,19 +60,34 @@ const createUser = async (req, res) => {
     }
 
     const existing = await User.findOne({ where: { email: email.toLowerCase(), organizationId: user.organizationId } });
-    if (existing) return res.status(400).json({ success: false, message: 'Email already exists in this organization' });
+    if (existing && existing.isActive) {
+      return res.status(400).json({ success: false, message: 'Email already exists in this organization' });
+    }
 
     const hash = await bcrypt.hash(password, 12);
-    const newUser = await User.create({
-      organizationId: user.organizationId,
-      workspaceId,
-      name, email: email.toLowerCase(), password: hash, role, label: label || null,
-      phone: phone || null,
-      canUseContentCalendar: role === 'employee' ? !!canUseContentCalendar : false,
-      isActive: true,
-    });
 
-    const { password: _, ...userWithoutPassword } = newUser.toJSON();
+    let savedUser;
+    if (existing && !existing.isActive) {
+      await existing.update({
+        workspaceId,
+        name, password: hash, role, label: label || null,
+        phone: phone || null,
+        canUseContentCalendar: role === 'employee' ? !!canUseContentCalendar : false,
+        isActive: true,
+      });
+      savedUser = existing;
+    } else {
+      savedUser = await User.create({
+        organizationId: user.organizationId,
+        workspaceId,
+        name, email: email.toLowerCase(), password: hash, role, label: label || null,
+        phone: phone || null,
+        canUseContentCalendar: role === 'employee' ? !!canUseContentCalendar : false,
+        isActive: true,
+      });
+    }
+
+    const { password: _, ...userWithoutPassword } = savedUser.toJSON();
     res.status(201).json({ success: true, message: 'User created', user: userWithoutPassword });
   } catch (err) {
     console.error('createUser error:', err);
