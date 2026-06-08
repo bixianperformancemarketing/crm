@@ -31,10 +31,12 @@ const getLoginSummary = async (req, res) => {
       pendingQuotations,
       todayAppointments,
       totalTasks,
-      pendingTasks,
+      overviewTasks,
+      todoTodayTasks,
       inProgressTasks,
       reviewTasks,
-      doneTasks,
+      approvedTasks,
+      notApprovedTasks,
     ] = await Promise.all([
       canAccessLeads ? Followup.findAll({
         where: { ...fupWhere, status: { [Op.in]: ['pending', 'overdue'] }, scheduledAt: { [Op.lt]: now } },
@@ -63,10 +65,12 @@ const getLoginSummary = async (req, res) => {
         order: [['startTime', 'ASC']], limit: 5,
       }) : emptyArr,
       canUseTasks ? ContentTask.count({ where: contentWhere }) : zero,
-      canUseTasks ? ContentTask.count({ where: { ...contentWhere, status: 'Pending' } }) : zero,
+      canUseTasks ? ContentTask.count({ where: { ...contentWhere, status: 'Overview' } }) : zero,
+      canUseTasks ? ContentTask.count({ where: { ...contentWhere, status: 'To Do Today' } }) : zero,
       canUseTasks ? ContentTask.count({ where: { ...contentWhere, status: 'In Progress' } }) : zero,
       canUseTasks ? ContentTask.count({ where: { ...contentWhere, status: 'Review' } }) : zero,
-      canUseTasks ? ContentTask.count({ where: { ...contentWhere, status: 'Done' } }) : zero,
+      canUseTasks ? ContentTask.count({ where: { ...contentWhere, status: 'Approved' } }) : zero,
+      canUseTasks ? ContentTask.count({ where: { ...contentWhere, status: 'Not Approved' } }) : zero,
     ]);
 
     res.json({
@@ -75,7 +79,7 @@ const getLoginSummary = async (req, res) => {
         overdueFollowups, todayFollowups, completedFollowupsToday,
         activeLeads, newLeads, convertedToday,
         pendingQuotations, todayAppointments,
-        totalTasks, pendingTasks, inProgressTasks, reviewTasks, doneTasks,
+        totalTasks, overviewTasks, todoTodayTasks, inProgressTasks, reviewTasks, approvedTasks, notApprovedTasks,
       },
     });
   } catch (err) {
@@ -106,7 +110,7 @@ const getDashboard = async (req, res) => {
       totalRevenue, pendingRevenue, overdueInvoices,
       pendingFollowups, overdueFollowups, todayAppts,
       recentLeads,
-      totalTasks, pendingTasks, inProgressTasks, reviewTasks, doneTasks,
+      totalTasks, overviewTasks, todoTodayTasks, inProgressTasks, reviewTasks, approvedTasks, notApprovedTasks,
     ] = await Promise.all([
       canAccessLeads ? Lead.count({ where: leadWhere }) : zero,
       canAccessLeads ? Lead.count({ where: { ...leadWhere, status: { [Op.notIn]: ['Won', 'Lost'] } } }) : zero,
@@ -120,10 +124,12 @@ const getDashboard = async (req, res) => {
       canAccessLeads ? Appointment.count({ where: { ...baseWhere, startTime: { [Op.between]: [startOfTodayIST(), endOfTodayIST()] }, status: 'Scheduled' } }) : zero,
       canAccessLeads ? Lead.findAll({ where: leadWhere, order: [['createdAt', 'DESC']], limit: 5, attributes: ['id', 'name', 'status', 'priority', 'source', 'createdAt'] }) : emptyArr,
       canUseTasks ? ContentTask.count({ where: taskWhere }) : zero,
-      canUseTasks ? ContentTask.count({ where: { ...taskWhere, status: 'Pending' } }) : zero,
+      canUseTasks ? ContentTask.count({ where: { ...taskWhere, status: 'Overview' } }) : zero,
+      canUseTasks ? ContentTask.count({ where: { ...taskWhere, status: 'To Do Today' } }) : zero,
       canUseTasks ? ContentTask.count({ where: { ...taskWhere, status: 'In Progress' } }) : zero,
       canUseTasks ? ContentTask.count({ where: { ...taskWhere, status: 'Review' } }) : zero,
-      canUseTasks ? ContentTask.count({ where: { ...taskWhere, status: 'Done' } }) : zero,
+      canUseTasks ? ContentTask.count({ where: { ...taskWhere, status: 'Approved' } }) : zero,
+      canUseTasks ? ContentTask.count({ where: { ...taskWhere, status: 'Not Approved' } }) : zero,
     ]);
 
     const conversionRate = canAccessLeads && totalLeads > 0 ? Math.round((wonLeads / totalLeads) * 100) : 0;
@@ -188,7 +194,7 @@ const getDashboard = async (req, res) => {
         pendingRevenue: parseFloat(pendingRevenue) || 0,
         overdueInvoices, pendingFollowups, overdueFollowups, todayAppts,
         conversionRate, avgDealSize: Math.round(avgDealSize),
-        totalTasks, pendingTasks, inProgressTasks, reviewTasks, doneTasks,
+        totalTasks, overviewTasks, todoTodayTasks, inProgressTasks, reviewTasks, approvedTasks, notApprovedTasks,
       },
       charts: { monthlyRevenue, leadByStatus, leadBySource, leadVolume },
       todayFollowups,

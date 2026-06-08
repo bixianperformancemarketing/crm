@@ -6,12 +6,14 @@ import { contentAPI } from '../services/api';
 import { getPriorityColor, getInitials } from '../utils/helpers';
 import './Pipeline.css';
 
-const COLUMNS = ['Pending', 'In Progress', 'Review', 'Done'];
+const COLUMNS = ['Overview', 'To Do Today', 'In Progress', 'Review', 'Approved', 'Not Approved'];
 const COL_COLORS = {
-  Pending: '#f59e0b',
-  'In Progress': '#0ea5e9',
-  Review: '#7c3aed',
-  Done: '#22c55e',
+  Overview: '#6b7280',
+  'To Do Today': '#0ea5e9',
+  'In Progress': '#a78bfa',
+  Review: '#f59e0b',
+  Approved: '#22c55e',
+  'Not Approved': '#ef4444',
 };
 
 const fmtDate = (d) => {

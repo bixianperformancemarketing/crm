@@ -8,8 +8,8 @@ import { formatDate } from '../utils/helpers';
 import { useAuth } from '../context/AuthContext';
 import './Content.css';
 
-const STATUS_COLORS = { 'Pending': '#6b7280', 'In Progress': '#0ea5e9', 'Review': '#f59e0b', 'Done': '#22c55e', 'Cancelled': '#ef4444' };
-const CHIP_CLASS = { 'Pending': '', 'In Progress': 'status-in-progress', 'Review': 'status-review', 'Done': 'status-done', 'Cancelled': '' };
+const STATUS_COLORS = { 'Overview': '#6b7280', 'To Do Today': '#0ea5e9', 'In Progress': '#a78bfa', 'Review': '#f59e0b', 'Approved': '#22c55e', 'Not Approved': '#ef4444' };
+const CHIP_CLASS = { 'Overview': '', 'To Do Today': 'status-todo-today', 'In Progress': 'status-in-progress', 'Review': 'status-review', 'Approved': 'status-approved', 'Not Approved': 'status-not-approved' };
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -169,7 +169,7 @@ const Content = () => {
       {view === 'list' && (
         <>
           <div className="content-filter-bar" style={{ marginBottom: 16 }}>
-            {['', 'Pending', 'In Progress', 'Review', 'Done', 'Cancelled'].map((s) => (
+            {['', 'Overview', 'To Do Today', 'In Progress', 'Review', 'Approved', 'Not Approved'].map((s) => (
               <button key={s || 'all'} onClick={() => { setStatusFilter(s); setPage(1); }}
                 style={{ padding: '5px 12px', borderRadius: 7, background: statusFilter === s ? 'var(--accent)' : 'var(--card-bg)', border: '1px solid var(--border)', color: statusFilter === s ? '#fff' : 'var(--text-muted)', fontSize: 12, cursor: 'pointer' }}>
                 {s || 'All'}
@@ -195,7 +195,7 @@ const Content = () => {
                           {canManage && (
                             <select value={t.status} onChange={(e) => handleStatusChange(t.id, e.target.value)}
                               style={{ fontSize: 11, background: 'var(--card-bg)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 4, padding: '2px 4px', cursor: 'pointer' }}>
-                              {['Pending', 'In Progress', 'Review', 'Done', 'Cancelled'].map(s => <option key={s}>{s}</option>)}
+                              {['Overview', 'To Do Today', 'In Progress', 'Review', 'Approved', 'Not Approved'].map(s => <option key={s}>{s}</option>)}
                             </select>
                           )}
                         </td>
@@ -259,7 +259,7 @@ const Content = () => {
             </div>
             {showTask.notes && <div style={{ background: '#0a0a17', borderRadius: 8, padding: 12, fontSize: 13, marginBottom: 16, color: 'var(--text-muted)' }}>{showTask.notes}</div>}
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
-              {['Pending', 'In Progress', 'Review', 'Done', 'Cancelled'].filter(s => s !== showTask.status).map(s => (
+              {['Overview', 'To Do Today', 'In Progress', 'Review', 'Approved', 'Not Approved'].filter(s => s !== showTask.status).map(s => (
                 <button key={s} className="btn btn-ghost btn-sm" onClick={() => handleStatusChange(showTask.id, s)}>→ {s}</button>
               ))}
             </div>

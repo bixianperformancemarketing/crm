@@ -18,9 +18,11 @@
 .cal-cell.today .cal-date { color: var(--accent); font-weight: 800; }
 .cal-task-chip { background: rgba(124,58,237,0.2); color: #a78bfa; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; border: 1px solid transparent; transition: all 0.15s; }
 .cal-task-chip:hover { border-color: #7c3aed; background: rgba(124,58,237,0.35); }
-.cal-task-chip.status-done { background: rgba(34,197,94,0.15); color: #22c55e; }
-.cal-task-chip.status-in-progress { background: rgba(14,165,233,0.15); color: #0ea5e9; }
+.cal-task-chip.status-todo-today { background: rgba(14,165,233,0.15); color: #0ea5e9; }
+.cal-task-chip.status-in-progress { background: rgba(167,139,250,0.15); color: #a78bfa; }
 .cal-task-chip.status-review { background: rgba(245,158,11,0.15); color: #f59e0b; }
+.cal-task-chip.status-approved { background: rgba(34,197,94,0.15); color: #22c55e; }
+.cal-task-chip.status-not-approved { background: rgba(239,68,68,0.15); color: #ef4444; }
 .cal-more { font-size: 10px; color: var(--text-muted); cursor: pointer; padding: 1px 4px; }
 .cal-more:hover { color: var(--accent); }
 

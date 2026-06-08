@@ -55,10 +55,12 @@ const LoginSummaryModal = () => {
   const pendingQuotations       = summary.pendingQuotations       ?? 0;
   const todayAppointments       = summary.todayAppointments       || [];
   const totalTasks              = summary.totalTasks              ?? 0;
-  const pendingTasks            = summary.pendingTasks            ?? 0;
+  const overviewTasks           = summary.overviewTasks           ?? 0;
+  const todoTodayTasks          = summary.todoTodayTasks          ?? 0;
   const inProgressTasks         = summary.inProgressTasks         ?? 0;
   const reviewTasks             = summary.reviewTasks             ?? 0;
-  const doneTasks               = summary.doneTasks               ?? 0;
+  const approvedTasks           = summary.approvedTasks           ?? 0;
+  const notApprovedTasks        = summary.notApprovedTasks        ?? 0;
 
   const greeting = () => {
     const h = new Date().getHours();
@@ -102,10 +104,12 @@ const LoginSummaryModal = () => {
             <SectionLabel>Tasks</SectionLabel>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
               <Metric label="Total Tasks" value={totalTasks} color="#a78bfa" />
-              <Metric label="Pending" value={pendingTasks} color="#f59e0b" />
-              <Metric label="In Progress" value={inProgressTasks} color="#0ea5e9" />
-              <Metric label="In Review" value={reviewTasks} color="#7c3aed" />
-              <Metric label="Done" value={doneTasks} color="#22c55e" />
+              <Metric label="Overview" value={overviewTasks} color="#6b7280" />
+              <Metric label="To Do Today" value={todoTodayTasks} color="#0ea5e9" />
+              <Metric label="In Progress" value={inProgressTasks} color="#a78bfa" />
+              <Metric label="In Review" value={reviewTasks} color="#f59e0b" />
+              <Metric label="Approved" value={approvedTasks} color="#22c55e" />
+              <Metric label="Not Approved" value={notApprovedTasks} color="#ef4444" />
             </div>
           </div>
         )}
