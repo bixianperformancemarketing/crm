@@ -388,8 +388,8 @@ const ContentTask = sequelize.define('ContentTask', {
     defaultValue: 'Medium',
   },
   status: {
-    type: DataTypes.ENUM('Pending', 'In Progress', 'Review', 'Approved', 'Published', 'Rejected', 'Done', 'Cancelled'),
-    defaultValue: 'Pending',
+    type: DataTypes.ENUM('Overview', 'To Do Today', 'In Progress', 'Review', 'Approved', 'Not Approved', 'Pending', 'Done', 'Cancelled'),
+    defaultValue: 'Overview',
   },
   dueDate: { type: DataTypes.DATEONLY },
   dueTime: { type: DataTypes.STRING(5), allowNull: true },
@@ -631,9 +631,9 @@ const syncDatabase = async () => {
       await sequelize.query(`ALTER TABLE quotations MODIFY status ENUM('Draft','Sent','Approved','Rejected','Not Responding') NOT NULL DEFAULT 'Draft'`);
     } catch (e) { /* ignore */ }
 
-    // Expand content_tasks status ENUM to include 'Done' and 'Cancelled'
+    // Expand content_tasks status ENUM to include new workflow statuses
     try {
-      await sequelize.query(`ALTER TABLE content_tasks MODIFY status ENUM('Pending','In Progress','Review','Approved','Published','Rejected','Done','Cancelled') NOT NULL DEFAULT 'Pending'`);
+      await sequelize.query(`ALTER TABLE content_tasks MODIFY status ENUM('Overview','To Do Today','In Progress','Review','Approved','Not Approved','Pending','Done','Cancelled') NOT NULL DEFAULT 'Overview'`);
     } catch (e) { /* ignore */ }
 
     // Add priority and dueTime columns to content_tasks if missing
