@@ -392,6 +392,7 @@ const ContentTask = sequelize.define('ContentTask', {
     defaultValue: 'Pending',
   },
   dueDate: { type: DataTypes.DATEONLY },
+  dueTime: { type: DataTypes.STRING(5), allowNull: true },
   notes: { type: DataTypes.TEXT },
 }, { tableName: 'content_tasks' });
 
@@ -635,11 +636,14 @@ const syncDatabase = async () => {
       await sequelize.query(`ALTER TABLE content_tasks MODIFY status ENUM('Pending','In Progress','Review','Approved','Published','Rejected','Done','Cancelled') NOT NULL DEFAULT 'Pending'`);
     } catch (e) { /* ignore */ }
 
-    // Add priority column to content_tasks if missing
+    // Add priority and dueTime columns to content_tasks if missing
     try {
       const ctCols = await qi.describeTable('content_tasks');
       if (!ctCols.priority) {
         await qi.addColumn('content_tasks', 'priority', { type: DataTypes.ENUM('Low', 'Medium', 'High'), defaultValue: 'Medium', allowNull: true });
+      }
+      if (!ctCols.dueTime) {
+        await qi.addColumn('content_tasks', 'dueTime', { type: DataTypes.STRING(5), allowNull: true });
       }
     } catch (e) { /* ignore */ }
 

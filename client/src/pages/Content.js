@@ -13,7 +13,14 @@ const CHIP_CLASS = { 'Pending': '', 'In Progress': 'status-in-progress', 'Review
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-const emptyForm = () => ({ title: '', description: '', dueDate: '', assignedTo: '', workspaceId: '', priority: 'Medium', notes: '' });
+const emptyForm = () => ({ title: '', description: '', dueDate: '', dueTime: '', assignedTo: '', workspaceId: '', priority: 'Medium', notes: '' });
+
+const fmtDueTime = (t) => {
+  if (!t) return '';
+  const [h, m] = t.split(':').map(Number);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${ampm}`;
+};
 
 const Content = () => {
   const { org, isRole } = useAuth();
@@ -181,7 +188,7 @@ const Content = () => {
                       <tr key={t.id} style={{ cursor: 'pointer' }} onClick={() => setShowTask(t)}>
                         <td style={{ fontWeight: 500 }}>{t.title}{t.description && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{t.description}</div>}</td>
                         <td style={{ fontSize: 12 }}>{t.assignee?.name || '—'}</td>
-                        <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t.dueDate ? formatDate(t.dueDate) : '—'}</td>
+                        <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t.dueDate ? `${formatDate(t.dueDate)}${t.dueTime ? ` ${fmtDueTime(t.dueTime)}` : ''}` : '—'}</td>
                         <td><span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: t.priority === 'High' ? 'rgba(239,68,68,0.15)' : t.priority === 'Medium' ? 'rgba(245,158,11,0.15)' : 'rgba(107,114,128,0.15)', color: t.priority === 'High' ? '#ef4444' : t.priority === 'Medium' ? '#f59e0b' : '#6b7280' }}>{t.priority}</span></td>
                         <td><span className="task-status-badge" style={{ background: `${STATUS_COLORS[t.status]}22`, color: STATUS_COLORS[t.status] }}>{t.status}</span></td>
                         <td onClick={(e) => e.stopPropagation()}>
@@ -246,7 +253,7 @@ const Content = () => {
             <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 8 }}>{showTask.title}</div>
             {showTask.description && <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 12 }}>{showTask.description}</div>}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px', fontSize: 13, marginBottom: 16 }}>
-              <div><span style={{ color: 'var(--text-muted)' }}>Due Date:</span> {showTask.dueDate ? formatDate(showTask.dueDate) : '—'}</div>
+              <div><span style={{ color: 'var(--text-muted)' }}>Due Date & Time:</span> {showTask.dueDate ? `${formatDate(showTask.dueDate)}${showTask.dueTime ? ` at ${fmtDueTime(showTask.dueTime)}` : ''}` : '—'}</div>
               <div><span style={{ color: 'var(--text-muted)' }}>Assigned To:</span> {showTask.assignee?.name || '—'}</div>
               {showTask.creator && <div><span style={{ color: 'var(--text-muted)' }}>Created By:</span> {showTask.creator.name}</div>}
             </div>
@@ -274,6 +281,9 @@ const Content = () => {
               <div className="form-group"><label className="form-label">Description</label><textarea className="form-control" rows={2} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="What needs to be done..." /></div>
               <div className="form-row">
                 <div className="form-group"><label className="form-label">Due Date *</label><input className="form-control" type="date" value={form.dueDate} onChange={e => setForm({ ...form, dueDate: e.target.value })} /></div>
+                <div className="form-group"><label className="form-label">Due Time</label><input className="form-control" type="time" value={form.dueTime} onChange={e => setForm({ ...form, dueTime: e.target.value })} /></div>
+              </div>
+              <div className="form-row">
                 <div className="form-group">
                   <label className="form-label">Priority</label>
                   <select className="form-control" value={form.priority} onChange={e => setForm({ ...form, priority: e.target.value })}>

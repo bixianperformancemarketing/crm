@@ -92,7 +92,7 @@ const createTask = async (req, res) => {
   try {
     const { user, workspaceId } = req;
     if (!workspaceId) return res.status(400).json({ success: false, message: 'Workspace context required for this action' });
-    const { leadId, title, description, assignedTo, dueDate, priority, notes } = req.body;
+    const { leadId, title, description, assignedTo, dueDate, dueTime, priority, notes } = req.body;
     if (!title) return res.status(400).json({ success: false, message: 'Title is required' });
 
     const task = await ContentTask.create({
@@ -100,7 +100,7 @@ const createTask = async (req, res) => {
       leadId: leadId || null, assignedTo: assignedTo || null, createdBy: user.id,
       title, description: description || '',
       priority: priority || 'Medium', status: 'Pending',
-      dueDate: dueDate || null, notes: notes || '',
+      dueDate: dueDate || null, dueTime: dueTime || null, notes: notes || '',
     });
     res.status(201).json({ success: true, message: 'Content task created', task });
   } catch (err) {
@@ -119,7 +119,7 @@ const updateTask = async (req, res) => {
     const task = await ContentTask.findOne({ where });
     if (!task) return res.status(404).json({ success: false, message: 'Task not found' });
 
-    const allowed = ['title', 'description', 'priority', 'status', 'assignedTo', 'dueDate', 'notes'];
+    const allowed = ['title', 'description', 'priority', 'status', 'assignedTo', 'dueDate', 'dueTime', 'notes'];
     const updates = {};
     for (const k of allowed) { if (req.body[k] !== undefined) updates[k] = req.body[k]; }
     await task.update(updates);
