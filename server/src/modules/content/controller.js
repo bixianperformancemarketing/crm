@@ -143,4 +143,32 @@ const deleteTask = async (req, res) => {
   }
 };
 
-module.exports = { getTasks, getCalendarTasks, getTask, createTask, updateTask, deleteTask };
+const getTaskPipeline = async (req, res) => {
+  try {
+    const { user, workspaceId } = req;
+    const ws = workspaceId ? { workspaceId } : {};
+    const where = { organizationId: user.organizationId, ...ws };
+    if (user.role === 'employee') where.assignedTo = user.id;
+
+    const tasks = await ContentTask.findAll({
+      where,
+      include: [
+        { model: User, as: 'assignee', attributes: ['id', 'name', 'avatar'], required: false },
+        { model: Lead, as: 'lead', attributes: ['id', 'name'], required: false },
+      ],
+      order: [['dueDate', 'ASC'], ['createdAt', 'DESC']],
+    });
+
+    const columns = ['Pending', 'In Progress', 'Review', 'Done'];
+    const pipeline = {};
+    columns.forEach((col) => { pipeline[col] = []; });
+    tasks.forEach((task) => { if (pipeline[task.status]) pipeline[task.status].push(task); });
+
+    res.json({ success: true, pipeline, columns });
+  } catch (err) {
+    console.error('getTaskPipeline error:', err);
+    res.status(500).json({ success: false, message: 'Failed to fetch task pipeline' });
+  }
+};
+
+module.exports = { getTasks, getCalendarTasks, getTask, createTask, updateTask, deleteTask, getTaskPipeline };

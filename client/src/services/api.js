@@ -168,6 +168,7 @@ export const paymentsAPI = {
 export const contentAPI = {
   getAll: (params) => api.get('/content', { params }),
   getCalendar: (params) => api.get('/content/calendar', { params }),
+  getPipeline: () => api.get('/content/pipeline'),
   get: (id) => api.get(`/content/${id}`),
   create: (data) => api.post('/content', data),
   update: (id, data) => api.put(`/content/${id}`, data),

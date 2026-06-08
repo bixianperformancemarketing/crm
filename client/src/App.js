@@ -20,6 +20,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Leads = lazy(() => import('./pages/Leads'));
 const LeadDetail = lazy(() => import('./pages/LeadDetail'));
 const Pipeline = lazy(() => import('./pages/Pipeline'));
+const TasksPipeline = lazy(() => import('./pages/TasksPipeline'));
 const Followups = lazy(() => import('./pages/Followups'));
 const Appointments = lazy(() => import('./pages/Appointments'));
 const Quotations = lazy(() => import('./pages/Quotations'));
@@ -87,6 +88,7 @@ const AppRoutes = () => (
       <Route path="/leads" element={<PrivateRoute roles={['admin', 'employee', 'owner']}><Leads /></PrivateRoute>} />
       <Route path="/leads/:id" element={<PrivateRoute roles={['admin', 'employee', 'owner']}><LeadDetail /></PrivateRoute>} />
       <Route path="/pipeline" element={<PrivateRoute roles={['admin', 'employee', 'owner']}><Pipeline /></PrivateRoute>} />
+      <Route path="/tasks-pipeline" element={<PrivateRoute roles={['admin', 'employee', 'owner']}><TasksPipeline /></PrivateRoute>} />
       <Route path="/followups" element={<PrivateRoute roles={['admin', 'employee', 'owner']}><Followups /></PrivateRoute>} />
       <Route path="/appointments" element={<PrivateRoute roles={['admin', 'employee', 'owner']}><Appointments /></PrivateRoute>} />
       <Route path="/quotations" element={<PrivateRoute roles={['admin', 'employee', 'owner']}><Quotations /></PrivateRoute>} />

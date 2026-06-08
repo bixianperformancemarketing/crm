@@ -46,12 +46,12 @@ const Pipeline = () => {
     }
   };
 
-  if (loading) return <Layout title="Pipeline"><div className="loading-spinner"><div className="spinner" /></div></Layout>;
+  if (loading) return <Layout title="Leads Pipeline"><div className="loading-spinner"><div className="spinner" /></div></Layout>;
 
   return (
-    <Layout title="Pipeline">
+    <Layout title="Leads Pipeline">
       <div className="page-header">
-        <div className="page-title">Sales Pipeline</div>
+        <div className="page-title">Leads Pipeline</div>
         <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Drag cards to update status</div>
       </div>
 

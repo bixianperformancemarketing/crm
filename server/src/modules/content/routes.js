@@ -8,6 +8,7 @@ router.use(authenticate, scopeTenant, requireWorkspace, checkFeature('canUseCont
 
 router.get('/', ctrl.getTasks);
 router.get('/calendar', ctrl.getCalendarTasks);
+router.get('/pipeline', ctrl.getTaskPipeline);
 router.get('/:id', ctrl.getTask);
 router.post('/', requireRole('admin', 'employee', 'owner'), ctrl.createTask);
 router.put('/:id', ctrl.updateTask);
