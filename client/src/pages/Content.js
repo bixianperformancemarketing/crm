@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 import Layout from '../components/layout/Layout';
 import Pagination from '../components/common/Pagination';
 import UpgradeModal from '../components/common/UpgradeModal';
-import { contentAPI, usersAPI } from '../services/api';
+import { contentAPI, usersAPI, orgAPI } from '../services/api';
 import { formatDate } from '../utils/helpers';
 import { useAuth } from '../context/AuthContext';
 import './Content.css';
@@ -13,7 +13,7 @@ const CHIP_CLASS = { 'Pending': '', 'In Progress': 'status-in-progress', 'Review
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-const emptyForm = () => ({ title: '', description: '', dueDate: '', assignedTo: '', priority: 'Medium', notes: '' });
+const emptyForm = () => ({ title: '', description: '', dueDate: '', assignedTo: '', workspaceId: '', priority: 'Medium', notes: '' });
 
 const Content = () => {
   const { org, isRole } = useAuth();
@@ -31,6 +31,7 @@ const Content = () => {
   const [form, setForm] = useState(emptyForm());
   const [saving, setSaving] = useState(false);
   const [users, setUsers] = useState([]);
+  const [workspaces, setWorkspaces] = useState([]);
   const [upgradeModal, setUpgradeModal] = useState(null);
 
   const loadList = useCallback(async () => {
@@ -61,11 +62,13 @@ const Content = () => {
 
   useEffect(() => {
     usersAPI.getAll({ role: 'employee', limit: 100 }).then(({ data }) => setUsers(data.data || [])).catch(() => {});
-  }, []);
+    if (isRole('owner')) orgAPI.getWorkspaces().then(({ data }) => setWorkspaces(data.workspaces || [])).catch(() => {});
+  }, [isRole]);
 
   const handleCreate = async (e) => {
     e.preventDefault();
     if (!form.title || !form.dueDate) return toast.error('Title and due date required');
+    if (isRole('owner') && !form.workspaceId) return toast.error('Workspace is required');
     setSaving(true);
     try {
       const { data } = await contentAPI.create(form);
@@ -278,11 +281,23 @@ const Content = () => {
                   </select>
                 </div>
               </div>
+              {isRole('owner') && (
+                <div className="form-group">
+                  <label className="form-label">Workspace *</label>
+                  <select className="form-control" value={form.workspaceId} onChange={e => setForm({ ...form, workspaceId: e.target.value, assignedTo: '' })}>
+                    <option value="">— Select Workspace —</option>
+                    {workspaces.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+                  </select>
+                </div>
+              )}
               <div className="form-group">
                 <label className="form-label">Assign To</label>
-                <select className="form-control" value={form.assignedTo} onChange={e => setForm({ ...form, assignedTo: e.target.value })}>
+                <select className="form-control" value={form.assignedTo} onChange={e => {
+                  const selected = users.find(u => String(u.id) === e.target.value);
+                  setForm({ ...form, assignedTo: e.target.value, workspaceId: selected?.workspaceId ? String(selected.workspaceId) : form.workspaceId });
+                }}>
                   <option value="">— Unassigned —</option>
-                  {users.map(u => <option key={u.id} value={u.id}>{u.name} ({u.label || u.role})</option>)}
+                  {users.filter(u => !isRole('owner') || !form.workspaceId || String(u.workspaceId) === String(form.workspaceId)).map(u => <option key={u.id} value={u.id}>{u.name} ({u.label || u.role})</option>)}
                 </select>
               </div>
               <div className="form-group"><label className="form-label">Notes</label><textarea className="form-control" rows={2} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Additional notes..." /></div>

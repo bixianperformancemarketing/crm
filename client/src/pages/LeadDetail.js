@@ -160,7 +160,11 @@ const LeadDetail = () => {
       setShowEmail(false);
       setEmailForm({ subject: '', body: '' });
       loadLead();
-    } catch { toast.error('Failed to send email'); } finally { setSaving(false); }
+    } catch (err) {
+      const d = err.response?.data;
+      if (d?.smtpRequired) { toast.error('⚙️ SMTP not configured — go to Settings → Email (SMTP) first', { duration: 6000 }); }
+      else { toast.error(d?.message || 'Failed to send email'); }
+    } finally { setSaving(false); }
   };
 
   const waLink = lead?.phone ? `https://wa.me/${lead.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hi ${lead.name}! `)}` : null;

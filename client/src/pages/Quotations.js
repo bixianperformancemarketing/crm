@@ -224,7 +224,8 @@ const Quotations = () => {
     } catch (err) {
       const d = err.response?.data;
       if (d?.upgradeRequired) { setUpgradeModal(d); return; }
-      toast.error('Failed to send email');
+      if (d?.smtpRequired) { toast.error('⚙️ SMTP not configured — go to Settings → Email (SMTP) first', { duration: 6000 }); return; }
+      toast.error(d?.message || 'Failed to send email');
     } finally {
       setSendingEmail(null);
     }
