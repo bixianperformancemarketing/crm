@@ -7,7 +7,14 @@ const ctrl = require('./controller');
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: parseInt(process.env.MAX_FILE_SIZE) || 10485760 } });
 
-router.use(authenticate, scopeTenant, requireWorkspace);
+const checkLeadAccess = (req, res, next) => {
+  if (req.user?.role === 'employee' && req.user?.canAccessLeads === false) {
+    return res.status(403).json({ success: false, message: 'You do not have access to leads.' });
+  }
+  next();
+};
+
+router.use(authenticate, scopeTenant, requireWorkspace, checkLeadAccess);
 
 router.get('/', ctrl.getLeads);
 router.get('/pipeline', ctrl.getPipeline);

@@ -49,7 +49,7 @@ const getUser = async (req, res) => {
 const createUser = async (req, res) => {
   try {
     const { user, workspaceId } = req;
-    const { name, email, password, role, phone, label, canUseContentCalendar } = req.body;
+    const { name, email, password, role, phone, label, canUseContentCalendar, canAccessLeads } = req.body;
     if (!name || !email || !password || !role) {
       return res.status(400).json({ success: false, message: 'Name, email, password, and role are required' });
     }
@@ -73,6 +73,7 @@ const createUser = async (req, res) => {
         name, password: hash, role, label: label || null,
         phone: phone || null,
         canUseContentCalendar: role === 'employee' ? !!canUseContentCalendar : false,
+        canAccessLeads: role === 'employee' ? canAccessLeads !== false : true,
         isActive: true,
       });
       savedUser = existing;
@@ -83,6 +84,7 @@ const createUser = async (req, res) => {
         name, email: email.toLowerCase(), password: hash, role, label: label || null,
         phone: phone || null,
         canUseContentCalendar: role === 'employee' ? !!canUseContentCalendar : false,
+        canAccessLeads: role === 'employee' ? canAccessLeads !== false : true,
         isActive: true,
       });
     }
@@ -102,12 +104,13 @@ const updateUser = async (req, res) => {
     const target = await User.findOne({ where: { id, organizationId: user.organizationId } });
     if (!target) return res.status(404).json({ success: false, message: 'User not found' });
 
-    const { name, phone, isActive, password, label, canUseContentCalendar, role } = req.body;
+    const { name, phone, isActive, password, label, canUseContentCalendar, canAccessLeads, role } = req.body;
     const updates = {};
     if (name) updates.name = name;
     if (phone !== undefined) updates.phone = phone;
     if (label !== undefined) updates.label = label;
     if (canUseContentCalendar !== undefined) updates.canUseContentCalendar = !!canUseContentCalendar;
+    if (canAccessLeads !== undefined) updates.canAccessLeads = !!canAccessLeads;
     if (role && ['admin', 'employee'].includes(role) && user.role === 'owner') {
       updates.role = role;
       if (role === 'admin') { updates.canUseContentCalendar = false; }

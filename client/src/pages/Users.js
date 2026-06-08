@@ -21,7 +21,7 @@ const Users = () => {
   const [labelSaving, setLabelSaving] = useState(false);
 
   const allowedRoles = isRole('owner') ? ['admin', 'employee'] : ['employee'];
-  const emptyForm = { name: '', email: '', password: '', role: 'employee', label: '', phone: '', canUseContentCalendar: false };
+  const emptyForm = { name: '', email: '', password: '', role: 'employee', label: '', phone: '', canUseContentCalendar: false, canAccessLeads: true };
   const [form, setForm] = useState(emptyForm);
 
   const load = useCallback(async () => {
@@ -62,7 +62,7 @@ const Users = () => {
     e.preventDefault();
     setSaving(true);
     try {
-      await usersAPI.update(editUser.id, { name: form.name, phone: form.phone, label: form.label, canUseContentCalendar: form.canUseContentCalendar });
+      await usersAPI.update(editUser.id, { name: form.name, phone: form.phone, label: form.label, canUseContentCalendar: form.canUseContentCalendar, canAccessLeads: form.canAccessLeads });
       toast.success('User updated');
       setEditUser(null);
       load();
@@ -81,7 +81,7 @@ const Users = () => {
   };
 
   const openEdit = (u) => {
-    setForm({ name: u.name, email: u.email, password: '', role: u.role, label: u.label || '', phone: u.phone || '', canUseContentCalendar: !!u.canUseContentCalendar });
+    setForm({ name: u.name, email: u.email, password: '', role: u.role, label: u.label || '', phone: u.phone || '', canUseContentCalendar: !!u.canUseContentCalendar, canAccessLeads: u.canAccessLeads !== false });
     setEditUser(u);
   };
 
@@ -196,6 +196,27 @@ const Users = () => {
                 <input className="form-control" value={form.label} onChange={e => setForm({ ...form, label: e.target.value })} placeholder="e.g. Sales Executive, Team Lead, BDE..." disabled={form.role === 'admin'} />
               </div>
               <div className="form-group"><label className="form-label">Phone</label><input className="form-control" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value.replace(/[^0-9+]/g, '') })} placeholder="+91 9876543210" /></div>
+              {form.role === 'employee' && (
+                <div className="form-group">
+                  <label className="form-label">Feature Access</label>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 6 }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 13 }}>
+                      <input type="checkbox" checked={form.canAccessLeads} onChange={e => setForm({ ...form, canAccessLeads: e.target.checked })} style={{ width: 16, height: 16, cursor: 'pointer', accentColor: 'var(--accent)' }} />
+                      <div>
+                        <div style={{ fontWeight: 500 }}>Leads</div>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Access leads, pipeline, followups, appointments, quotations, invoices</div>
+                      </div>
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 13 }}>
+                      <input type="checkbox" checked={form.canUseContentCalendar} onChange={e => setForm({ ...form, canUseContentCalendar: e.target.checked })} style={{ width: 16, height: 16, cursor: 'pointer', accentColor: 'var(--accent)' }} />
+                      <div>
+                        <div style={{ fontWeight: 500 }}>Tasks</div>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Access the content calendar and task management</div>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              )}
               <div className="modal-actions">
                 <button type="button" className="btn btn-ghost" onClick={() => { setShowCreate(false); setEditUser(null); }}>Cancel</button>
                 <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Saving...' : showCreate ? 'Add Employee' : 'Save Changes'}</button>

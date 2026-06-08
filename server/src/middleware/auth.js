@@ -18,7 +18,7 @@ const authenticate = async (req, res, next) => {
 
     const user = await User.findOne({
       where: { id: decoded.id, isActive: true },
-      attributes: ['id', 'organizationId', 'workspaceId', 'name', 'email', 'role', 'label', 'phone', 'avatar', 'isActive', 'canUseContentCalendar'],
+      attributes: ['id', 'organizationId', 'workspaceId', 'name', 'email', 'role', 'label', 'phone', 'avatar', 'isActive', 'canUseContentCalendar', 'canAccessLeads'],
     });
 
     if (!user) {

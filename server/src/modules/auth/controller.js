@@ -52,6 +52,8 @@ const login = async (req, res) => {
         avatar: user.avatar,
         organizationId: user.organizationId,
         workspaceId: user.workspaceId,
+        canUseContentCalendar: user.canUseContentCalendar,
+        canAccessLeads: user.canAccessLeads,
         organization: user.organization,
         workspace: user.workspace,
       },

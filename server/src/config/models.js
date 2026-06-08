@@ -101,6 +101,7 @@ const User = sequelize.define('User', {
   label: { type: DataTypes.STRING(100), allowNull: true },
   assignType: { type: DataTypes.ENUM('leads', 'tasks'), allowNull: true },
   canUseContentCalendar: { type: DataTypes.BOOLEAN, defaultValue: false },
+  canAccessLeads: { type: DataTypes.BOOLEAN, defaultValue: true },
   phone: { type: DataTypes.STRING(20) },
   avatar: { type: DataTypes.STRING(255) },
   isActive: { type: DataTypes.BOOLEAN, defaultValue: true },
@@ -594,6 +595,9 @@ const syncDatabase = async () => {
       }
       if (!userColumns.canUseContentCalendar) {
         await qi.addColumn('users', 'canUseContentCalendar', { type: DataTypes.BOOLEAN, defaultValue: false });
+      }
+      if (!userColumns.canAccessLeads) {
+        await qi.addColumn('users', 'canAccessLeads', { type: DataTypes.BOOLEAN, defaultValue: true });
       }
       // Expand ENUM to include 'employee' then migrate legacy roles
       await sequelize.query(`ALTER TABLE users MODIFY role ENUM('superadmin','owner','admin','agent','designer','employee') NOT NULL DEFAULT 'employee'`);
