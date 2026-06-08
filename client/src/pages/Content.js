@@ -307,7 +307,7 @@ const Content = () => {
                   setForm({ ...form, assignedTo: e.target.value, workspaceId: selected?.workspaceId ? String(selected.workspaceId) : form.workspaceId });
                 }}>
                   <option value="">— Unassigned —</option>
-                  {users.filter(u => !isRole('owner') || !form.workspaceId || String(u.workspaceId) === String(form.workspaceId)).map(u => <option key={u.id} value={u.id}>{u.name} ({u.label || u.role})</option>)}
+                  {users.filter(u => u.canUseContentCalendar !== false && (!isRole('owner') || !form.workspaceId || String(u.workspaceId) === String(form.workspaceId))).map(u => <option key={u.id} value={u.id}>{u.name} ({u.label || u.role})</option>)}
                 </select>
               </div>
               <div className="form-group"><label className="form-label">Notes</label><textarea className="form-control" rows={2} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Additional notes..." /></div>
