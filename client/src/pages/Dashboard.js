@@ -98,7 +98,7 @@ const Dashboard = () => {
     { label: 'Total Revenue', value: formatCurrency(stats.totalRevenue), icon: '💰', color: '#22c55e' },
     { label: 'Pending Revenue', value: formatCurrency(stats.pendingRevenue), icon: '⏳', color: '#f59e0b' },
     { label: 'Overdue Invoices', value: stats.overdueInvoices, icon: '🧾', color: '#ef4444' },
-    { label: "Today's Appts", value: stats.todayAppts, icon: '📅', color: '#7c3aed' },
+    { label: 'Appointments', value: stats.todayAppts, icon: '📅', color: '#7c3aed' },
     { label: 'Pending Followups', value: stats.pendingFollowups, icon: '📞', color: '#0ea5e9' },
     { label: 'Overdue Followups', value: stats.overdueFollowups, icon: '⏰', color: '#ef4444' },
     { label: 'Conversion Rate', value: `${stats.conversionRate}%`, icon: '📈', color: '#22c55e' },

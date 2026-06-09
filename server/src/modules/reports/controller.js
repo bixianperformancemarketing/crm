@@ -122,7 +122,13 @@ const getDashboard = async (req, res) => {
     const periodFilter = periodRange ? { [Op.between]: [periodRange.start, periodRange.end] } : undefined;
 
     const baseWhere = { organizationId: orgId, ...ws };
-    const taskWhere = { organizationId: orgId, ...ws, ...(isEmployee ? { assignedTo: user.id } : {}) };
+    const taskWhere = { organizationId: orgId, ...ws, ...(isEmployee ? { assignedTo: user.id } : {}), ...(periodFilter ? { createdAt: periodFilter } : {}) };
+
+    // For overdue followups, clamp the period end to now (past periods are entirely overdue; current period only counts the elapsed portion)
+    const clampedEnd = periodRange ? new Date(Math.min(periodRange.end.getTime(), now.getTime())) : now;
+    const followupScheduledAt = periodFilter ? periodFilter : { [Op.gte]: now };
+    const overdueScheduledAt  = periodRange ? { [Op.between]: [periodRange.start, clampedEnd] } : { [Op.lt]: now };
+    const apptTimeWhere       = periodFilter ? { startTime: periodFilter } : { startTime: { [Op.between]: [startOfTodayIST(), endOfTodayIST()] } };
 
     // For employees, pre-fetch their lead IDs so invoice/payment queries can be scoped correctly
     let employeeLeadIds = null;
@@ -165,9 +171,9 @@ const getDashboard = async (req, res) => {
       canAccessLeads ? Payment.sum('amount', { where: paymentWhere }) : zero,
       canAccessLeads ? Invoice.sum('dueAmount', { where: { ...pendingInvoiceWhere, status: { [Op.in]: ['Unpaid', 'Partial'] } } }) : zero,
       canAccessLeads ? Invoice.count({ where: { ...invoiceWhere, status: 'Overdue' } }) : zero,
-      canAccessLeads ? Followup.count({ where: { ...followupWhere, status: 'pending', scheduledAt: { [Op.gte]: now } } }) : zero,
-      canAccessLeads ? Followup.count({ where: { ...followupWhere, status: { [Op.in]: ['pending', 'overdue'] }, scheduledAt: { [Op.lt]: now } } }) : zero,
-      canAccessLeads ? Appointment.count({ where: { ...apptWhere, startTime: { [Op.between]: [startOfTodayIST(), endOfTodayIST()] } } }) : zero,
+      canAccessLeads ? Followup.count({ where: { ...followupWhere, status: 'pending', scheduledAt: followupScheduledAt } }) : zero,
+      canAccessLeads ? Followup.count({ where: { ...followupWhere, status: { [Op.in]: ['pending', 'overdue'] }, scheduledAt: overdueScheduledAt } }) : zero,
+      canAccessLeads ? Appointment.count({ where: { ...apptWhere, ...apptTimeWhere } }) : zero,
       canAccessLeads ? Lead.findAll({ where: leadWhere, order: [['createdAt', 'DESC']], limit: 5, attributes: ['id', 'name', 'status', 'priority', 'source', 'createdAt'] }) : emptyArr,
       canUseTasks ? ContentTask.count({ where: taskWhere }) : zero,
       canUseTasks ? ContentTask.count({ where: { ...taskWhere, status: 'Overdue' } }) : zero,
