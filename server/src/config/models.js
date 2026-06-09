@@ -344,6 +344,7 @@ const Invoice = sequelize.define('Invoice', {
     defaultValue: 'Unpaid',
   },
   dueDate: { type: DataTypes.DATEONLY },
+  lastReminderSentAt: { type: DataTypes.DATE, allowNull: true },
   notes: { type: DataTypes.TEXT },
   terms: { type: DataTypes.TEXT },
 }, { tableName: 'invoices' });
@@ -716,6 +717,14 @@ const syncDatabase = async () => {
       }
       if (!iiCols.subItems) {
         await qi.addColumn('invoice_items', 'subItems', { type: DataTypes.JSON, allowNull: true });
+      }
+    } catch (e) { /* ignore */ }
+
+    // Add lastReminderSentAt to invoices if missing
+    try {
+      const invCols = await qi.describeTable('invoices');
+      if (!invCols.lastReminderSentAt) {
+        await qi.addColumn('invoices', 'lastReminderSentAt', { type: DataTypes.DATE, allowNull: true });
       }
     } catch (e) { /* ignore */ }
 

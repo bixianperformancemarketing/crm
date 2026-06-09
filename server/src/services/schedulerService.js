@@ -152,7 +152,7 @@ const runDailyJobs = async () => {
   await markOverdueInvoices();
   await checkPlanExpiry();
   await markOverdueFollowups();
-  await checkInvoiceDueDateEmails();
+  await checkInvoicePaymentReminders();
   await checkQuotationExpiryEmails();
 };
 
@@ -291,24 +291,56 @@ const checkTaskReminders = async () => {
   }
 };
 
-const checkInvoiceDueDateEmails = async () => {
+const checkInvoicePaymentReminders = async () => {
   try {
-    const todayIST = moment().tz(IST).format('YYYY-MM-DD');
+    const today = moment().tz(IST);
+
+    // All unpaid/partial/overdue invoices that have a client email
     const invoices = await Invoice.findAll({
       where: {
-        dueDate: todayIST,
-        status: { [Op.in]: ['Unpaid', 'Partial'] },
-        clientEmail: { [Op.ne]: null },
+        status: { [Op.in]: ['Unpaid', 'Partial', 'Overdue'] },
+        clientEmail: { [Op.not]: null },
       },
     });
 
     for (const inv of invoices) {
       const org = await Organization.findByPk(inv.organizationId);
       if (!org?.settings?.smtpConfig) continue;
-      await emailService.sendInvoiceDueReminder(inv, org.settings, org.settings.smtpConfig);
+
+      const lastSent = inv.lastReminderSentAt ? moment(inv.lastReminderSentAt).tz(IST) : null;
+      const daysSinceLastSent = lastSent ? today.diff(lastSent, 'days') : Infinity;
+
+      let shouldSend = false;
+
+      if (inv.dueDate) {
+        const daysUntilDue = moment(inv.dueDate).tz(IST).diff(today, 'days');
+        // Trigger on specific milestone days before/on due date
+        const milestones = [7, 3, 1, 0];
+        if (milestones.includes(daysUntilDue)) {
+          // Only send once per milestone (not already sent today)
+          if (daysSinceLastSent >= 1) shouldSend = true;
+        }
+        // After due date: send every 7 days until paid
+        if (daysUntilDue < 0 && daysSinceLastSent >= 7) {
+          shouldSend = true;
+        }
+      } else {
+        // No due date: send once on creation day, then every 7 days
+        if (daysSinceLastSent >= 7) shouldSend = true;
+      }
+
+      if (!shouldSend) continue;
+
+      try {
+        await emailService.sendInvoiceDueReminder(inv, org.settings, org.settings.smtpConfig);
+        await inv.update({ lastReminderSentAt: new Date() });
+        console.log(`[Scheduler] Invoice reminder sent for ${inv.invoiceNumber} to ${inv.clientEmail}`);
+      } catch (e) {
+        console.error(`[Scheduler] Failed to send invoice reminder for ${inv.invoiceNumber}:`, e.message);
+      }
     }
   } catch (err) {
-    console.error('Invoice due date email error:', err.message);
+    console.error('Invoice payment reminder error:', err.message);
   }
 };
 

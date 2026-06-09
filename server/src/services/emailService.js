@@ -187,22 +187,64 @@ const sendQuotationEmail = async (quotation, items, pdfBuffer, orgSettings, smtp
 
 const sendInvoiceDueReminder = async (invoice, orgSettings, smtpConfig) => {
   if (!invoice.clientEmail) return;
-  const daysUntilDue = moment(invoice.dueDate).tz(IST).diff(moment().tz(IST), 'days');
+  const companyName = orgSettings?.branding?.companyName || 'Us';
+  const totalAmt = parseFloat(invoice.totalAmount || 0);
+  const paidAmt  = parseFloat(invoice.paidAmount  || 0);
+  const dueAmt   = parseFloat(invoice.dueAmount   || 0);
+  const isPartial = paidAmt > 0 && dueAmt > 0;
+
+  let daysUntilDue = null;
+  let dueDateStr = null;
+  if (invoice.dueDate) {
+    daysUntilDue = moment(invoice.dueDate).tz(IST).diff(moment().tz(IST), 'days');
+    dueDateStr = moment(invoice.dueDate).tz(IST).format('DD MMM YYYY');
+  }
+
+  // Build subject & opening message based on status and days
+  let subject, urgencyMsg, urgencyColor;
+  if (!invoice.dueDate || daysUntilDue === null) {
+    subject = `Friendly Payment Reminder – Invoice #${invoice.invoiceNumber}`;
+    urgencyMsg = `We would like to gently remind you that the payment for invoice <strong>#${invoice.invoiceNumber}</strong> is still pending.`;
+    urgencyColor = '#f59e0b';
+  } else if (daysUntilDue > 1) {
+    subject = `Payment Due in ${daysUntilDue} Days – Invoice #${invoice.invoiceNumber}`;
+    urgencyMsg = `We hope this message finds you well. This is a friendly reminder that the payment for invoice <strong>#${invoice.invoiceNumber}</strong> is due on <strong>${dueDateStr}</strong> — that's <strong>${daysUntilDue} days</strong> from today.`;
+    urgencyColor = '#0ea5e9';
+  } else if (daysUntilDue === 1) {
+    subject = `Payment Due Tomorrow – Invoice #${invoice.invoiceNumber}`;
+    urgencyMsg = `We wanted to give you a heads-up that the payment for invoice <strong>#${invoice.invoiceNumber}</strong> is due <strong>tomorrow, ${dueDateStr}</strong>.`;
+    urgencyColor = '#f59e0b';
+  } else if (daysUntilDue === 0) {
+    subject = `Payment Due Today – Invoice #${invoice.invoiceNumber}`;
+    urgencyMsg = `This is a kind reminder that the payment for invoice <strong>#${invoice.invoiceNumber}</strong> is due <strong>today, ${dueDateStr}</strong>.`;
+    urgencyColor = '#f97316';
+  } else {
+    const daysOverdue = Math.abs(daysUntilDue);
+    subject = `Overdue Payment Notice – Invoice #${invoice.invoiceNumber} (${daysOverdue} day${daysOverdue > 1 ? 's' : ''} overdue)`;
+    urgencyMsg = `We noticed that the payment for invoice <strong>#${invoice.invoiceNumber}</strong> was due on <strong>${dueDateStr}</strong> and is now <strong>${daysOverdue} day${daysOverdue > 1 ? 's' : ''} overdue</strong>. We kindly request you to clear this at the earliest.`;
+    urgencyColor = '#ef4444';
+  }
+
   const content = `
-    <h2>Payment Reminder - Invoice #${invoice.invoiceNumber}</h2>
-    <p>Dear ${invoice.clientName},</p>
-    <p>This is a reminder that invoice #${invoice.invoiceNumber} ${daysUntilDue <= 0 ? 'is <strong>overdue</strong>' : `is due in <strong>${daysUntilDue} day(s)</strong>`}.</p>
-    <div class="info-box">
-      <div class="info-row"><span class="info-label">Invoice:</span><span class="info-value">${invoice.invoiceNumber}</span></div>
-      <div class="info-row"><span class="info-label">Total Amount:</span><span class="info-value">₹${parseFloat(invoice.totalAmount).toLocaleString('en-IN')}</span></div>
-      <div class="info-row"><span class="info-label">Amount Due:</span><span class="info-value">₹${parseFloat(invoice.dueAmount).toLocaleString('en-IN')}</span></div>
-      <div class="info-row"><span class="info-label">Due Date:</span><span class="info-value">${moment(invoice.dueDate).tz(IST).format('DD MMM YYYY')}</span></div>
+    <h2 style="color:#1a1a2e;margin-top:0">Payment Reminder</h2>
+    <p>Dear <strong>${invoice.clientName}</strong>,</p>
+    <p>${urgencyMsg}</p>
+    <div class="info-box" style="border-left-color:${urgencyColor}">
+      <div class="info-row"><span class="info-label">Invoice No.:</span><span class="info-value">${invoice.invoiceNumber}</span></div>
+      <div class="info-row"><span class="info-label">Invoice Total:</span><span class="info-value">₹${totalAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
+      ${isPartial ? `<div class="info-row"><span class="info-label">Amount Paid:</span><span class="info-value" style="color:#22c55e">₹${paidAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>` : ''}
+      <div class="info-row"><span class="info-label">Amount Due:</span><span class="info-value" style="font-weight:700;color:${urgencyColor}">₹${dueAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
+      ${dueDateStr ? `<div class="info-row"><span class="info-label">Due Date:</span><span class="info-value">${dueDateStr}</span></div>` : ''}
     </div>
-    <p>Please make the payment at your earliest convenience to avoid any disruption to services.</p>
+    ${isPartial ? `<p>Thank you for the partial payment you have already made. We kindly request you to clear the remaining balance at your earliest convenience.</p>` : `<p>We kindly request you to process the payment at your earliest convenience to ensure uninterrupted services.</p>`}
+    <p style="color:#777;font-size:13px">If you have already made the payment, please disregard this reminder — and thank you! Should you have any queries or require assistance, please do not hesitate to reach out to us.</p>
+    <p>Thank you for your continued trust in <strong>${companyName}</strong>. We truly value our relationship with you.</p>
+    <p>Warm regards,<br/><strong>${companyName}</strong></p>
   `;
+
   return sendEmail({
     to: invoice.clientEmail,
-    subject: `Payment Reminder - Invoice #${invoice.invoiceNumber}`,
+    subject,
     html: baseTemplate('Payment Reminder', content, orgSettings),
     smtpConfig,
     orgSettings,
