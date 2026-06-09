@@ -92,6 +92,7 @@ const createQuotation = async (req, res) => {
           email: clientEmail.trim(), address: clientAddress.trim(),
           source: 'Quotation', status: 'Quotation',
           createdBy: user.id,
+          assignedTo: user.role === 'employee' ? user.id : null,
         });
       }
     }
@@ -333,6 +334,7 @@ const deleteQuotation = async (req, res) => {
   try {
     const { id } = req.params;
     const { user, workspaceId } = req;
+    if (user.role === 'employee') return res.status(403).json({ success: false, message: 'Only admin or owner can delete quotations' });
     const ws = workspaceId ? { workspaceId } : {};
     const q = await Quotation.findOne({ where: { id, organizationId: user.organizationId, ...ws } });
     if (!q) return res.status(404).json({ success: false, message: 'Quotation not found' });

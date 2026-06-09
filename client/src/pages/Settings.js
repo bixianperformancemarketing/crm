@@ -897,6 +897,7 @@ const Settings = () => {
   const [bankDetails, setBankDetails] = useState({ bankName: '', accountHolder: '', accountNumber: '', ifscCode: '', qrCode: '' });
   const [smtpForm, setSmtpForm] = useState({ host: '', port: 587, user: '', pass: '', from: '', secure: false });
   const [testEmail, setTestEmail] = useState('');
+  const [messages, setMessages] = useState({ quotationFooter: '', invoiceFooter: '' });
 
   useEffect(() => {
     workspaceAPI.get().then(({ data }) => {
@@ -923,6 +924,9 @@ const Settings = () => {
       setBankDetails({ bankName: bd.bankName || '', accountHolder: bd.accountHolder || '', accountNumber: bd.accountNumber || '', ifscCode: bd.ifscCode || '', qrCode: bd.qrCode || '' });
       if (s.smtp) {
         setSmtpForm({ host: s.smtp.host || '', port: s.smtp.port || 587, user: s.smtp.user || '', pass: '', from: s.smtp.from || '', secure: s.smtp.secure || false });
+      }
+      if (s.messages) {
+        setMessages({ quotationFooter: s.messages.quotationFooter || '', invoiceFooter: s.messages.invoiceFooter || '' });
       }
     }
   }, [org]);
@@ -1001,10 +1005,23 @@ const Settings = () => {
     } finally { setPwSaving(false); }
   };
 
+  const saveMessages = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const current = typeof org?.settings === 'string' ? JSON.parse(org.settings || '{}') : (org?.settings || {});
+      await orgAPI.updateSettings({ settings: { ...current, messages } });
+      toast.success('Message settings saved');
+      await refreshUser();
+    } catch { toast.error('Failed to save'); }
+    finally { setSaving(false); }
+  };
+
   const tabs = isRole('owner')
     ? [
         { id: 'org', label: 'Organization' },
         { id: 'smtp', label: 'Email (SMTP)' },
+        { id: 'messages', label: 'PDF Messages' },
         { id: 'webhooks', label: 'Webhooks' },
         { id: 'meta', label: 'Meta Ads' },
         { id: 'google', label: 'Google Ads' },
@@ -1134,6 +1151,27 @@ const Settings = () => {
               <PasswordInput className="form-control" placeholder="Repeat new password" value={pwForm.confirm} onChange={e => setPwForm({ ...pwForm, confirm: e.target.value })} required />
             </div>
             <button type="submit" className="btn btn-primary" disabled={pwSaving}>{pwSaving ? 'Changing...' : 'Change Password'}</button>
+          </form>
+        </div>
+      )}
+
+      {tab === 'messages' && (
+        <div style={{ maxWidth: 540 }}>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>
+            Customize the footer message printed at the bottom of quotation and invoice PDFs. Leave blank to use the default message.
+          </p>
+          <form onSubmit={saveMessages}>
+            <div className="form-group">
+              <label className="form-label">Quotation Footer Message</label>
+              <input className="form-control" value={messages.quotationFooter} onChange={e => setMessages({ ...messages, quotationFooter: e.target.value })} placeholder="We will be happy to help you to achieve your missions." />
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>Default: "We will be happy to help you to achieve your missions."</div>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Invoice Footer Message</label>
+              <input className="form-control" value={messages.invoiceFooter} onChange={e => setMessages({ ...messages, invoiceFooter: e.target.value })} placeholder="Thank you for accepting us to achieve your missions." />
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>Default: "Thank you for accepting us to achieve your missions."</div>
+            </div>
+            <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Saving...' : 'Save Messages'}</button>
           </form>
         </div>
       )}

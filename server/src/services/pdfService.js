@@ -249,11 +249,28 @@ const addTotals = (doc, data, startY) => {
   y += 8;
   addTotalRow('TOTAL:', data.totalAmount, true, PRIMARY_DARK);
 
+  const paidAmt = parseFloat(data.paidAmount || 0);
+  if (paidAmt > 0) {
+    y += 4;
+    addTotalRow('Paid Amount:', paidAmt, false, '#22c55e');
+    const due = Math.max(0, parseFloat(data.totalAmount) - paidAmt);
+    drawLine(doc, y);
+    y += 8;
+    addTotalRow('AMOUNT DUE:', due, true, '#ef4444');
+  }
+
+  if (data.status) {
+    y += 6;
+    const statusColor = data.status === 'Paid' ? '#22c55e' : data.status === 'Partial' ? '#f59e0b' : data.status === 'Overdue' ? '#ef4444' : '#6b7280';
+    doc.fontSize(9).fillColor(GRAY).font('Helvetica').text('Status:', labelX, y, { width: 90, align: 'right' });
+    doc.fillColor(statusColor).font('Helvetica-Bold').text(data.status, valueX, y, { width: 95, align: 'right' });
+    y += 18;
+  }
 
   return y + 10;
 };
 
-const addFooter = (doc, data, orgSettings, logoBuffer, signatureBuffer, type) => {
+const addFooter = (doc, data, orgSettings, logoBuffer, signatureBuffer, type, customMessage) => {
   const branding = orgSettings?.branding || {};
   const bankDetails = orgSettings?.bankDetails || {};
   const signatoryName = branding.signatoryName || '';
@@ -333,7 +350,11 @@ const addFooter = (doc, data, orgSettings, logoBuffer, signatureBuffer, type) =>
     .moveTo(50, stripY - 5).lineTo(545, stripY - 5).stroke();
   doc.opacity(1);
 
-  doc.fontSize(8).fillColor(TEXT_DARK).font('Helvetica-Bold').text('Thank you for your business!', 50, stripY, { align: 'center', width: 495 });
+  const defaultMsg = type === 'Invoice'
+    ? 'Thank you for accepting us to achieve your missions.'
+    : 'We will be happy to help you to achieve your missions.';
+  const footerMsg = customMessage || defaultMsg;
+  doc.fontSize(8).fillColor(TEXT_DARK).font('Helvetica-Bold').text(footerMsg, 50, stripY, { align: 'center', width: 495 });
 };
 
 const generateQuotationPDF = async (quotation, items, orgSettings) => {
@@ -365,7 +386,7 @@ const generateQuotationPDF = async (quotation, items, orgSettings) => {
     const itemsEndY = addItemsTable(doc, items || [], clientY);
     const totalsEndY = addTotals(doc, quotation, itemsEndY);
     addTermsAndPayment(doc, bankDetails, quotation.terms, totalsEndY, qrBuffer);
-    addFooter(doc, quotation, orgSettings, logoBuffer, signatureBuffer, 'Quotation');
+    addFooter(doc, quotation, orgSettings, logoBuffer, signatureBuffer, 'Quotation', orgSettings?.messages?.quotationFooter || '');
     doc.end();
   });
 };
@@ -401,7 +422,7 @@ const generateInvoicePDF = async (invoice, orgSettings, invoiceItems) => {
     const itemsEndY = addItemsTable(doc, items, clientY);
     const totalsEndY = addTotals(doc, invoice, itemsEndY);
     addTermsAndPayment(doc, bankDetails, invoice.terms, totalsEndY, qrBuffer);
-    addFooter(doc, invoice, orgSettings, logoBuffer, signatureBuffer, 'Invoice');
+    addFooter(doc, invoice, orgSettings, logoBuffer, signatureBuffer, 'Invoice', orgSettings?.messages?.invoiceFooter || '');
     doc.end();
   });
 };

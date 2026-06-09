@@ -1,7 +1,7 @@
 const { Op } = require('sequelize');
 const moment = require('moment-timezone');
 const {
-  Appointment, Followup, Invoice, Organization, User, Lead, MetaIntegration,
+  Appointment, Followup, Invoice, Quotation, ContentTask, Organization, User, Lead, MetaIntegration,
 } = require('../config/models');
 const { emitToUser } = require('../sockets');
 const notificationService = require('./notificationService');
@@ -152,6 +152,8 @@ const runDailyJobs = async () => {
   await markOverdueInvoices();
   await checkPlanExpiry();
   await markOverdueFollowups();
+  await checkInvoiceDueDateEmails();
+  await checkQuotationExpiryEmails();
 };
 
 const sendDailyFollowupEmails = async () => {
@@ -254,6 +256,83 @@ const checkPlanExpiry = async () => {
   }
 };
 
+const checkTaskReminders = async () => {
+  try {
+    const now = new Date();
+    const in4 = new Date(now.getTime() + 4 * 60 * 1000);
+    const in6 = new Date(now.getTime() + 6 * 60 * 1000);
+    const todayIST = moment().tz(IST).format('YYYY-MM-DD');
+    const nowTimeIST = moment().tz(IST).format('HH:mm');
+    const in5TimeIST = moment().tz(IST).add(5, 'minutes').format('HH:mm');
+
+    const tasks = await ContentTask.findAll({
+      where: {
+        dueDate: todayIST,
+        dueTime: { [Op.between]: [nowTimeIST, in5TimeIST] },
+        reminderSentAt: null,
+        status: { [Op.notIn]: ['Approved', 'Done', 'Cancelled'] },
+      },
+      include: [{ model: User, as: 'assignee', attributes: ['id', 'name'] }],
+    });
+
+    for (const task of tasks) {
+      if (!task.assignedTo) continue;
+      emitToUser(task.assignedTo, 'task_reminder', {
+        taskId: task.id,
+        title: task.title,
+        dueDate: task.dueDate,
+        dueTime: task.dueTime,
+        message: `Task "${task.title}" is due in 5 minutes!`,
+      });
+      await task.update({ reminderSentAt: new Date() });
+    }
+  } catch (err) {
+    console.error('Task reminder check error:', err.message);
+  }
+};
+
+const checkInvoiceDueDateEmails = async () => {
+  try {
+    const todayIST = moment().tz(IST).format('YYYY-MM-DD');
+    const invoices = await Invoice.findAll({
+      where: {
+        dueDate: todayIST,
+        status: { [Op.in]: ['Unpaid', 'Partial'] },
+        clientEmail: { [Op.ne]: null },
+      },
+    });
+
+    for (const inv of invoices) {
+      const org = await Organization.findByPk(inv.organizationId);
+      if (!org?.settings?.smtpConfig) continue;
+      await emailService.sendInvoiceDueReminder(inv, org.settings, org.settings.smtpConfig);
+    }
+  } catch (err) {
+    console.error('Invoice due date email error:', err.message);
+  }
+};
+
+const checkQuotationExpiryEmails = async () => {
+  try {
+    const todayIST = moment().tz(IST).format('YYYY-MM-DD');
+    const quotations = await Quotation.findAll({
+      where: {
+        validUntil: todayIST,
+        status: { [Op.in]: ['Draft', 'Sent'] },
+        clientEmail: { [Op.ne]: null },
+      },
+    });
+
+    for (const q of quotations) {
+      const org = await Organization.findByPk(q.organizationId);
+      if (!org?.settings?.smtpConfig) continue;
+      await emailService.sendQuotationExpiryReminder(q, org.settings, org.settings.smtpConfig);
+    }
+  } catch (err) {
+    console.error('Quotation expiry email error:', err.message);
+  }
+};
+
 const startScheduler = () => {
   // On every startup: reset any integrations stuck in 'syncing' from a previous crash/restart,
   // then run an immediate sync so leads from the downtime window aren't delayed 60 seconds.
@@ -267,6 +346,7 @@ const startScheduler = () => {
   setInterval(checkAppointmentReminders, 60 * 1000);
   setInterval(checkFollowupReminders, 60 * 1000);
   setInterval(checkFollowupOnTimeReminders, 60 * 1000);
+  setInterval(checkTaskReminders, 60 * 1000);
   checkFollowupReminders();
   setInterval(runDailyJobs, 60 * 1000);
   setInterval(metaSyncService.syncAllIntegrations, 60 * 1000);

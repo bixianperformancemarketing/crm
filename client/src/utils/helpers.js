@@ -1,7 +1,7 @@
 export const ENUMS = {
-  LEAD_SOURCES: ['Meta Ads', 'Google Ads', 'Website', 'WhatsApp', 'Reference', 'Telecalling', 'Social Media', 'CSV Import', 'Instagram DM', 'Justdial', 'Walk-in', 'Other'],
-  LEAD_STATUSES: ['New', 'Discussion', 'Meeting', 'Quotation', 'Won', 'Lost'],
-  LEAD_PRIORITIES: ['Low', 'Medium', 'High', 'Hot'],
+  LEAD_SOURCES: ['Meta Ads', 'Google Ads', 'Website', 'WhatsApp', 'Reference', 'Telecalling', 'Social Media', 'CSV Import', 'Instagram DM', 'Justdial', 'Walk-in', 'Cold visit', 'Other'],
+  LEAD_STATUSES: ['New', 'Discussion', 'Meeting', 'Quotation', 'Review', 'Won', 'Lost'],
+  LEAD_PRIORITIES: ['Hot', 'Warm', 'Cold'],
 
   APPOINTMENT_TYPES: ['Call', 'Meeting', 'Demo', 'Site Visit', 'Follow-up', 'Other'],
   APPOINTMENT_STATUSES: ['Scheduled', 'Completed', 'Cancelled', 'No Show'],
@@ -46,7 +46,7 @@ export const timeAgo = (date) => {
 export const getStatusColor = (status) => {
   const map = {
     New: '#0ea5e9', Discussion: '#f59e0b', Meeting: '#7c3aed',
-    Quotation: '#e94560', Won: '#22c55e', Lost: '#6b7280',
+    Quotation: '#e94560', Review: '#f97316', Won: '#22c55e', Lost: '#6b7280',
     pending: '#f59e0b', completed: '#22c55e', overdue: '#ef4444', cancelled: '#6b7280',
     Scheduled: '#0ea5e9', Completed: '#22c55e', Cancelled: '#6b7280', 'No Show': '#ef4444',
     Draft: '#6b7280', Sent: '#0ea5e9', Approved: '#22c55e', Rejected: '#ef4444',
@@ -58,12 +58,12 @@ export const getStatusColor = (status) => {
 };
 
 export const getPriorityColor = (priority) => {
-  const map = { Low: '#6b7280', Medium: '#0ea5e9', High: '#f59e0b', Hot: '#ef4444' };
+  const map = { Hot: '#22c55e', Warm: '#f59e0b', Cold: '#ef4444', Low: '#6b7280', Medium: '#0ea5e9', High: '#f59e0b' };
   return map[priority] || '#6b7280';
 };
 
 export const getPriorityBg = (priority) => {
-  const map = { Low: 'rgba(107,114,128,0.15)', Medium: 'rgba(14,165,233,0.15)', High: 'rgba(245,158,11,0.15)', Hot: 'rgba(239,68,68,0.15)' };
+  const map = { Hot: 'rgba(34,197,94,0.15)', Warm: 'rgba(245,158,11,0.15)', Cold: 'rgba(239,68,68,0.15)', Low: 'rgba(107,114,128,0.15)', Medium: 'rgba(14,165,233,0.15)', High: 'rgba(245,158,11,0.15)' };
   return map[priority] || 'rgba(107,114,128,0.15)';
 };
 

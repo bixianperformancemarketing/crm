@@ -5,14 +5,19 @@ import toast from 'react-hot-toast';
 import Layout from '../components/layout/Layout';
 import { leadsAPI } from '../services/api';
 import { getPriorityColor, getInitials } from '../utils/helpers';
+import { useAuth } from '../context/AuthContext';
 import './Pipeline.css';
 
-const COLUMNS = ['New', 'Discussion', 'Meeting', 'Quotation', 'Won', 'Lost'];
-const COL_COLORS = { New: '#0ea5e9', Discussion: '#f59e0b', Meeting: '#7c3aed', Quotation: '#e94560', Won: '#22c55e', Lost: '#6b7280' };
+const COLUMNS = ['New', 'Discussion', 'Meeting', 'Quotation', 'Review', 'Won', 'Lost'];
+const COL_DISPLAY = { New: 'New', Discussion: 'Discussion', Meeting: 'Meeting Done', Quotation: 'Quotation', Review: 'Review', Won: 'Won', Lost: 'Lost' };
+const COL_COLORS = { New: '#0ea5e9', Discussion: '#f59e0b', Meeting: '#7c3aed', Quotation: '#e94560', Review: '#f97316', Won: '#22c55e', Lost: '#6b7280' };
 
 const Pipeline = () => {
+  const { user } = useAuth();
   const [pipeline, setPipeline] = useState({});
   const [loading, setLoading] = useState(true);
+  const isEmployee = user?.role === 'employee';
+  const canApprove = user?.role === 'admin' || user?.role === 'owner';
 
   const loadPipeline = async () => {
     try {
@@ -28,22 +33,37 @@ const Pipeline = () => {
     const { source, destination, draggableId } = result;
     if (!destination || source.droppableId === destination.droppableId) return;
 
+    const dest = destination.droppableId;
+
+    if (isEmployee && (dest === 'Won' || dest === 'Lost')) {
+      toast.error('Only admin can move leads to Won or Lost');
+      return;
+    }
+
     const newPipeline = { ...pipeline };
     const src = [...(newPipeline[source.droppableId] || [])];
-    const dst = [...(newPipeline[destination.droppableId] || [])];
+    const dst = [...(newPipeline[dest] || [])];
     const [moved] = src.splice(source.index, 1);
-    dst.splice(destination.index, 0, { ...moved, status: destination.droppableId });
+    dst.splice(destination.index, 0, { ...moved, status: dest });
     newPipeline[source.droppableId] = src;
-    newPipeline[destination.droppableId] = dst;
+    newPipeline[dest] = dst;
     setPipeline(newPipeline);
 
     try {
-      await leadsAPI.update(draggableId, { status: destination.droppableId });
-      toast.success(`Moved to ${destination.droppableId}`);
+      await leadsAPI.update(draggableId, { status: dest });
+      toast.success(`Moved to ${COL_DISPLAY[dest]}`);
     } catch {
       toast.error('Failed to update status');
       loadPipeline();
     }
+  };
+
+  const approveReviewLead = async (leadId, newStatus) => {
+    try {
+      await leadsAPI.update(leadId, { status: newStatus });
+      toast.success(`Lead marked as ${newStatus}`);
+      loadPipeline();
+    } catch { toast.error('Failed to update lead'); }
   };
 
   if (loading) return <Layout title="Leads Pipeline"><div className="loading-spinner"><div className="spinner" /></div></Layout>;
@@ -62,10 +82,10 @@ const Pipeline = () => {
             return (
               <div className="pipeline-column" key={col}>
                 <div className="pipeline-col-header">
-                  <div className="pipeline-col-title" style={{ color: COL_COLORS[col] }}>{col}</div>
+                  <div className="pipeline-col-title" style={{ color: COL_COLORS[col] }}>{COL_DISPLAY[col]}</div>
                   <div className="pipeline-col-count">{leads.length}</div>
                 </div>
-                <Droppable droppableId={col}>
+                <Droppable droppableId={col} isDropDisabled={isEmployee && (col === 'Won' || col === 'Lost')}>
                   {(provided, snapshot) => (
                     <div className="pipeline-col-body" ref={provided.innerRef} {...provided.droppableProps} style={{ background: snapshot.isDraggingOver ? 'rgba(233,69,96,0.04)' : undefined }}>
                       {leads.map((lead, index) => (
@@ -93,6 +113,18 @@ const Pipeline = () => {
                                   </div>
                                 )}
                               </div>
+                              {col === 'Review' && canApprove && (
+                                <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); approveReviewLead(lead.id, 'Won'); }}
+                                    style={{ flex: 1, padding: '4px 0', fontSize: 11, fontWeight: 700, background: 'rgba(34,197,94,0.15)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 6, cursor: 'pointer' }}
+                                  >Won</button>
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); approveReviewLead(lead.id, 'Lost'); }}
+                                    style={{ flex: 1, padding: '4px 0', fontSize: 11, fontWeight: 700, background: 'rgba(107,114,128,0.15)', color: '#6b7280', border: '1px solid rgba(107,114,128,0.3)', borderRadius: 6, cursor: 'pointer' }}
+                                  >Lost</button>
+                                </div>
+                              )}
                             </div>
                           )}
                         </Draggable>

@@ -389,7 +389,7 @@ const Invoices = () => {
                 </div>
               </div>
 
-              <div className="form-group"><label className="form-label">Due Date</label><input className="form-control" type="date" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} /></div>
+              <div className="form-group"><label className="form-label">Due Date <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: 12 }}>(Optional)</span></label><input className="form-control" type="date" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} /></div>
               <div className="form-group">
                 <label className="form-label">Terms & Conditions</label>
                 {(form.terms || []).map((term, i) => (

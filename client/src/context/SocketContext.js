@@ -58,6 +58,11 @@ export const SocketProvider = ({ children }) => {
       toast(`⏰ ${data.message}`, { duration: 8000 });
     });
 
+    s.on('task_reminder', (data) => {
+      setFollowupReminder({ ...data, type: 'task' });
+      toast(`📋 ${data.message}`, { duration: 8000 });
+    });
+
     s.on('appointment_reminder', (data) => {
       toast(`📅 ${data.message}`, { duration: 10000 });
     });

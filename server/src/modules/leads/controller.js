@@ -180,7 +180,11 @@ const updateLead = async (req, res) => {
     if (!lead) return res.status(404).json({ success: false, message: 'Lead not found' });
 
     const prevStatus = lead.status;
-    const allowed = ['name', 'phone', 'email', 'source', 'campaign', 'priority', 'status', 'assignedTo', 'city', 'clientAddress', 'clientGST', 'nextFollowup', 'lastCallNote', 'metadata'];
+    if (user.role === 'employee' && req.body.status && ['Won', 'Lost'].includes(req.body.status)) {
+      return res.status(403).json({ success: false, message: 'Employees cannot move leads to Won or Lost. Send to Review for admin approval.' });
+    }
+
+    const allowed = ['name', 'phone', 'email', 'source', 'campaign', 'priority', 'status', 'assignedTo', 'city', 'clientAddress', 'clientGST', 'nextFollowup', 'lastCallNote', 'designation', 'metadata'];
     const updates = {};
     for (const key of allowed) {
       if (req.body[key] !== undefined) updates[key] = req.body[key];
@@ -248,7 +252,7 @@ const getPipeline = async (req, res) => {
       order: [['createdAt', 'DESC']],
     });
 
-    const columns = ['New', 'Discussion', 'Meeting', 'Quotation', 'Won', 'Lost'];
+    const columns = ['New', 'Discussion', 'Meeting', 'Quotation', 'Review', 'Won', 'Lost'];
     const pipeline = {};
     columns.forEach((col) => { pipeline[col] = []; });
     leads.forEach((lead) => { if (pipeline[lead.status]) pipeline[lead.status].push(lead); });

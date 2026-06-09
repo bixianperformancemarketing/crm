@@ -67,6 +67,10 @@ const Organization = sequelize.define('Organization', {
         website: '',
       },
       smtpConfig: null,
+      messages: {
+        quotationFooter: '',
+        invoiceFooter: '',
+      },
     },
   },
 }, { tableName: 'organizations' });
@@ -130,18 +134,18 @@ const Lead = sequelize.define('Lead', {
   source: {
     type: DataTypes.ENUM(
       'Meta Ads', 'Google Ads', 'Website', 'WhatsApp', 'Reference', 'Justdial',
-      'Telecalling', 'Social Media', 'CSV Import', 'Instagram DM', 'Quotation', 'Walk-in', 'Other'
+      'Telecalling', 'Social Media', 'CSV Import', 'Instagram DM', 'Quotation', 'Walk-in', 'Cold visit', 'Other'
     ),
     defaultValue: 'Other',
   },
   campaign: { type: DataTypes.STRING(255) },
   score: { type: DataTypes.INTEGER, defaultValue: 0 },
   priority: {
-    type: DataTypes.ENUM('Low', 'Medium', 'High', 'Hot'),
-    defaultValue: 'Medium',
+    type: DataTypes.ENUM('Hot', 'Warm', 'Cold'),
+    defaultValue: 'Warm',
   },
   status: {
-    type: DataTypes.ENUM('New', 'Discussion', 'Meeting', 'Quotation', 'Won', 'Lost'),
+    type: DataTypes.ENUM('New', 'Discussion', 'Meeting', 'Quotation', 'Review', 'Won', 'Lost'),
     defaultValue: 'New',
   },
   assignedTo: { type: DataTypes.INTEGER, allowNull: true },
@@ -157,6 +161,7 @@ const Lead = sequelize.define('Lead', {
     ),
     defaultValue: 'Other',
   },
+  designation: { type: DataTypes.STRING(200), allowNull: true },
   repeatCount: { type: DataTypes.INTEGER, defaultValue: 0 },
   isDuplicate: { type: DataTypes.BOOLEAN, defaultValue: false },
   originalLeadId: { type: DataTypes.INTEGER, allowNull: true },
@@ -393,6 +398,7 @@ const ContentTask = sequelize.define('ContentTask', {
   },
   dueDate: { type: DataTypes.DATEONLY },
   dueTime: { type: DataTypes.STRING(5), allowNull: true },
+  reminderSentAt: { type: DataTypes.DATE, allowNull: true },
   notes: { type: DataTypes.TEXT },
 }, { tableName: 'content_tasks' });
 
@@ -647,9 +653,37 @@ const syncDatabase = async () => {
       }
     } catch (e) { /* ignore */ }
 
-    // Expand leads source ENUM to include 'Quotation' and 'Invoice'
+    // Expand leads source ENUM (includes Cold visit)
     try {
-      await sequelize.query(`ALTER TABLE leads MODIFY source ENUM('Meta Ads','Google Ads','Website','WhatsApp','Reference','Telecalling','Social Media','CSV Import','Instagram DM','Quotation','Justdial','Invoice','Walk-in','Other') DEFAULT 'Other'`);
+      await sequelize.query(`ALTER TABLE leads MODIFY source ENUM('Meta Ads','Google Ads','Website','WhatsApp','Reference','Telecalling','Social Media','CSV Import','Instagram DM','Quotation','Justdial','Invoice','Walk-in','Cold visit','Other') DEFAULT 'Other'`);
+    } catch (e) { /* ignore */ }
+
+    // Add Review to leads status ENUM
+    try {
+      await sequelize.query(`ALTER TABLE leads MODIFY status ENUM('New','Discussion','Meeting','Quotation','Review','Won','Lost') DEFAULT 'New'`);
+    } catch (e) { /* ignore */ }
+
+    // Migrate old lead priorities to new Hot/Warm/Cold system
+    try {
+      await sequelize.query(`UPDATE leads SET priority = 'Cold' WHERE priority = 'Low'`);
+      await sequelize.query(`UPDATE leads SET priority = 'Warm' WHERE priority IN ('Medium','High')`);
+      await sequelize.query(`ALTER TABLE leads MODIFY priority ENUM('Hot','Warm','Cold') DEFAULT 'Warm'`);
+    } catch (e) { /* ignore */ }
+
+    // Add designation column to leads if missing
+    try {
+      const leadCols2 = await qi.describeTable('leads');
+      if (!leadCols2.designation) {
+        await qi.addColumn('leads', 'designation', { type: DataTypes.STRING(200), allowNull: true });
+      }
+    } catch (e) { /* ignore */ }
+
+    // Add reminderSentAt column to content_tasks if missing
+    try {
+      const ctCols2 = await qi.describeTable('content_tasks');
+      if (!ctCols2.reminderSentAt) {
+        await qi.addColumn('content_tasks', 'reminderSentAt', { type: DataTypes.DATE, allowNull: true });
+      }
     } catch (e) { /* ignore */ }
 
     // Add city column to leads if missing

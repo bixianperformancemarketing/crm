@@ -333,12 +333,35 @@ const sendInvoiceEmail = async (invoice, items, pdfBuffer, orgSettings, smtpConf
   });
 };
 
+const sendQuotationExpiryReminder = async (quotation, orgSettings, smtpConfig) => {
+  if (!quotation.clientEmail) return;
+  const content = `
+    <h2>Quotation Expiry Reminder - #${quotation.quotationNumber}</h2>
+    <p>Dear ${quotation.clientName},</p>
+    <p>This is a reminder that your quotation <strong>#${quotation.quotationNumber}</strong> expires today.</p>
+    <div class="info-box">
+      <div class="info-row"><span class="info-label">Quotation:</span><span class="info-value">${quotation.quotationNumber}</span></div>
+      <div class="info-row"><span class="info-label">Total Amount:</span><span class="info-value">₹${parseFloat(quotation.totalAmount).toLocaleString('en-IN')}</span></div>
+      <div class="info-row"><span class="info-label">Valid Until:</span><span class="info-value">${moment(quotation.validUntil).tz(IST).format('DD MMM YYYY')}</span></div>
+    </div>
+    <p>Please get in touch with us if you wish to proceed or need an extension.</p>
+  `;
+  return sendEmail({
+    to: quotation.clientEmail,
+    subject: `Quotation #${quotation.quotationNumber} expires today`,
+    html: baseTemplate('Quotation Expiry', content, orgSettings),
+    smtpConfig,
+    orgSettings,
+  });
+};
+
 module.exports = {
   sendEmail,
   sendLeadAcknowledgement,
   sendQuotationEmail,
   sendInvoiceEmail,
   sendInvoiceDueReminder,
+  sendQuotationExpiryReminder,
   sendFollowupReminderEmail,
   sendAppointmentReminder,
   sendCustomEmail,

@@ -1,4 +1,5 @@
-const { Op, fn, col } = require('sequelize');
+const { Op, fn, col, literal } = require('sequelize');
+const moment = require('moment-timezone');
 const { Lead, Payment, Invoice, Followup, Appointment, ContentTask, User, Quotation } = require('../../config/models');
 const { startOfTodayIST, endOfTodayIST } = require('../../utils/helpers');
 
@@ -88,6 +89,22 @@ const getLoginSummary = async (req, res) => {
   }
 };
 
+const getPeriodRange = (period) => {
+  const now = moment().tz('Asia/Kolkata');
+  switch (period) {
+    case 'this_week':   return { start: now.clone().startOf('isoWeek').toDate(), end: now.clone().endOf('isoWeek').toDate() };
+    case 'last_week':   return { start: now.clone().subtract(1, 'week').startOf('isoWeek').toDate(), end: now.clone().subtract(1, 'week').endOf('isoWeek').toDate() };
+    case 'last_month':  return { start: now.clone().subtract(1, 'month').startOf('month').toDate(), end: now.clone().subtract(1, 'month').endOf('month').toDate() };
+    case 'this_quarter': {
+      const q = Math.floor(now.month() / 3);
+      return { start: now.clone().month(q * 3).startOf('month').toDate(), end: now.clone().month(q * 3 + 2).endOf('month').toDate() };
+    }
+    case 'this_year':   return { start: now.clone().startOf('year').toDate(), end: now.clone().endOf('year').toDate() };
+    case 'overall':     return null;
+    default:            return { start: now.clone().startOf('month').toDate(), end: now.clone().endOf('month').toDate() };
+  }
+};
+
 const getDashboard = async (req, res) => {
   try {
     const { user, workspaceId } = req;
@@ -97,8 +114,11 @@ const getDashboard = async (req, res) => {
     const ws = workspaceId ? { workspaceId } : {};
     const canAccessLeads = !isEmployee || user.canAccessLeads !== false;
     const canUseTasks = !isEmployee || !!user.canUseContentCalendar;
+    const period = req.query.period || 'this_month';
+    const periodRange = getPeriodRange(period);
+    const periodFilter = periodRange ? { [Op.between]: [periodRange.start, periodRange.end] } : undefined;
 
-    const leadWhere = { organizationId: orgId, ...ws, ...(isEmployee ? { assignedTo: user.id } : {}) };
+    const leadWhere = { organizationId: orgId, ...ws, ...(isEmployee ? { assignedTo: user.id } : {}), ...(periodFilter ? { createdAt: periodFilter } : {}) };
     const baseWhere = { organizationId: orgId, ...ws };
     const taskWhere = { organizationId: orgId, ...ws, ...(isEmployee ? { assignedTo: user.id } : {}) };
 
@@ -186,8 +206,34 @@ const getDashboard = async (req, res) => {
       ]);
     }
 
+    // Employee earnings: sum of first payment per lead assigned to this employee within the period
+    let earnings = 0;
+    if (isEmployee && canAccessLeads) {
+      const myLeads = await Lead.findAll({ where: { organizationId: orgId, ...ws, assignedTo: user.id }, attributes: ['id'], raw: true });
+      if (myLeads.length) {
+        const myLeadIds = myLeads.map(l => l.id);
+        const firstPayments = await Payment.findAll({
+          where: {
+            leadId: { [Op.in]: myLeadIds },
+            organizationId: orgId,
+            ...(periodFilter ? { receivedAt: periodFilter } : {}),
+          },
+          attributes: ['leadId', [fn('MIN', col('receivedAt')), 'firstAt'], [fn('SUM', col('amount')), 'total']],
+          group: ['leadId'],
+          raw: true,
+        });
+        // For earnings, take the first payment per lead (by receivedAt) and sum its amount
+        const firstPaymentAmounts = await Promise.all(firstPayments.map(async (fp) => {
+          const p = await Payment.findOne({ where: { leadId: fp.leadId, organizationId: orgId, receivedAt: fp.firstAt }, attributes: ['amount'], raw: true });
+          return parseFloat(p?.amount || 0);
+        }));
+        earnings = firstPaymentAmounts.reduce((s, a) => s + a, 0);
+      }
+    }
+
     res.json({
       success: true,
+      period,
       stats: {
         totalLeads, activeLeads, wonLeads, hotLeads,
         totalRevenue: parseFloat(totalRevenue) || 0,
@@ -195,6 +241,7 @@ const getDashboard = async (req, res) => {
         overdueInvoices, pendingFollowups, overdueFollowups, todayAppts,
         conversionRate, avgDealSize: Math.round(avgDealSize),
         totalTasks, overviewTasks, todoTodayTasks, inProgressTasks, reviewTasks, approvedTasks, notApprovedTasks,
+        earnings,
       },
       charts: { monthlyRevenue, leadByStatus, leadBySource, leadVolume },
       todayFollowups,

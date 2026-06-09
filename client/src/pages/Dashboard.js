@@ -10,15 +10,27 @@ import './Dashboard.css';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend);
 
+const PERIODS = [
+  { value: 'this_month', label: 'This Month' },
+  { value: 'last_month', label: 'Last Month' },
+  { value: 'this_week', label: 'This Week' },
+  { value: 'last_week', label: 'Last Week' },
+  { value: 'this_quarter', label: 'This Quarter' },
+  { value: 'this_year', label: 'This Year' },
+  { value: 'overall', label: 'Overall' },
+];
+
 const Dashboard = () => {
   const { user } = useAuth();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [overdueCount, setOverdueCount] = useState(0);
+  const [period, setPeriod] = useState('this_month');
   const [theme, setTheme] = useState(() => document.documentElement.getAttribute('data-theme') || 'dark');
 
   const canAccessLeads = user?.role !== 'employee' || user?.canAccessLeads !== false;
   const canUseTasks = user?.role !== 'employee' || !!user?.canUseContentCalendar;
+  const isEmployee = user?.role === 'employee';
 
   useEffect(() => {
     const observer = new MutationObserver(() => setTheme(document.documentElement.getAttribute('data-theme') || 'dark'));
@@ -28,9 +40,10 @@ const Dashboard = () => {
 
   useEffect(() => {
     const load = async () => {
+      setLoading(true);
       try {
         const [dashRes, overdueRes] = await Promise.all([
-          reportsAPI.getDashboard(),
+          reportsAPI.getDashboard({ period }),
           followupsAPI.getOverdueCount(),
         ]);
         setData(dashRes.data);
@@ -42,7 +55,7 @@ const Dashboard = () => {
       }
     };
     load();
-  }, []);
+  }, [period]);
 
   if (loading) return <Layout title="Dashboard"><div className="loading-spinner"><div className="spinner" /></div></Layout>;
   if (!data) return <Layout title="Dashboard"><div className="empty-state"><div className="empty-icon">📊</div><div className="empty-title">Failed to load dashboard</div></div></Layout>;
@@ -104,6 +117,31 @@ const Dashboard = () => {
 
   return (
     <Layout title="Dashboard">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>
+        <div style={{ fontSize: 20, fontWeight: 700 }}>Dashboard</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>Period:</span>
+          <select
+            value={period}
+            onChange={(e) => setPeriod(e.target.value)}
+            style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface-2)', color: 'var(--text)', fontSize: 13, cursor: 'pointer' }}
+          >
+            {PERIODS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+          </select>
+        </div>
+      </div>
+
+      {isEmployee && canAccessLeads && (
+        <div style={{ marginBottom: 20, padding: '16px 20px', background: 'linear-gradient(135deg, rgba(34,197,94,0.1), rgba(34,197,94,0.05))', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 12, display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div style={{ fontSize: 32 }}>💼</div>
+          <div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>My Earnings — {PERIODS.find(p => p.value === period)?.label}</div>
+            <div style={{ fontSize: 28, fontWeight: 800, color: '#22c55e', marginTop: 2 }}>{formatCurrency(data?.stats?.earnings || 0)}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>Based on first payment received per lead</div>
+          </div>
+        </div>
+      )}
+
       {canAccessLeads && overdueCount > 0 && (
         <div className="overdue-banner">
           <span className="overdue-icon">⚠️</span>

@@ -82,6 +82,7 @@ const createInvoice = async (req, res) => {
           name: clientName.trim(), phone: clientPhone.trim(),
           email: clientEmail?.trim() || null, address: clientAddress?.trim() || null,
           source: 'Invoice', status: 'Won', createdBy: user.id,
+          assignedTo: user.role === 'employee' ? user.id : null,
         });
       }
     }
@@ -98,7 +99,7 @@ const createInvoice = async (req, res) => {
       clientPhone: clientPhone.trim(), clientAddress: clientAddress?.trim() || null, clientGST,
       subtotal, gstPercent, gstAmount, totalAmount,
       paidAmount: 0, dueAmount: totalAmount, status: 'Unpaid', notes, terms,
-      dueDate: dueDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      dueDate: dueDate || null,
     });
 
     const itemsData = items.map((i) => ({
@@ -269,6 +270,7 @@ const deleteInvoice = async (req, res) => {
   try {
     const { id } = req.params;
     const { user, workspaceId } = req;
+    if (user.role === 'employee') return res.status(403).json({ success: false, message: 'Only admin or owner can delete invoices' });
     const ws = workspaceId ? { workspaceId } : {};
     const inv = await Invoice.findOne({ where: { id, organizationId: user.organizationId, ...ws } });
     if (!inv) return res.status(404).json({ success: false, message: 'Invoice not found' });
