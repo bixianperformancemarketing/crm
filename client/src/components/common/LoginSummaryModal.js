@@ -79,7 +79,10 @@ const LoginSummaryModal = () => {
             {greeting()}, {user.name?.split(' ')[0]}
           </div>
           <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>
-            {user.role === 'owner' ? "Here's your organisation's daily summary" : "Here's your daily summary"}
+            {user.role === 'owner' ? "Here's your organisation's summary" : "Here's your summary"} &mdash;{' '}
+            <span style={{ fontWeight: 600, color: 'var(--text)' }}>
+              {new Date().toLocaleString('default', { month: 'long' })} so far
+            </span>
           </div>
         </div>
 
@@ -91,8 +94,8 @@ const LoginSummaryModal = () => {
               <Metric label="Followups Today" value={todayFollowups.length} color="#f59e0b" />
               <Metric label="Completed Today" value={completedFollowupsToday} color="#10b981" />
               <Metric label="Active Leads" value={activeLeads} color="#6366f1" />
-              <Metric label="New Leads" value={newLeads} color="#10b981" />
-              <Metric label="Converted Today" value={convertedToday.length} color="#10b981" />
+              <Metric label="New Leads This Month" value={newLeads} color="#10b981" />
+              <Metric label="Won This Month" value={convertedToday.length} color="#22c55e" />
               <Metric label="Pending Quotations" value={pendingQuotations} color="#f59e0b" />
               <Metric label="Appointments Today" value={todayAppointments.length} color="#6366f1" />
             </div>

@@ -13,6 +13,9 @@ const getLoginSummary = async (req, res) => {
     const canAccessLeads = !isEmployee || user.canAccessLeads !== false;
     const canUseTasks = !isEmployee || !!user.canUseContentCalendar;
 
+    const monthStart = moment().tz('Asia/Kolkata').startOf('month').toDate();
+    const monthEnd   = moment().tz('Asia/Kolkata').endOf('day').toDate();
+
     const leadWhere    = { organizationId: orgId, ...ws, ...(isEmployee ? { assignedTo: user.id } : {}) };
     const fupWhere     = { organizationId: orgId, ...ws, ...(isEmployee ? { userId: user.id } : {}) };
     const quotWhere    = { organizationId: orgId, ...ws, ...(isEmployee ? { createdBy: user.id } : {}) };
@@ -53,11 +56,11 @@ const getLoginSummary = async (req, res) => {
         where: { ...fupWhere, status: 'completed', completedAt: { [Op.between]: [startOfTodayIST(), endOfTodayIST()] } },
       }) : zero,
       canAccessLeads ? Lead.count({ where: { ...leadWhere, status: { [Op.notIn]: ['Won', 'Lost'] } } }) : zero,
-      canAccessLeads ? Lead.count({ where: { ...leadWhere, status: 'New' } }) : zero,
+      canAccessLeads ? Lead.count({ where: { ...leadWhere, createdAt: { [Op.between]: [monthStart, monthEnd] } } }) : zero,
       canAccessLeads ? Lead.findAll({
-        where: { ...leadWhere, status: 'Won', updatedAt: { [Op.between]: [startOfTodayIST(), endOfTodayIST()] } },
+        where: { ...leadWhere, status: 'Won', updatedAt: { [Op.between]: [monthStart, monthEnd] } },
         attributes: ['id', 'name', 'updatedAt'],
-        order: [['updatedAt', 'DESC']], limit: 10,
+        order: [['updatedAt', 'DESC']], limit: 50,
       }) : emptyArr,
       canAccessLeads ? Quotation.count({ where: { ...quotWhere, status: { [Op.in]: ['Draft', 'Sent'] } } }) : zero,
       canAccessLeads ? Appointment.findAll({
