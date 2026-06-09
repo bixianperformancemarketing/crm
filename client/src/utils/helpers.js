@@ -51,7 +51,7 @@ export const getStatusColor = (status) => {
     Scheduled: '#0ea5e9', Completed: '#22c55e', Cancelled: '#6b7280', 'No Show': '#ef4444',
     Draft: '#6b7280', Sent: '#0ea5e9', Approved: '#22c55e', Rejected: '#ef4444',
     Unpaid: '#ef4444', Partial: '#f59e0b', Paid: '#22c55e', Overdue: '#e94560',
-    Pending: '#f59e0b', 'In Progress': '#0ea5e9', Review: '#7c3aed', Published: '#22c55e',
+    Pending: '#f59e0b', 'In Progress': '#0ea5e9', 'In Review': '#7c3aed', Published: '#22c55e',
     trial: '#6b7280', starter: '#0ea5e9', growth: '#7c3aed', agency: '#e94560', custom: '#22c55e',
   };
   return map[status] || '#6b7280';

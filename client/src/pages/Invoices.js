@@ -138,7 +138,6 @@ const Invoices = () => {
         clientAddress: invData.clientAddress || '',
         clientGST: invData.clientGST || '',
         gstPercent: invData.gstPercent || 18,
-        terms: invData.terms || '',
         notes: invData.notes || '',
         dueDate: invData.dueDate ? invData.dueDate.slice(0, 10) : '',
         terms: parseTermsArray(invData.terms),
