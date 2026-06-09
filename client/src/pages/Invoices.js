@@ -528,7 +528,9 @@ const Invoices = () => {
               <div className="form-group"><label className="form-label">Amount *</label><input className="form-control" type="number" step="0.01" value={payForm.amount} onChange={(e) => setPayForm({ ...payForm, amount: e.target.value })} /></div>
               <div className="form-group"><label className="form-label">Mode *</label><select className="form-control" value={payForm.mode} onChange={(e) => setPayForm({ ...payForm, mode: e.target.value })}>{ENUMS.PAYMENT_MODES.map((m) => <option key={m}>{m}</option>)}</select></div>
             </div>
-            <div className="form-group"><label className="form-label">Reference / UTR</label><input className="form-control" value={payForm.reference} onChange={(e) => setPayForm({ ...payForm, reference: e.target.value })} placeholder="Transaction reference..." /></div>
+            {payForm.mode !== 'Cash' && (
+              <div className="form-group"><label className="form-label">Reference / UTR / Cheque Number</label><input className="form-control" value={payForm.reference} onChange={(e) => setPayForm({ ...payForm, reference: e.target.value })} placeholder="Transaction ID, UTR or cheque number..." /></div>
+            )}
             <div className="form-group"><label className="form-label">Note</label><input className="form-control" value={payForm.note} onChange={(e) => setPayForm({ ...payForm, note: e.target.value })} /></div>
             <div className="modal-actions"><button className="btn btn-ghost" onClick={() => setShowPayment(null)}>Cancel</button><button className="btn btn-success" onClick={handlePayment} disabled={saving}>{saving ? 'Saving...' : 'Record Payment'}</button></div>
           </div>
