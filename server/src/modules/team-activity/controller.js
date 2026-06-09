@@ -9,7 +9,7 @@ const getTeamSummary = async (req, res) => {
     const ws = workspaceId ? { workspaceId } : {};
 
     const employees = await User.findAll({
-      where: { ...ws, organizationId: orgId, role: { [Op.in]: ['employee', 'admin'] }, isActive: true },
+      where: { ...ws, organizationId: orgId, role: { [Op.in]: ['employee', 'admin'] }, isActive: true, workspaceId: { [Op.ne]: null } },
       attributes: ['id', 'name', 'email', 'label', 'role', 'workspaceId'],
       include: [{ model: Workspace, as: 'workspace', attributes: ['id', 'name'], required: false }],
     });
