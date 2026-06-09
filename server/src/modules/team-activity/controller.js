@@ -92,10 +92,13 @@ const getTeamFeed = async (req, res) => {
       if (dateTo) { const d = new Date(dateTo); d.setDate(d.getDate() + 1); where.createdAt[Op.lt] = d; }
     }
 
+    const userWhere = { isActive: true };
+    if (workspaceId) userWhere.workspaceId = workspaceId;
+
     const { count, rows } = await LeadActivity.findAndCountAll({
       where,
       include: [
-        { model: User, as: 'user', attributes: ['id', 'name', 'label', 'role'], required: true, where: { isActive: true } },
+        { model: User, as: 'user', attributes: ['id', 'name', 'label', 'role'], required: true, where: userWhere },
         { model: Lead, as: 'lead', attributes: ['id', 'name', 'status'], required: false },
       ],
       order: [['createdAt', 'DESC']],
