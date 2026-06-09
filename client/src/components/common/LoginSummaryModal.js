@@ -104,7 +104,7 @@ const LoginSummaryModal = () => {
             <SectionLabel>Tasks</SectionLabel>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
               <Metric label="Total Tasks" value={totalTasks} color="#a78bfa" />
-              <Metric label="Overview" value={overviewTasks} color="#6b7280" />
+              <Metric label="Overdue" value={overviewTasks} color="#ef4444" />
               <Metric label="To Do Today" value={todoTodayTasks} color="#0ea5e9" />
               <Metric label="In Progress" value={inProgressTasks} color="#a78bfa" />
               <Metric label="In Review" value={reviewTasks} color="#f59e0b" />

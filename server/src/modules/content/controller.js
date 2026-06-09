@@ -99,7 +99,7 @@ const createTask = async (req, res) => {
       organizationId: user.organizationId, workspaceId,
       leadId: leadId || null, assignedTo: assignedTo || null, createdBy: user.id,
       title, description: description || '',
-      priority: priority || 'Medium', status: 'Overview',
+      priority: priority || 'Medium', status: 'Overdue',
       dueDate: dueDate || null, dueTime: dueTime || null, notes: notes || '',
     });
     res.status(201).json({ success: true, message: 'Content task created', task });
@@ -159,7 +159,7 @@ const getTaskPipeline = async (req, res) => {
       order: [['dueDate', 'ASC'], ['createdAt', 'DESC']],
     });
 
-    const columns = ['Overview', 'To Do Today', 'In Progress', 'Review', 'Approved', 'Not Approved'];
+    const columns = ['Overdue', 'To Do Today', 'In Progress', 'Review', 'Approved', 'Not Approved'];
     const pipeline = {};
     columns.forEach((col) => { pipeline[col] = []; });
     tasks.forEach((task) => { if (pipeline[task.status]) pipeline[task.status].push(task); });

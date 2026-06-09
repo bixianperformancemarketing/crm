@@ -63,7 +63,7 @@ const LeadDetail = () => {
     try {
       const { data } = await leadsAPI.get(id);
       setLead(data.lead);
-      setEditForm({ name: data.lead.name, phone: data.lead.phone || '', email: data.lead.email || '', source: data.lead.source, priority: data.lead.priority, status: data.lead.status, assignedTo: data.lead.assignedTo || '', city: data.lead.city || '', clientAddress: data.lead.clientAddress || '', clientGST: data.lead.clientGST || '', clientType: data.lead.clientType || 'Other', campaign: data.lead.campaign || '' });
+      setEditForm({ name: data.lead.name, phone: data.lead.phone || '', email: data.lead.email || '', source: data.lead.source, priority: data.lead.priority, status: data.lead.status, assignedTo: data.lead.assignedTo || '', city: data.lead.city || '', clientAddress: data.lead.clientAddress || '', clientGST: data.lead.clientGST || '', campaign: data.lead.campaign || '' });
     } catch { toast.error('Lead not found'); navigate('/leads'); }
     finally { setLoading(false); }
   };
@@ -237,7 +237,7 @@ const LeadDetail = () => {
               </div>
               <div className="form-row">
                 <div className="form-group"><label className="form-label">Source</label><select className="form-control" value={editForm.source} onChange={(e) => setEditForm({ ...editForm, source: e.target.value })}>{ENUMS.LEAD_SOURCES.map((s) => <option key={s}>{s}</option>)}</select></div>
-                <div className="form-group"><label className="form-label">Client Type</label><select className="form-control" value={editForm.clientType} onChange={(e) => setEditForm({ ...editForm, clientType: e.target.value })}>{ENUMS.CLIENT_TYPES.map((t) => <option key={t}>{t}</option>)}</select></div>
+
               </div>
               {(user?.role === 'admin' || user?.role === 'owner') && agents.length > 0 && <div className="form-group"><label className="form-label">Assign To</label><select className="form-control" value={editForm.assignedTo} onChange={(e) => setEditForm({ ...editForm, assignedTo: e.target.value })}><option value="">Unassigned</option>{agents.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></div>}
               <div className="form-row">
@@ -303,7 +303,7 @@ const LeadDetail = () => {
             <div className="info-section">
               <h4>Lead Information</h4>
               {[
-                ['Workspace', lead.workspace?.name], ['Source', lead.source], ['Campaign', lead.campaign], ['Client Type', lead.clientType],
+                ['Workspace', lead.workspace?.name], ['Source', lead.source], ['Campaign', lead.campaign],
                 ['City', lead.city || (() => { const m = lead.metadata || {}; for (const k of Object.keys(m)) { if (/^city$/i.test(k) && m[k]) return m[k]; } if (m.rawFields) { for (const k of Object.keys(m.rawFields)) { if (/^city$/i.test(k) && m.rawFields[k]) return m.rawFields[k]; } } return null; })()], ['Address', lead.clientAddress], ['GST', lead.clientGST],
                 ['Next Followup', lead.nextFollowup ? formatDateTime(lead.nextFollowup) : null],
                 ['Last Note', lead.lastCallNote],

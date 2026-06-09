@@ -118,7 +118,7 @@ const createLead = async (req, res) => {
     if (!workspaceId) return res.status(400).json({ success: false, message: 'Workspace context required for this action' });
     const {
       name, phone, email, source, campaign, priority, status,
-      assignedTo, city, clientAddress, clientGST, clientType, nextFollowup,
+      assignedTo, city, clientAddress, clientGST, nextFollowup,
       metadata = {},
     } = req.body;
 
@@ -139,7 +139,7 @@ const createLead = async (req, res) => {
     }
 
     const resolvedAssignedTo = assignedTo || (user.role === 'employee' ? user.id : null);
-    const leadData = { organizationId: user.organizationId, workspaceId, name, phone, email, source, campaign, priority: priority || 'Medium', status: status || 'New', assignedTo: resolvedAssignedTo, city, clientAddress, clientGST, clientType: clientType || 'Other', nextFollowup, lastCallNote: '', metadata };
+    const leadData = { organizationId: user.organizationId, workspaceId, name, phone, email, source, campaign, priority: priority || 'Medium', status: status || 'New', assignedTo: resolvedAssignedTo, city, clientAddress, clientGST, nextFollowup, lastCallNote: '', metadata };
     leadData.score = calculateLeadScore(leadData);
     leadData.isHot = isHotLead(leadData);
 
@@ -180,7 +180,7 @@ const updateLead = async (req, res) => {
     if (!lead) return res.status(404).json({ success: false, message: 'Lead not found' });
 
     const prevStatus = lead.status;
-    const allowed = ['name', 'phone', 'email', 'source', 'campaign', 'priority', 'status', 'assignedTo', 'city', 'clientAddress', 'clientGST', 'clientType', 'nextFollowup', 'lastCallNote', 'metadata'];
+    const allowed = ['name', 'phone', 'email', 'source', 'campaign', 'priority', 'status', 'assignedTo', 'city', 'clientAddress', 'clientGST', 'nextFollowup', 'lastCallNote', 'metadata'];
     const updates = {};
     for (const key of allowed) {
       if (req.body[key] !== undefined) updates[key] = req.body[key];

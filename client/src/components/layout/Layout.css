@@ -310,6 +310,7 @@ tr:hover td { background: rgba(255,255,255,0.015); }
 [data-theme="light"] .nav-item { color: rgba(26,26,46,0.88); }
 [data-theme="light"] .nav-item:hover { color: #1a1a2e; background: rgba(26,26,46,0.08); }
 [data-theme="light"] .nav-item.active { color: #1a1a2e; background: rgba(26,26,46,0.15); border-left-color: #1a1a2e; }
+[data-theme="light"] .nav-icon { text-shadow: 0 1px 4px rgba(0,0,0,0.28); }
 [data-theme="light"] .sidebar-footer { border-top-color: rgba(26,26,46,0.2); }
 [data-theme="light"] .user-name { color: #1a1a2e; }
 [data-theme="light"] .user-role { color: rgba(26,26,46,0.75); }
@@ -317,7 +318,7 @@ tr:hover td { background: rgba(255,255,255,0.015); }
 [data-theme="light"] .sidebar-collapse-btn:hover { background: rgba(26,26,46,0.08); color: #1a1a2e; }
 
 /* Header elements on yellow */
-[data-theme="light"] .notif-btn { color: #1a1a2e; }
+[data-theme="light"] .notif-btn { color: #1a1a2e; text-shadow: 0 1px 4px rgba(0,0,0,0.28); }
 [data-theme="light"] .notif-btn:hover { background: rgba(26,26,46,0.1); color: #1a1a2e; }
 [data-theme="light"] .notif-badge { background: #1a1a2e; color: #E7C51C; }
 [data-theme="light"] .header .btn-ghost { border-color: rgba(26,26,46,0.3); color: #1a1a2e; }

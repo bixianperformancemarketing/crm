@@ -6,9 +6,9 @@ import { contentAPI } from '../services/api';
 import { getPriorityColor, getInitials } from '../utils/helpers';
 import './Pipeline.css';
 
-const COLUMNS = ['Overview', 'To Do Today', 'In Progress', 'Review', 'Approved', 'Not Approved'];
+const COLUMNS = ['Overdue', 'To Do Today', 'In Progress', 'Review', 'Approved', 'Not Approved'];
 const COL_COLORS = {
-  Overview: '#6b7280',
+  Overdue: '#ef4444',
   'To Do Today': '#0ea5e9',
   'In Progress': '#a78bfa',
   Review: '#f59e0b',

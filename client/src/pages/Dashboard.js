@@ -94,7 +94,7 @@ const Dashboard = () => {
 
   const taskStatCards = [
     { label: 'Total Tasks', value: stats.totalTasks ?? 0, icon: '📋', color: '#a78bfa' },
-    { label: 'Overview', value: stats.overviewTasks ?? 0, icon: '🗂️', color: '#6b7280' },
+    { label: 'Overdue', value: stats.overviewTasks ?? 0, icon: '⏰', color: '#ef4444' },
     { label: 'To Do Today', value: stats.todoTodayTasks ?? 0, icon: '📅', color: '#0ea5e9' },
     { label: 'In Progress', value: stats.inProgressTasks ?? 0, icon: '🔄', color: '#a78bfa' },
     { label: 'In Review', value: stats.reviewTasks ?? 0, icon: '🔍', color: '#f59e0b' },

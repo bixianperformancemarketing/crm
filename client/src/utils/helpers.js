@@ -2,7 +2,7 @@ export const ENUMS = {
   LEAD_SOURCES: ['Meta Ads', 'Google Ads', 'Website', 'WhatsApp', 'Reference', 'Telecalling', 'Social Media', 'CSV Import', 'Instagram DM', 'Justdial', 'Walk-in', 'Other'],
   LEAD_STATUSES: ['New', 'Discussion', 'Meeting', 'Quotation', 'Won', 'Lost'],
   LEAD_PRIORITIES: ['Low', 'Medium', 'High', 'Hot'],
-  CLIENT_TYPES: ['Real Estate', 'Hospital', 'School', 'College', 'Personal Branding', 'Construction', 'Other'],
+
   APPOINTMENT_TYPES: ['Call', 'Meeting', 'Demo', 'Site Visit', 'Follow-up', 'Other'],
   APPOINTMENT_STATUSES: ['Scheduled', 'Completed', 'Cancelled', 'No Show'],
   CONTENT_PLATFORMS: ['Instagram', 'Facebook', 'LinkedIn', 'YouTube', 'Twitter/X', 'Website', 'Google', 'WhatsApp', 'Other'],

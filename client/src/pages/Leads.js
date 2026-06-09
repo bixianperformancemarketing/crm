@@ -36,7 +36,7 @@ const Leads = () => {
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [filters, setFilters] = useState({ search: '', status: '', source: '', priority: '', assignedTo: '', city: '', page: 1 });
-  const [form, setForm] = useState({ name: '', phone: '', email: '', source: 'Website', priority: 'Medium', status: 'New', assignedTo: '', campaign: '', city: '', clientAddress: '', clientType: 'Other' });
+  const [form, setForm] = useState({ name: '', phone: '', email: '', source: 'Website', priority: 'Medium', status: 'New', assignedTo: '', campaign: '', city: '', clientAddress: '' });
   const [importing, setImporting] = useState(false);
   const [importResults, setImportResults] = useState(null);
 
@@ -84,7 +84,7 @@ const Leads = () => {
       if (data.upgradeRequired) { setUpgradeModal(data); return; }
       toast.success(data.isDuplicate ? 'Duplicate lead detected' : 'Lead created!');
       setShowCreate(false);
-      setForm({ name: '', phone: '', email: '', source: 'Website', priority: 'Medium', status: 'New', assignedTo: '', campaign: '', city: '', clientAddress: '', clientType: 'Other' });
+      setForm({ name: '', phone: '', email: '', source: 'Website', priority: 'Medium', status: 'New', assignedTo: '', campaign: '', city: '', clientAddress: '' });
       loadLeads();
     } catch (err) {
       const d = err.response?.data;
@@ -394,10 +394,9 @@ const Leads = () => {
                 <div className="form-group"><label className="form-label">Source</label><select className="form-control" value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })}>{ENUMS.LEAD_SOURCES.map((s) => <option key={s}>{s}</option>)}</select></div>
                 <div className="form-group"><label className="form-label">Priority</label><select className="form-control" value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })}>{ENUMS.LEAD_PRIORITIES.map((p) => <option key={p}>{p}</option>)}</select></div>
               </div>
-              <div className="form-row">
-                <div className="form-group"><label className="form-label">Client Type</label><select className="form-control" value={form.clientType} onChange={(e) => setForm({ ...form, clientType: e.target.value })}>{ENUMS.CLIENT_TYPES.map((t) => <option key={t}>{t}</option>)}</select></div>
-                {(user?.role === 'admin' || user?.role === 'owner') && agents.length > 0 && <div className="form-group"><label className="form-label">Assign To</label><select className="form-control" value={form.assignedTo} onChange={(e) => setForm({ ...form, assignedTo: e.target.value })}><option value="">Unassigned</option>{agents.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></div>}
-              </div>
+              {(user?.role === 'admin' || user?.role === 'owner') && agents.length > 0 && (
+                <div className="form-group"><label className="form-label">Assign To</label><select className="form-control" value={form.assignedTo} onChange={(e) => setForm({ ...form, assignedTo: e.target.value })}><option value="">Unassigned</option>{agents.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></div>
+              )}
               <div className="form-row">
                 <div className="form-group"><label className="form-label">City</label><input className="form-control" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} placeholder="e.g. Mumbai" /></div>
                 <div className="form-group"><label className="form-label">Address</label><textarea className="form-control" rows={2} value={form.clientAddress} onChange={(e) => setForm({ ...form, clientAddress: e.target.value })} /></div>
