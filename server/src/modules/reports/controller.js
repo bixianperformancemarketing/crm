@@ -140,8 +140,10 @@ const getDashboard = async (req, res) => {
     const wonLeadWhere = { organizationId: orgId, ...ws, ...(isEmployee ? { assignedTo: user.id } : {}), status: 'Won', ...(periodFilter ? { updatedAt: periodFilter } : {}) };
     // payments received in period, scoped to employee's leads
     const paymentWhere = { organizationId: orgId, ...ws, ...leadIdScope, ...(periodFilter ? { receivedAt: periodFilter } : {}) };
-    // invoices scoped to employee's leads (current-state metrics, no period filter)
+    // invoices scoped to employee's leads — base (for overdue count, which is always current state)
     const invoiceWhere = { organizationId: orgId, ...ws, ...leadIdScope };
+    // pending revenue: invoices created in the selected period that are still unpaid
+    const pendingInvoiceWhere = { ...invoiceWhere, ...(periodFilter ? { createdAt: periodFilter } : {}) };
     // followups/appointments scoped to employee
     const followupWhere = { organizationId: orgId, ...ws, ...(isEmployee ? { userId: user.id } : {}) };
     const apptWhere = { organizationId: orgId, ...ws, ...(isEmployee ? { assignedTo: user.id } : {}), status: 'Scheduled' };
@@ -161,7 +163,7 @@ const getDashboard = async (req, res) => {
       canAccessLeads ? Lead.count({ where: wonLeadWhere }) : zero,
       canAccessLeads ? Lead.count({ where: { ...leadWhere, isHot: true } }) : zero,
       canAccessLeads ? Payment.sum('amount', { where: paymentWhere }) : zero,
-      canAccessLeads ? Invoice.sum('dueAmount', { where: { ...invoiceWhere, status: { [Op.in]: ['Unpaid', 'Partial'] } } }) : zero,
+      canAccessLeads ? Invoice.sum('dueAmount', { where: { ...pendingInvoiceWhere, status: { [Op.in]: ['Unpaid', 'Partial'] } } }) : zero,
       canAccessLeads ? Invoice.count({ where: { ...invoiceWhere, status: 'Overdue' } }) : zero,
       canAccessLeads ? Followup.count({ where: { ...followupWhere, status: 'pending', scheduledAt: { [Op.gte]: now } } }) : zero,
       canAccessLeads ? Followup.count({ where: { ...followupWhere, status: { [Op.in]: ['pending', 'overdue'] }, scheduledAt: { [Op.lt]: now } } }) : zero,
