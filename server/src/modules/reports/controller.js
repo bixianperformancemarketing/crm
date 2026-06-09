@@ -170,7 +170,7 @@ const getDashboard = async (req, res) => {
       canAccessLeads ? Lead.count({ where: { ...leadWhere, isHot: true } }) : zero,
       canAccessLeads ? Payment.sum('amount', { where: paymentWhere }) : zero,
       canAccessLeads ? Invoice.sum('dueAmount', { where: { ...pendingInvoiceWhere, status: { [Op.in]: ['Unpaid', 'Partial'] } } }) : zero,
-      canAccessLeads ? Invoice.count({ where: { ...invoiceWhere, status: 'Overdue' } }) : zero,
+      canAccessLeads ? Invoice.count({ where: { ...pendingInvoiceWhere, status: 'Overdue' } }) : zero,
       canAccessLeads ? Followup.count({ where: { ...followupWhere, status: 'pending', scheduledAt: followupScheduledAt } }) : zero,
       canAccessLeads ? Followup.count({ where: { ...followupWhere, status: { [Op.in]: ['pending', 'overdue'] }, scheduledAt: overdueScheduledAt } }) : zero,
       canAccessLeads ? Appointment.count({ where: { ...apptWhere, ...apptTimeWhere } }) : zero,
