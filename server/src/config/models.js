@@ -665,8 +665,12 @@ const syncDatabase = async () => {
 
     // Migrate old lead priorities to new Hot/Warm/Cold system
     try {
+      // Step 1: expand ENUM to include both old and new values so UPDATE can succeed
+      await sequelize.query(`ALTER TABLE leads MODIFY priority ENUM('Low','Medium','High','Hot','Warm','Cold') DEFAULT 'Warm'`);
+      // Step 2: migrate old values
       await sequelize.query(`UPDATE leads SET priority = 'Cold' WHERE priority = 'Low'`);
       await sequelize.query(`UPDATE leads SET priority = 'Warm' WHERE priority IN ('Medium','High')`);
+      // Step 3: shrink to final ENUM (safe now that all rows have new values)
       await sequelize.query(`ALTER TABLE leads MODIFY priority ENUM('Hot','Warm','Cold') DEFAULT 'Warm'`);
     } catch (e) { /* ignore */ }
 

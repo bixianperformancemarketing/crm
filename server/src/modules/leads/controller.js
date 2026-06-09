@@ -119,7 +119,7 @@ const createLead = async (req, res) => {
     const {
       name, phone, email, source, campaign, priority, status,
       assignedTo, city, clientAddress, clientGST, nextFollowup,
-      metadata = {},
+      designation, metadata = {},
     } = req.body;
 
     if (!name) return res.status(400).json({ success: false, message: 'Lead name is required' });
@@ -139,7 +139,7 @@ const createLead = async (req, res) => {
     }
 
     const resolvedAssignedTo = assignedTo || (user.role === 'employee' ? user.id : null);
-    const leadData = { organizationId: user.organizationId, workspaceId, name, phone, email, source, campaign, priority: priority || 'Medium', status: status || 'New', assignedTo: resolvedAssignedTo, city, clientAddress, clientGST, nextFollowup, lastCallNote: '', metadata };
+    const leadData = { organizationId: user.organizationId, workspaceId, name, phone, email, source, campaign, priority: priority || 'Warm', status: status || 'New', assignedTo: resolvedAssignedTo, city, clientAddress, clientGST, nextFollowup, designation, lastCallNote: '', metadata };
     leadData.score = calculateLeadScore(leadData);
     leadData.isHot = isHotLead(leadData);
 
