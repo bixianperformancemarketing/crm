@@ -14,7 +14,7 @@ const NAV_ITEMS = {
   ],
   owner: [
     { to: '/owner/dashboard', icon: '📊', label: 'Overview' },
-    { to: '/owner/workspaces', icon: '🏗️', label: 'Workspaces' },
+    { to: '/owner/workspaces', icon: '🗄️', label: 'Workspaces' },
     { to: '/owner/users', icon: '👥', label: 'Users' },
     { to: '/leads', icon: '🎯', label: 'Leads' },
     { to: '/pipeline', icon: '🔄', label: 'Leads Pipeline' },
