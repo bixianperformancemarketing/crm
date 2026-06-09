@@ -118,9 +118,30 @@ const getDashboard = async (req, res) => {
     const periodRange = getPeriodRange(period);
     const periodFilter = periodRange ? { [Op.between]: [periodRange.start, periodRange.end] } : undefined;
 
-    const leadWhere = { organizationId: orgId, ...ws, ...(isEmployee ? { assignedTo: user.id } : {}), ...(periodFilter ? { createdAt: periodFilter } : {}) };
     const baseWhere = { organizationId: orgId, ...ws };
     const taskWhere = { organizationId: orgId, ...ws, ...(isEmployee ? { assignedTo: user.id } : {}) };
+
+    // For employees, pre-fetch their lead IDs so invoice/payment queries can be scoped correctly
+    let employeeLeadIds = null;
+    if (isEmployee && canAccessLeads) {
+      const myLeads = await Lead.findAll({ where: { organizationId: orgId, ...ws, assignedTo: user.id }, attributes: ['id'], raw: true });
+      employeeLeadIds = myLeads.map(l => l.id);
+    }
+    const leadIdScope = isEmployee && employeeLeadIds !== null
+      ? { leadId: { [Op.in]: employeeLeadIds.length ? employeeLeadIds : [-1] } }
+      : {};
+
+    // leads created in period
+    const leadWhere = { organizationId: orgId, ...ws, ...(isEmployee ? { assignedTo: user.id } : {}), ...(periodFilter ? { createdAt: periodFilter } : {}) };
+    // leads won (marked Won) in period — use updatedAt so it reflects when they were closed
+    const wonLeadWhere = { organizationId: orgId, ...ws, ...(isEmployee ? { assignedTo: user.id } : {}), status: 'Won', ...(periodFilter ? { updatedAt: periodFilter } : {}) };
+    // payments received in period, scoped to employee's leads
+    const paymentWhere = { organizationId: orgId, ...ws, ...leadIdScope, ...(periodFilter ? { receivedAt: periodFilter } : {}) };
+    // invoices scoped to employee's leads (current-state metrics, no period filter)
+    const invoiceWhere = { organizationId: orgId, ...ws, ...leadIdScope };
+    // followups/appointments scoped to employee
+    const followupWhere = { organizationId: orgId, ...ws, ...(isEmployee ? { userId: user.id } : {}) };
+    const apptWhere = { organizationId: orgId, ...ws, ...(isEmployee ? { assignedTo: user.id } : {}), status: 'Scheduled' };
 
     const zero = Promise.resolve(0);
     const emptyArr = Promise.resolve([]);
@@ -134,14 +155,14 @@ const getDashboard = async (req, res) => {
     ] = await Promise.all([
       canAccessLeads ? Lead.count({ where: leadWhere }) : zero,
       canAccessLeads ? Lead.count({ where: { ...leadWhere, status: { [Op.notIn]: ['Won', 'Lost'] } } }) : zero,
-      canAccessLeads ? Lead.count({ where: { ...leadWhere, status: 'Won' } }) : zero,
+      canAccessLeads ? Lead.count({ where: wonLeadWhere }) : zero,
       canAccessLeads ? Lead.count({ where: { ...leadWhere, isHot: true } }) : zero,
-      canAccessLeads ? Payment.sum('amount', { where: baseWhere }) : zero,
-      canAccessLeads ? Invoice.sum('dueAmount', { where: { ...baseWhere, status: { [Op.in]: ['Unpaid', 'Partial'] } } }) : zero,
-      canAccessLeads ? Invoice.count({ where: { ...baseWhere, status: 'Overdue' } }) : zero,
-      canAccessLeads ? Followup.count({ where: { ...baseWhere, status: 'pending', scheduledAt: { [Op.gte]: now } } }) : zero,
-      canAccessLeads ? Followup.count({ where: { ...baseWhere, status: { [Op.in]: ['pending', 'overdue'] }, scheduledAt: { [Op.lt]: now } } }) : zero,
-      canAccessLeads ? Appointment.count({ where: { ...baseWhere, startTime: { [Op.between]: [startOfTodayIST(), endOfTodayIST()] }, status: 'Scheduled' } }) : zero,
+      canAccessLeads ? Payment.sum('amount', { where: paymentWhere }) : zero,
+      canAccessLeads ? Invoice.sum('dueAmount', { where: { ...invoiceWhere, status: { [Op.in]: ['Unpaid', 'Partial'] } } }) : zero,
+      canAccessLeads ? Invoice.count({ where: { ...invoiceWhere, status: 'Overdue' } }) : zero,
+      canAccessLeads ? Followup.count({ where: { ...followupWhere, status: 'pending', scheduledAt: { [Op.gte]: now } } }) : zero,
+      canAccessLeads ? Followup.count({ where: { ...followupWhere, status: { [Op.in]: ['pending', 'overdue'] }, scheduledAt: { [Op.lt]: now } } }) : zero,
+      canAccessLeads ? Appointment.count({ where: { ...apptWhere, startTime: { [Op.between]: [startOfTodayIST(), endOfTodayIST()] } } }) : zero,
       canAccessLeads ? Lead.findAll({ where: leadWhere, order: [['createdAt', 'DESC']], limit: 5, attributes: ['id', 'name', 'status', 'priority', 'source', 'createdAt'] }) : emptyArr,
       canUseTasks ? ContentTask.count({ where: taskWhere }) : zero,
       canUseTasks ? ContentTask.count({ where: { ...taskWhere, status: 'Overdue' } }) : zero,
@@ -159,7 +180,8 @@ const getDashboard = async (req, res) => {
     let todayFollowups = [], todayAppointments = [];
 
     if (canAccessLeads) {
-      const wonInvoices = await Invoice.findAll({ where: { ...baseWhere, status: 'Paid' } });
+      // avg deal size: paid invoices on employee's leads, within the period
+      const wonInvoices = await Invoice.findAll({ where: { ...invoiceWhere, status: 'Paid', ...(periodFilter ? { updatedAt: periodFilter } : {}) } });
       avgDealSize = wonInvoices.length ? wonInvoices.reduce((s, i) => s + parseFloat(i.totalAmount), 0) / wonInvoices.length : 0;
 
       const since12mo = new Date(); since12mo.setMonth(since12mo.getMonth() - 12);
@@ -167,7 +189,7 @@ const getDashboard = async (req, res) => {
 
       [monthlyRevenue, leadByStatus, leadBySource, leadVolume, todayFollowups, todayAppointments] = await Promise.all([
         Payment.findAll({
-          where: { ...baseWhere, receivedAt: { [Op.gte]: since12mo } },
+          where: { ...baseWhere, ...leadIdScope, receivedAt: { [Op.gte]: since12mo } },
           attributes: [[fn('YEAR', col('receivedAt')), 'year'], [fn('MONTH', col('receivedAt')), 'month'], [fn('SUM', col('amount')), 'total']],
           group: [fn('YEAR', col('receivedAt')), fn('MONTH', col('receivedAt'))],
           order: [[fn('YEAR', col('receivedAt')), 'ASC'], [fn('MONTH', col('receivedAt')), 'ASC']],
@@ -191,12 +213,12 @@ const getDashboard = async (req, res) => {
           raw: true,
         }),
         Followup.findAll({
-          where: { ...baseWhere, status: 'pending', scheduledAt: { [Op.between]: [startOfTodayIST(), endOfTodayIST()] } },
+          where: { ...followupWhere, status: 'pending', scheduledAt: { [Op.between]: [startOfTodayIST(), endOfTodayIST()] } },
           include: [{ model: Lead, as: 'lead', attributes: ['id', 'name', 'phone'], required: false }],
           order: [['scheduledAt', 'ASC']], limit: 10,
         }),
         Appointment.findAll({
-          where: { ...baseWhere, startTime: { [Op.between]: [startOfTodayIST(), endOfTodayIST()] }, status: 'Scheduled' },
+          where: { ...apptWhere, startTime: { [Op.between]: [startOfTodayIST(), endOfTodayIST()] } },
           include: [
             { model: Lead, as: 'lead', attributes: ['id', 'name'], required: false },
             { model: User, as: 'assignee', attributes: ['id', 'name'], required: false },
