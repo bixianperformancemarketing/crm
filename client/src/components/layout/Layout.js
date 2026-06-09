@@ -129,8 +129,13 @@ const Layout = ({ children, title }) => {
       {mobileOpen && <div className="mobile-overlay" onClick={() => setMobileOpen(false)} />}
       <aside className={`sidebar${collapsed ? ' collapsed' : ''}${mobileOpen ? ' mobile-open' : ''}`}>
         <div className="sidebar-logo">
-          <div className="logo-icon">CRM</div>
-          {(!collapsed || mobileOpen) && <span className="logo-text">{org?.name || 'Bixian CRM'}</span>}
+          <div className="logo-icon">B</div>
+          {(!collapsed || mobileOpen) && (
+            <div className="logo-text-wrap">
+              <span className="logo-text">{org?.name || 'Bixian CRM'}</span>
+              <span className="logo-sub">Bixian CRM</span>
+            </div>
+          )}
         </div>
 
         <nav className="sidebar-nav">
