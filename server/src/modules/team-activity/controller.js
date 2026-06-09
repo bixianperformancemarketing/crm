@@ -95,7 +95,7 @@ const getTeamFeed = async (req, res) => {
     const { count, rows } = await LeadActivity.findAndCountAll({
       where,
       include: [
-        { model: User, as: 'user', attributes: ['id', 'name', 'label', 'role'], required: false },
+        { model: User, as: 'user', attributes: ['id', 'name', 'label', 'role'], required: true, where: { isActive: true } },
         { model: Lead, as: 'lead', attributes: ['id', 'name', 'status'], required: false },
       ],
       order: [['createdAt', 'DESC']],
@@ -119,7 +119,7 @@ const getEmployeeStats = async (req, res) => {
     const ws = workspaceId ? { workspaceId } : {};
 
     const employee = await User.findOne({
-      where: { id: userId, organizationId: orgId },
+      where: { id: userId, organizationId: orgId, isActive: true },
       attributes: ['id', 'name', 'email', 'label', 'role', 'workspaceId'],
     });
     if (!employee) return res.status(404).json({ success: false, message: 'Employee not found' });
