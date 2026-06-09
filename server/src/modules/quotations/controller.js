@@ -216,7 +216,7 @@ const updateStatus = async (req, res) => {
         subtotal: q.subtotal, gstPercent: q.gstPercent, gstAmount: q.gstAmount,
         totalAmount: q.totalAmount, paidAmount: 0, dueAmount: q.totalAmount,
         status: 'Unpaid',
-        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        dueDate: null,
       });
 
       if (q.items && q.items.length) {
