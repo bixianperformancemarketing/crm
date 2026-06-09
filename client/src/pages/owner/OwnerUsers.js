@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import Layout from '../../components/layout/Layout';
-import { orgAPI, employeeLabelsAPI } from '../../services/api';
+import { orgAPI } from '../../services/api';
 import api from '../../services/api';
 import PasswordInput from '../../components/ui/PasswordInput';
 import { getInitials } from '../../utils/helpers';
@@ -19,7 +19,6 @@ const OwnerUsers = () => {
   const [showCreate, setShowCreate] = useState(false);
   const [editUser, setEditUser] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [labels, setLabels] = useState([]);
   const [form, setForm] = useState({ name: '', email: '', password: '', role: 'employee', label: '', phone: '', canUseContentCalendar: false, canAccessLeads: true });
 
   const loadWorkspaces = useCallback(async () => {
@@ -34,7 +33,6 @@ const OwnerUsers = () => {
   }, []);
 
   useEffect(() => { loadWorkspaces(); }, [loadWorkspaces]);
-  useEffect(() => { employeeLabelsAPI.getAll().then(({ data }) => setLabels(data.labels || [])).catch(() => {}); }, []);
 
   const loadUsers = useCallback(async () => {
     if (!selectedWs) return;
@@ -141,7 +139,7 @@ const OwnerUsers = () => {
             <div className="table-wrap">
               <table>
                 <thead>
-                  <tr><th>User</th><th>Role</th><th>Label</th><th>Phone</th><th>Status</th><th>Actions</th></tr>
+                  <tr><th>User</th><th>Role</th><th>Designation</th><th>Phone</th><th>Status</th><th>Actions</th></tr>
                 </thead>
                 <tbody>
                   {users.map(u => (
@@ -162,11 +160,7 @@ const OwnerUsers = () => {
                           {u.role}
                         </span>
                       </td>
-                      <td>
-                        {u.label ? (
-                          <span style={{ background: `${labels.find(l=>l.name===u.label)?.color||'#6b7280'}22`, color: labels.find(l=>l.name===u.label)?.color||'#6b7280', padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700 }}>{u.label}</span>
-                        ) : <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>—</span>}
-                      </td>
+                      <td style={{ fontSize: 13 }}>{u.label || <span style={{ color: 'var(--text-muted)' }}>—</span>}</td>
                       <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>{u.phone || '—'}</td>
                       <td>
                         <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: u.isActive ? 'rgba(34,197,94,0.12)' : 'rgba(107,114,128,0.12)', color: u.isActive ? '#22c55e' : '#6b7280' }}>
@@ -222,11 +216,8 @@ const OwnerUsers = () => {
                   </select>
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Label {form.role === 'employee' ? '*' : ''}</label>
-                  <select className="form-control" value={form.label} onChange={e => setForm({ ...form, label: e.target.value })} disabled={form.role === 'admin'}>
-                    <option value="">{form.role === 'admin' ? 'N/A' : 'Select label...'}</option>
-                    {labels.map(l => <option key={l.id} value={l.name}>{l.name}</option>)}
-                  </select>
+                  <label className="form-label">Designation</label>
+                  <input className="form-control" value={form.label} onChange={e => setForm({ ...form, label: e.target.value })} placeholder="e.g. Sales Executive, Team Lead, BDE..." disabled={form.role === 'admin'} />
                 </div>
               </div>
               <div className="form-group">
