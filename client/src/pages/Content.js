@@ -191,14 +191,6 @@ const Content = () => {
                         <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t.dueDate ? `${formatDate(t.dueDate)}${t.dueTime ? ` ${fmtDueTime(t.dueTime)}` : ''}` : '—'}</td>
                         <td><span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: t.priority === 'High' ? 'rgba(239,68,68,0.15)' : t.priority === 'Medium' ? 'rgba(245,158,11,0.15)' : 'rgba(107,114,128,0.15)', color: t.priority === 'High' ? '#ef4444' : t.priority === 'Medium' ? '#f59e0b' : '#6b7280' }}>{t.priority}</span></td>
                         <td><span className="task-status-badge" style={{ background: `${STATUS_COLORS[t.status]}22`, color: STATUS_COLORS[t.status] }}>{t.status}</span></td>
-                        <td onClick={(e) => e.stopPropagation()}>
-                          {canManage && (
-                            <select value={t.status} onChange={(e) => handleStatusChange(t.id, e.target.value)}
-                              style={{ fontSize: 11, background: 'var(--card-bg)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 4, padding: '2px 4px', cursor: 'pointer' }}>
-                              {['Overdue', 'To Do Today', 'In Progress', 'Review', 'Approved', 'Not Approved'].map(s => <option key={s}>{s}</option>)}
-                            </select>
-                          )}
-                        </td>
                       </tr>
                     ))}
                   </tbody>

@@ -99,7 +99,7 @@ const createTask = async (req, res) => {
       organizationId: user.organizationId, workspaceId,
       leadId: leadId || null, assignedTo: assignedTo || null, createdBy: user.id,
       title, description: description || '',
-      priority: priority || 'Medium', status: 'Overdue',
+      priority: priority || 'Medium', status: 'To Do Today',
       dueDate: dueDate || null, dueTime: dueTime || null, notes: notes || '',
     });
     res.status(201).json({ success: true, message: 'Content task created', task });
