@@ -233,6 +233,7 @@ const Invoices = () => {
 
   const handlePayment = async () => {
     if (!payForm.amount || !payForm.mode) return toast.error('Amount and mode required');
+    if (payForm.mode !== 'Cash' && !payForm.reference?.trim()) return toast.error('Reference / UTR / Cheque Number is required for non-cash payments');
     setSaving(true);
     try {
       await paymentsAPI.add({ invoiceId: showPayment.id, ...payForm, amount: parseFloat(payForm.amount) });
@@ -529,7 +530,7 @@ const Invoices = () => {
               <div className="form-group"><label className="form-label">Mode *</label><select className="form-control" value={payForm.mode} onChange={(e) => setPayForm({ ...payForm, mode: e.target.value })}>{ENUMS.PAYMENT_MODES.map((m) => <option key={m}>{m}</option>)}</select></div>
             </div>
             {payForm.mode !== 'Cash' && (
-              <div className="form-group"><label className="form-label">Reference / UTR / Cheque Number</label><input className="form-control" value={payForm.reference} onChange={(e) => setPayForm({ ...payForm, reference: e.target.value })} placeholder="Transaction ID, UTR or cheque number..." /></div>
+              <div className="form-group"><label className="form-label">Reference / UTR / Cheque Number *</label><input className="form-control" required value={payForm.reference} onChange={(e) => setPayForm({ ...payForm, reference: e.target.value })} placeholder="Transaction ID, UTR or cheque number..." /></div>
             )}
             <div className="form-group"><label className="form-label">Note</label><input className="form-control" value={payForm.note} onChange={(e) => setPayForm({ ...payForm, note: e.target.value })} /></div>
             <div className="modal-actions"><button className="btn btn-ghost" onClick={() => setShowPayment(null)}>Cancel</button><button className="btn btn-success" onClick={handlePayment} disabled={saving}>{saving ? 'Saving...' : 'Record Payment'}</button></div>
