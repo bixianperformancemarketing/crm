@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import SuperAdminLayout from '../../components/layout/SuperAdminLayout';
 import Pagination from '../../components/common/Pagination';
 import { superAdminAPI } from '../../services/api';
-import { formatCurrency } from '../../utils/helpers';
+import { formatCurrency, PLAN_LABELS } from '../../utils/helpers';
 
 const STATUS_COLORS = { active: '#22c55e', suspended: '#ef4444', inactive: '#6b7280' };
 const getStatus = (o) => o.isSuspended ? 'suspended' : o.isActive ? 'active' : 'inactive';
@@ -64,7 +64,7 @@ const Organizations = () => {
         <input className="form-control" style={{ maxWidth: 260, fontSize: 13 }} placeholder="Search by name or email..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
         <select className="form-control" style={{ maxWidth: 140, fontSize: 13 }} value={planFilter} onChange={e => { setPlanFilter(e.target.value); setPage(1); }}>
           <option value="">All Plans</option>
-          {['trial', 'starter', 'growth', 'agency'].map(p => <option key={p} value={p}>{p}</option>)}
+          {['trial', 'starter', 'growth', 'agency'].map(p => <option key={p} value={p}>{PLAN_LABELS[p] || p}</option>)}
         </select>
       </div>
 
@@ -82,7 +82,7 @@ const Organizations = () => {
                       <div style={{ fontWeight: 600 }}>{o.name}</div>
                       <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{o.slug}</div>
                     </td>
-                    <td><span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: 'rgba(124,58,237,0.12)', color: '#a78bfa', textTransform: 'capitalize' }}>{o.plan}</span></td>
+                    <td><span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: 'rgba(124,58,237,0.12)', color: '#a78bfa' }}>{PLAN_LABELS[o.plan] || o.plan}</span></td>
                     <td>{(() => { const st = getStatus(o); return <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: `${STATUS_COLORS[st]}22`, color: STATUS_COLORS[st], textTransform: 'capitalize' }}>{st}</span>; })()}</td>
                     <td>{o.userCount || 0}</td>
                     <td>{o.leadCount || 0}</td>

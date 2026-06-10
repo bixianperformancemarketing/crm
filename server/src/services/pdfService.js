@@ -26,7 +26,7 @@ const drawLine = (doc, y, color = '#dddddd') => {
 
 const addHeader = (doc, orgSettings, type) => {
   const branding = orgSettings?.branding || {};
-  const companyName = branding.companyName || process.env.COMPANY_NAME || 'Agency';
+  const companyName = branding.companyName || process.env.COMPANY_NAME || 'Company';
   const address = branding.address || process.env.COMPANY_ADDRESS || '';
   const gst = branding.gst || process.env.COMPANY_GST || '';
   const phone = branding.phone || process.env.COMPANY_PHONE || '';

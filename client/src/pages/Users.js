@@ -137,7 +137,7 @@ const Users = () => {
             <button className="modal-close" onClick={() => { setShowCreate(false); setEditUser(null); }}>×</button>
             <form onSubmit={showCreate ? handleCreate : handleUpdate}>
               <div className="form-group"><label className="form-label">Full Name *</label><input className="form-control" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="John Doe" /></div>
-              {showCreate && <div className="form-group"><label className="form-label">Email *</label><input className="form-control" type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="john@agency.com" /></div>}
+              {showCreate && <div className="form-group"><label className="form-label">Email *</label><input className="form-control" type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="john@company.com" /></div>}
               {showCreate && <div className="form-group"><label className="form-label">Password *</label><PasswordInput className="form-control" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} placeholder="Min 8 characters" /></div>}
               {showCreate && isRole('owner') && (
                 <div className="form-group">

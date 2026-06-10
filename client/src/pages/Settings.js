@@ -471,7 +471,7 @@ const MetaAdsTab = ({ org }) => {
     return (
       <div style={{ maxWidth: 560 }}>
         <div style={{ padding: 24, background: 'rgba(245,158,11,0.08)', borderRadius: 12, border: '1px solid rgba(245,158,11,0.25)', textAlign: 'center' }}>
-          <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 8 }}>Meta Ads sync requires Growth or Agency plan</div>
+          <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 8 }}>Meta Ads sync requires Growth or Company plan</div>
           <div style={{ fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.6 }}>
             Contact your platform admin to upgrade your plan.
           </div>
@@ -505,7 +505,7 @@ const MetaAdsTab = ({ org }) => {
             </div>
             <div className="form-group" style={{ margin: 0 }}>
               <label className="form-label">Page Name (for display)</label>
-              <input className="form-control" placeholder="e.g. Acme Digital Agency" value={connectForm.fbPageName} onChange={e => setConnectForm({ ...connectForm, fbPageName: e.target.value })} />
+              <input className="form-control" placeholder="e.g. Acme Digital" value={connectForm.fbPageName} onChange={e => setConnectForm({ ...connectForm, fbPageName: e.target.value })} />
             </div>
           </div>
           <div className="form-group" style={{ marginBottom: 12 }}>

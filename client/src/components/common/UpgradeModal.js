@@ -2,7 +2,7 @@ import React from 'react';
 
 const UpgradeModal = ({ onClose, message, limitType, plan }) => {
   const companyPhone = process.env.REACT_APP_COMPANY_PHONE || '+91 98765 43210';
-  const companyEmail = process.env.REACT_APP_COMPANY_EMAIL || 'hello@youragency.com';
+  const companyEmail = process.env.REACT_APP_COMPANY_EMAIL || 'hello@yourcompany.com';
   const waLink = `https://wa.me/${companyPhone.replace(/\D/g, '')}?text=${encodeURIComponent('Hi! I would like to upgrade my CRM plan. Please help.')}`;
 
   return (

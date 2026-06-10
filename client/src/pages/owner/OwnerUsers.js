@@ -197,7 +197,7 @@ const OwnerUsers = () => {
               {showCreate && (
                 <div className="form-group">
                   <label className="form-label">Email *</label>
-                  <input className="form-control" type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="john@agency.com" />
+                  <input className="form-control" type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="john@company.com" />
                 </div>
               )}
               {showCreate && (

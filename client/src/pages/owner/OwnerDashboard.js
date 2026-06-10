@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import Layout from '../../components/layout/Layout';
 import { orgAPI, reportsAPI } from '../../services/api';
-import { formatCurrency } from '../../utils/helpers';
+import { formatCurrency, PLAN_LABELS } from '../../utils/helpers';
 import { useAuth } from '../../context/AuthContext';
 
 const PERIODS = [
@@ -180,7 +180,7 @@ const OwnerDashboard = () => {
 
           {org && (
             <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 12, padding: 22, marginBottom: 24, maxWidth: 500 }}>
-              <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 16 }}>Plan — <span style={{ color: 'var(--accent)', textTransform: 'capitalize' }}>{org.plan}</span></div>
+              <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 16 }}>Plan — <span style={{ color: 'var(--accent)' }}>{PLAN_LABELS[org.plan] || org.plan}</span></div>
               {[
                 { label: 'Leads', used: stats.totalLeads || 0, max: stats.leadsLimit || org.maxLeadsTotal || 1 },
                 { label: 'Workspaces', used: stats.totalWorkspaces || 0, max: stats.workspacesLimit || org.maxWorkspaces || 1 },

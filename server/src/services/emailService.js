@@ -314,7 +314,7 @@ const sendCustomEmail = async ({ to, subject, body, orgSettings, smtpConfig }) =
 
 const sendWelcomeEmail = async (ownerEmail, ownerName, orgName, tempPassword) => {
   const content = `
-    <h2>Welcome to Agency CRM, ${ownerName}!</h2>
+    <h2>Welcome to CRM, ${ownerName}!</h2>
     <p>Your organization <strong>${orgName}</strong> has been created. Use the credentials below to log in.</p>
     <div class="info-box">
       <div class="info-row"><span class="info-label">Email:</span><span class="info-value">${ownerEmail}</span></div>
@@ -326,8 +326,8 @@ const sendWelcomeEmail = async (ownerEmail, ownerName, orgName, tempPassword) =>
   `;
   return sendEmail({
     to: ownerEmail,
-    subject: `Welcome to Agency CRM — Your Account is Ready`,
-    html: baseTemplate('Welcome to Agency CRM', content, { branding: { companyName: 'Agency CRM' } }),
+    subject: `Welcome to CRM — Your Account is Ready`,
+    html: baseTemplate('Welcome to CRM', content, { branding: { companyName: 'CRM' } }),
   });
 };
 
@@ -343,7 +343,7 @@ const sendPasswordResetEmail = async (toEmail, userName, resetLink) => {
   return sendEmail({
     to: toEmail,
     subject: 'Reset Your CRM Password',
-    html: baseTemplate('Password Reset', content, { branding: { companyName: 'Agency CRM' } }),
+    html: baseTemplate('Password Reset', content, { branding: { companyName: 'CRM' } }),
   });
 };
 

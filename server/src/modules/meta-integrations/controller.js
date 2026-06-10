@@ -23,7 +23,7 @@ const connect = async (req, res) => {
   try {
     const org = await Organization.findByPk(req.user.organizationId);
     if (!org?.canUseWebhooks) {
-      return res.status(403).json({ success: false, message: 'Meta Ads integration requires Growth or Agency plan' });
+      return res.status(403).json({ success: false, message: 'Meta Ads integration requires Growth or Company plan' });
     }
 
     const { fbPageId, fbPageName, accessToken, workspaceId } = req.body;

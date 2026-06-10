@@ -76,7 +76,7 @@ const Pricing = () => {
       {/* Hero */}
       <div style={s.hero} className="pricing-hero">
         <h1 style={s.heroTitle}>Simple, Transparent Pricing</h1>
-        <p style={s.heroSub}>Choose the plan that fits your agency. No hidden fees.</p>
+        <p style={s.heroSub}>Choose the plan that fits your business. No hidden fees.</p>
         {availableCycles.length > 1 && (
           <div style={s.toggle}>
             {availableCycles.map(c => (

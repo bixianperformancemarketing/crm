@@ -57,12 +57,12 @@ const seed = async () => {
         canUseCSVImport: true,
         canUseContentCalendar: true,
         canUseAdvancedReports: true,
-        description: 'For growing agencies managing multiple projects',
+        description: 'For growing companies managing multiple projects',
         durationDays: 30,
       },
       {
         name: 'agency',
-        displayName: 'Agency',
+        displayName: 'Company',
         price: 11999,
         maxWorkspaces: 999,
         maxUsersPerWorkspace: 999,
@@ -102,7 +102,7 @@ const seed = async () => {
     expiresAt.setMonth(expiresAt.getMonth() + 12);
 
     const [demoOrg] = await Organization.upsert({
-      name: 'Sunrise Digital Agency',
+      name: 'Sunrise Digital',
       slug: 'sunrise-digital',
       ownerEmail: 'owner@sunrisedigital.com',
       ownerName: 'Rajesh Kumar',
@@ -123,7 +123,7 @@ const seed = async () => {
       settings: {
         branding: {
           logo: null,
-          companyName: 'Sunrise Digital Agency',
+          companyName: 'Sunrise Digital',
           address: '42 MG Road, Bangalore, Karnataka 560001',
           gst: '29AABCS1234A1Z5',
           phone: '+91 98765 43210',
@@ -489,7 +489,7 @@ const seed = async () => {
     console.log(`   Email   : ${saEmail}`);
     console.log(`   Password: ${saPassword}`);
     console.log('\n📌 OWNER:');
-    console.log(`   Org     : Sunrise Digital Agency`);
+    console.log(`   Org     : Sunrise Digital`);
     console.log(`   Email   : owner@sunrisedigital.com`);
     console.log(`   Password: Owner@123`);
     console.log('\n📌 WORKSPACE USERS:');

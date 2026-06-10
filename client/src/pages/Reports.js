@@ -55,7 +55,7 @@ const Reports = () => {
         <div className="empty-state">
           <div className="empty-icon">📊</div>
           <div className="empty-title">Advanced Reports</div>
-          <div style={{ color: 'var(--text-muted)', fontSize: 14, maxWidth: 400, textAlign: 'center' }}>Upgrade to Growth or Agency plan to access advanced reports with agent performance, revenue analytics, and conversion tracking.</div>
+          <div style={{ color: 'var(--text-muted)', fontSize: 14, maxWidth: 400, textAlign: 'center' }}>Upgrade to Growth or Company plan to access advanced reports with agent performance, revenue analytics, and conversion tracking.</div>
           {upgradeModal && <UpgradeModal message={upgradeModal.message} limitType={upgradeModal.limitType} plan={org?.plan} onClose={() => setUpgradeModal(null)} />}
         </div>
       </Layout>

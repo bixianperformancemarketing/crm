@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import SuperAdminLayout from '../../components/layout/SuperAdminLayout';
 import { superAdminAPI } from '../../services/api';
-import { formatCurrency } from '../../utils/helpers';
+import { formatCurrency, PLAN_LABELS } from '../../utils/helpers';
 
 const SuperAdminDashboard = () => {
   const [data, setData] = useState(null);
@@ -52,7 +52,7 @@ const SuperAdminDashboard = () => {
                 {planCounts.map((p, i) => (
                   <div key={i} style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 24px', minWidth: 140, textAlign: 'center' }}>
                     <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--accent)' }}>{p.count}</div>
-                    <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4, textTransform: 'capitalize' }}>{p.plan}</div>
+                    <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>{PLAN_LABELS[p.plan] || p.plan}</div>
                   </div>
                 ))}
               </div>
@@ -74,7 +74,7 @@ const SuperAdminDashboard = () => {
                             <div style={{ fontWeight: 500 }}>{o.name}</div>
                             <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{o.ownerEmail}</div>
                           </td>
-                          <td><span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: 'rgba(233,69,96,0.12)', color: 'var(--accent)' }}>{o.plan}</span></td>
+                          <td><span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: 'rgba(233,69,96,0.12)', color: 'var(--accent)' }}>{PLAN_LABELS[o.plan] || o.plan}</span></td>
                           <td><span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: `${statusColor[st]}22`, color: statusColor[st] }}>{st}</span></td>
                           <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>{o.createdAt ? new Date(o.createdAt).toLocaleDateString('en-IN') : '—'}</td>
                         </tr>

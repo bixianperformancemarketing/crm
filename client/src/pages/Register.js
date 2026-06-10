@@ -141,7 +141,7 @@ const Register = () => {
               <input
                 style={s.input}
                 type="text"
-                placeholder="Your Agency Pvt Ltd"
+                placeholder="Your Company Pvt Ltd"
                 value={form.company}
                 onChange={(e) => setForm({ ...form, company: e.target.value })}
                 required
@@ -154,7 +154,7 @@ const Register = () => {
                 <input
                   style={s.input}
                   type="email"
-                  placeholder="you@agency.com"
+                  placeholder="you@company.com"
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                   required

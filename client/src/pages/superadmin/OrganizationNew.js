@@ -72,12 +72,12 @@ const OrganizationNew = () => {
       <div style={{ maxWidth: 560 }}>
         <form onSubmit={handleSubmit}>
           <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-muted)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1 }}>Organization Info</div>
-          <div className="form-group"><label className="form-label">Organization Name *</label><input className="form-control" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Sunrise Digital Agency" /></div>
+          <div className="form-group"><label className="form-label">Organization Name *</label><input className="form-control" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Sunrise Digital" /></div>
 
           <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-muted)', margin: '18px 0 10px', textTransform: 'uppercase', letterSpacing: 1 }}>Owner Account</div>
           <div className="form-row">
             <div className="form-group"><label className="form-label">Owner Name *</label><input className="form-control" value={form.ownerName} onChange={e => setForm({ ...form, ownerName: e.target.value })} placeholder="Ravi Kumar" /></div>
-            <div className="form-group"><label className="form-label">Owner Email *</label><input className="form-control" type="email" value={form.ownerEmail} onChange={e => setForm({ ...form, ownerEmail: e.target.value })} placeholder="ravi@agency.com" /></div>
+            <div className="form-group"><label className="form-label">Owner Email *</label><input className="form-control" type="email" value={form.ownerEmail} onChange={e => setForm({ ...form, ownerEmail: e.target.value })} placeholder="ravi@company.com" /></div>
           </div>
 
           <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-muted)', margin: '18px 0 10px', textTransform: 'uppercase', letterSpacing: 1 }}>Plan</div>
