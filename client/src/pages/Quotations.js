@@ -297,9 +297,11 @@ const Quotations = () => {
       {/* Create Quotation Modal */}
       {showCreate && (
         <div className="modal-overlay" onClick={() => setShowCreate(false)}>
-          <div className="modal" style={{ maxWidth: 700 }} onClick={(e) => e.stopPropagation()}>
-            <h3>New Quotation</h3>
-            <button className="modal-close" onClick={() => setShowCreate(false)}>×</button>
+          <div className="modal quotation-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="q-modal-header">
+              <h3>New Quotation</h3>
+              <button className="modal-close" style={{ position: 'static' }} onClick={() => setShowCreate(false)}>×</button>
+            </div>
             <form onSubmit={handleCreate}>
               <div className="form-row">
                 <div className="form-group"><label className="form-label">Client Name *</label><input className="form-control" value={form.clientName} onChange={(e) => setForm({ ...form, clientName: e.target.value })} /></div>
@@ -307,46 +309,64 @@ const Quotations = () => {
               </div>
               <div className="form-row">
                 <div className="form-group"><label className="form-label">Phone *</label><input className="form-control" value={form.clientPhone} onChange={(e) => setForm({ ...form, clientPhone: e.target.value.replace(/[^0-9+]/g, '') })} placeholder="+91 9876543210" /></div>
-                <div className="form-group"><label className="form-label">GST</label><input className="form-control" value={form.clientGST} onChange={(e) => setForm({ ...form, clientGST: e.target.value })} /></div>
+                <div className="form-group"><label className="form-label">GST Number</label><input className="form-control" value={form.clientGST} onChange={(e) => setForm({ ...form, clientGST: e.target.value })} /></div>
               </div>
               <div className="form-group"><label className="form-label">Address *</label><textarea className="form-control" rows={2} value={form.clientAddress} onChange={(e) => setForm({ ...form, clientAddress: e.target.value })} /></div>
 
-              <h4 style={{ margin: '16px 0 10px', fontSize: 13, color: 'var(--text-muted)' }}>Line Items</h4>
-              <div className="items-table-wrap"><table className="items-table">
-                <thead><tr><th>Service</th><th style={{ width: 200 }}>Deliverables</th><th style={{ width: 130 }}>Package Price</th><th style={{ width: 40 }}></th></tr></thead>
-                <tbody>
-                  {form.items.map((item, i) => (
-                    <tr key={i}>
-                      <td>
-                        <input value={item.description} onChange={(e) => updateItem(i, 'description', e.target.value)} placeholder="Item / service name" />
-                        <textarea value={item.subDescription} onChange={(e) => updateItem(i, 'subDescription', e.target.value)} placeholder="Description / what's included" rows={2} style={{ marginTop: 4, width: '100%', background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '6px 8px', color: 'var(--text)', fontSize: 12, resize: 'vertical', outline: 'none' }} />
-                      </td>
-                      <td>
-                        {(item.subItems || []).map((si, j) => (
-                          <div key={j} style={{ display: 'flex', gap: 4, marginBottom: 4, alignItems: 'center' }}>
-                            <input value={si.label} onChange={(e) => updateSubItem(i, j, 'label', e.target.value)} placeholder="Item name" style={{ flex: 1, background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 8px', color: 'var(--text)', fontSize: 12, outline: 'none' }} />
-                            <input type="number" min="0" value={si.qty} onChange={(e) => updateSubItem(i, j, 'qty', e.target.value)} placeholder="0" style={{ width: 90, background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 6px', color: 'var(--text)', fontSize: 12, outline: 'none', textAlign: 'center' }} />
-                            <button type="button" onClick={() => removeSubItem(i, j)} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 15, padding: '0 2px', lineHeight: 1 }}>×</button>
-                          </div>
-                        ))}
-                        <button type="button" onClick={() => addSubItem(i)} style={{ background: 'none', border: '1px dashed var(--border)', borderRadius: 6, color: 'var(--text-muted)', fontSize: 11, padding: '3px 8px', cursor: 'pointer', marginTop: 2 }}>+ Add Deliverable</button>
-                      </td>
-                      <td><input type="number" min="0" step="0.01" value={item.totalPrice} onChange={(e) => updateItem(i, 'totalPrice', e.target.value)} placeholder="0" style={{ textAlign: 'right' }} /></td>
-                      <td><button type="button" style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 16 }} onClick={() => setForm({ ...form, items: form.items.filter((_, j) => j !== i) })}>×</button></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table></div>
-              <button type="button" className="btn btn-ghost btn-sm" style={{ marginTop: 8 }} onClick={() => setForm({ ...form, items: [...form.items, emptyItem()] })}>+ Add Item</button>
+              <div className="q-section">
+                <p className="q-section-title">Line Items</p>
+                <div className="items-table-wrap">
+                  <table className="items-table">
+                    <thead>
+                      <tr>
+                        <th>Service / Description</th>
+                        <th style={{ width: 220 }}>Deliverables</th>
+                        <th style={{ width: 120 }}>Package Price</th>
+                        <th style={{ width: 36 }}></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {form.items.map((item, i) => (
+                        <tr key={i}>
+                          <td>
+                            <input value={item.description} onChange={(e) => updateItem(i, 'description', e.target.value)} placeholder="Item / service name" />
+                            <textarea className="item-subdesc" value={item.subDescription} onChange={(e) => updateItem(i, 'subDescription', e.target.value)} placeholder="Description / what's included" rows={2} />
+                          </td>
+                          <td>
+                            {(item.subItems || []).map((si, j) => (
+                              <div key={j} className="sub-item-row">
+                                <input value={si.label} onChange={(e) => updateSubItem(i, j, 'label', e.target.value)} placeholder="Deliverable name" />
+                                <input type="number" min="0" className="sub-item-qty" value={si.qty} onChange={(e) => updateSubItem(i, j, 'qty', e.target.value)} placeholder="Qty" />
+                                <button type="button" className="sub-item-del" onClick={() => removeSubItem(i, j)}>×</button>
+                              </div>
+                            ))}
+                            <button type="button" className="add-deliverable-btn" onClick={() => addSubItem(i)}>+ Add Deliverable</button>
+                          </td>
+                          <td><input type="number" min="0" step="0.01" value={item.totalPrice} onChange={(e) => updateItem(i, 'totalPrice', e.target.value)} placeholder="0" style={{ textAlign: 'right' }} /></td>
+                          <td><button type="button" className="sub-item-del" style={{ fontSize: 18 }} onClick={() => setForm({ ...form, items: form.items.filter((_, j) => j !== i) })}>×</button></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <button type="button" className="btn btn-ghost btn-sm" style={{ marginTop: 8 }} onClick={() => setForm({ ...form, items: [...form.items, emptyItem()] })}>+ Add Item</button>
+              </div>
 
               <div className="totals-box">
                 <div className="total-row"><span>Subtotal</span><span>{formatCurrency(subtotal)}</span></div>
-                <div className="total-row"><span>GST <input type="number" value={form.gstPercent} onChange={(e) => setForm({ ...form, gstPercent: e.target.value })} style={{ width: 50, background: 'transparent', border: '1px solid #2a2a4a', color: 'var(--text)', borderRadius: 4, padding: '2px 4px', fontSize: 12 }} />%</span><span>{formatCurrency(gstAmount)}</span></div>
+                <div className="total-row"><span>GST <input type="number" className="gst-input" value={form.gstPercent} onChange={(e) => setForm({ ...form, gstPercent: e.target.value })} />%</span><span>{formatCurrency(gstAmount)}</span></div>
                 <div className="total-row grand"><span>Total</span><span>{formatCurrency(total)}</span></div>
               </div>
 
-              <div className="form-group" style={{ marginTop: 16 }}><label className="form-label">Valid Until</label><input className="form-control" type="date" value={form.validUntil} onChange={(e) => setForm({ ...form, validUntil: e.target.value })} /></div>
-              <div className="form-group">
+              <div className="q-section">
+                <p className="q-section-title">Additional Details</p>
+                <div className="form-row">
+                  <div className="form-group" style={{ marginBottom: 0 }}><label className="form-label">Valid Until</label><input className="form-control" type="date" value={form.validUntil} onChange={(e) => setForm({ ...form, validUntil: e.target.value })} /></div>
+                  <div className="form-group" style={{ marginBottom: 0 }}><label className="form-label">Notes</label><textarea className="form-control" rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Internal notes or client instructions" /></div>
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginTop: 16 }}>
                 <label className="form-label">Terms & Conditions</label>
                 {(form.terms || []).map((term, i) => (
                   <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 6, alignItems: 'center' }}>
@@ -356,7 +376,11 @@ const Quotations = () => {
                 ))}
                 <button type="button" className="btn btn-ghost btn-sm" style={{ marginTop: 2 }} onClick={() => setForm({ ...form, terms: [...(form.terms || []), ''] })}>+ Add Term</button>
               </div>
-              <div className="modal-actions"><button type="button" className="btn btn-ghost" onClick={() => setShowCreate(false)}>Cancel</button><button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Creating...' : 'Create Quotation'}</button></div>
+
+              <div className="modal-actions">
+                <button type="button" className="btn btn-ghost" onClick={() => setShowCreate(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Creating...' : 'Create Quotation'}</button>
+              </div>
             </form>
           </div>
         </div>
@@ -365,9 +389,11 @@ const Quotations = () => {
       {/* Edit Quotation Modal */}
       {editQuotation && editForm && (
         <div className="modal-overlay" onClick={closeEdit}>
-          <div className="modal" style={{ maxWidth: 700 }} onClick={(e) => e.stopPropagation()}>
-            <h3>Edit Quotation — {editQuotation.quotationNumber}</h3>
-            <button className="modal-close" onClick={closeEdit}>×</button>
+          <div className="modal quotation-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="q-modal-header">
+              <h3>Edit Quotation — {editQuotation.quotationNumber}</h3>
+              <button className="modal-close" style={{ position: 'static' }} onClick={closeEdit}>×</button>
+            </div>
             <form onSubmit={handleEdit}>
               <div className="form-row">
                 <div className="form-group"><label className="form-label">Client Name *</label><input className="form-control" value={editForm.clientName} onChange={(e) => setEditForm({ ...editForm, clientName: e.target.value })} /></div>
@@ -375,46 +401,64 @@ const Quotations = () => {
               </div>
               <div className="form-row">
                 <div className="form-group"><label className="form-label">Phone *</label><input className="form-control" value={editForm.clientPhone} onChange={(e) => setEditForm({ ...editForm, clientPhone: e.target.value.replace(/[^0-9+]/g, '') })} placeholder="+91 9876543210" /></div>
-                <div className="form-group"><label className="form-label">GST</label><input className="form-control" value={editForm.clientGST} onChange={(e) => setEditForm({ ...editForm, clientGST: e.target.value })} /></div>
+                <div className="form-group"><label className="form-label">GST Number</label><input className="form-control" value={editForm.clientGST} onChange={(e) => setEditForm({ ...editForm, clientGST: e.target.value })} /></div>
               </div>
               <div className="form-group"><label className="form-label">Address *</label><textarea className="form-control" rows={2} value={editForm.clientAddress} onChange={(e) => setEditForm({ ...editForm, clientAddress: e.target.value })} /></div>
 
-              <h4 style={{ margin: '16px 0 10px', fontSize: 13, color: 'var(--text-muted)' }}>Line Items</h4>
-              <div className="items-table-wrap"><table className="items-table">
-                <thead><tr><th>Service</th><th style={{ width: 200 }}>Deliverables</th><th style={{ width: 130 }}>Package Price</th><th style={{ width: 40 }}></th></tr></thead>
-                <tbody>
-                  {editForm.items.map((item, i) => (
-                    <tr key={i}>
-                      <td>
-                        <input value={item.description} onChange={(e) => updateEditItem(i, 'description', e.target.value)} placeholder="Item / service name" />
-                        <textarea value={item.subDescription} onChange={(e) => updateEditItem(i, 'subDescription', e.target.value)} placeholder="Description / what's included" rows={2} style={{ marginTop: 4, width: '100%', background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '6px 8px', color: 'var(--text)', fontSize: 12, resize: 'vertical', outline: 'none' }} />
-                      </td>
-                      <td>
-                        {(item.subItems || []).map((si, j) => (
-                          <div key={j} style={{ display: 'flex', gap: 4, marginBottom: 4, alignItems: 'center' }}>
-                            <input value={si.label} onChange={(e) => updateEditSubItem(i, j, 'label', e.target.value)} placeholder="Item name" style={{ flex: 1, background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 8px', color: 'var(--text)', fontSize: 12, outline: 'none' }} />
-                            <input type="number" min="0" value={si.qty} onChange={(e) => updateEditSubItem(i, j, 'qty', e.target.value)} placeholder="0" style={{ width: 90, background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 6px', color: 'var(--text)', fontSize: 12, outline: 'none', textAlign: 'center' }} />
-                            <button type="button" onClick={() => removeEditSubItem(i, j)} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 15, padding: '0 2px', lineHeight: 1 }}>×</button>
-                          </div>
-                        ))}
-                        <button type="button" onClick={() => addEditSubItem(i)} style={{ background: 'none', border: '1px dashed var(--border)', borderRadius: 6, color: 'var(--text-muted)', fontSize: 11, padding: '3px 8px', cursor: 'pointer', marginTop: 2 }}>+ Add Deliverable</button>
-                      </td>
-                      <td><input type="number" min="0" step="0.01" value={item.totalPrice} onChange={(e) => updateEditItem(i, 'totalPrice', e.target.value)} placeholder="0" style={{ textAlign: 'right' }} /></td>
-                      <td><button type="button" style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 16 }} onClick={() => setEditForm({ ...editForm, items: editForm.items.filter((_, j) => j !== i) })}>×</button></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table></div>
-              <button type="button" className="btn btn-ghost btn-sm" style={{ marginTop: 8 }} onClick={() => setEditForm({ ...editForm, items: [...editForm.items, emptyItem()] })}>+ Add Item</button>
+              <div className="q-section">
+                <p className="q-section-title">Line Items</p>
+                <div className="items-table-wrap">
+                  <table className="items-table">
+                    <thead>
+                      <tr>
+                        <th>Service / Description</th>
+                        <th style={{ width: 220 }}>Deliverables</th>
+                        <th style={{ width: 120 }}>Package Price</th>
+                        <th style={{ width: 36 }}></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {editForm.items.map((item, i) => (
+                        <tr key={i}>
+                          <td>
+                            <input value={item.description} onChange={(e) => updateEditItem(i, 'description', e.target.value)} placeholder="Item / service name" />
+                            <textarea className="item-subdesc" value={item.subDescription} onChange={(e) => updateEditItem(i, 'subDescription', e.target.value)} placeholder="Description / what's included" rows={2} />
+                          </td>
+                          <td>
+                            {(item.subItems || []).map((si, j) => (
+                              <div key={j} className="sub-item-row">
+                                <input value={si.label} onChange={(e) => updateEditSubItem(i, j, 'label', e.target.value)} placeholder="Deliverable name" />
+                                <input type="number" min="0" className="sub-item-qty" value={si.qty} onChange={(e) => updateEditSubItem(i, j, 'qty', e.target.value)} placeholder="Qty" />
+                                <button type="button" className="sub-item-del" onClick={() => removeEditSubItem(i, j)}>×</button>
+                              </div>
+                            ))}
+                            <button type="button" className="add-deliverable-btn" onClick={() => addEditSubItem(i)}>+ Add Deliverable</button>
+                          </td>
+                          <td><input type="number" min="0" step="0.01" value={item.totalPrice} onChange={(e) => updateEditItem(i, 'totalPrice', e.target.value)} placeholder="0" style={{ textAlign: 'right' }} /></td>
+                          <td><button type="button" className="sub-item-del" style={{ fontSize: 18 }} onClick={() => setEditForm({ ...editForm, items: editForm.items.filter((_, j) => j !== i) })}>×</button></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <button type="button" className="btn btn-ghost btn-sm" style={{ marginTop: 8 }} onClick={() => setEditForm({ ...editForm, items: [...editForm.items, emptyItem()] })}>+ Add Item</button>
+              </div>
 
               <div className="totals-box">
                 <div className="total-row"><span>Subtotal</span><span>{formatCurrency(editSubtotal)}</span></div>
-                <div className="total-row"><span>GST <input type="number" value={editForm.gstPercent} onChange={(e) => setEditForm({ ...editForm, gstPercent: e.target.value })} style={{ width: 50, background: 'transparent', border: '1px solid #2a2a4a', color: 'var(--text)', borderRadius: 4, padding: '2px 4px', fontSize: 12 }} />%</span><span>{formatCurrency(editGstAmount)}</span></div>
+                <div className="total-row"><span>GST <input type="number" className="gst-input" value={editForm.gstPercent} onChange={(e) => setEditForm({ ...editForm, gstPercent: e.target.value })} />%</span><span>{formatCurrency(editGstAmount)}</span></div>
                 <div className="total-row grand"><span>Total</span><span>{formatCurrency(editTotal)}</span></div>
               </div>
 
-              <div className="form-group" style={{ marginTop: 16 }}><label className="form-label">Valid Until</label><input className="form-control" type="date" value={editForm.validUntil} onChange={(e) => setEditForm({ ...editForm, validUntil: e.target.value })} /></div>
-              <div className="form-group">
+              <div className="q-section">
+                <p className="q-section-title">Additional Details</p>
+                <div className="form-row">
+                  <div className="form-group" style={{ marginBottom: 0 }}><label className="form-label">Valid Until</label><input className="form-control" type="date" value={editForm.validUntil} onChange={(e) => setEditForm({ ...editForm, validUntil: e.target.value })} /></div>
+                  <div className="form-group" style={{ marginBottom: 0 }}><label className="form-label">Notes</label><textarea className="form-control" rows={2} value={editForm.notes || ''} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} placeholder="Internal notes or client instructions" /></div>
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginTop: 16 }}>
                 <label className="form-label">Terms & Conditions</label>
                 {(editForm.terms || []).map((term, i) => (
                   <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 6, alignItems: 'center' }}>
@@ -424,6 +468,7 @@ const Quotations = () => {
                 ))}
                 <button type="button" className="btn btn-ghost btn-sm" style={{ marginTop: 2 }} onClick={() => setEditForm({ ...editForm, terms: [...(editForm.terms || []), ''] })}>+ Add Term</button>
               </div>
+
               <div className="modal-actions">
                 <button type="button" className="btn btn-ghost" onClick={closeEdit}>Cancel</button>
                 <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</button>

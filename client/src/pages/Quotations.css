@@ -38,12 +38,52 @@
   letter-spacing: 0.5px;
 }
 
-.items-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-.items-table { width: 100%; border-collapse: collapse; min-width: 500px; }
+/* ── Quotation Modal ──────────────────────────────────────────────────────── */
+.quotation-modal { max-width: 740px !important; }
+
+.q-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 16px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+.q-modal-header h3 { margin: 0; font-size: 17px; }
+
+.q-section {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.q-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin: 0 0 12px;
+}
+
+/* ── Items Table ─────────────────────────────────────────────────────────── */
+.items-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 8px;
+}
+
+.items-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 520px;
+}
+
 .items-table th {
   background: var(--q-gold-light);
   border-bottom: 2px solid var(--q-gold-border);
-  padding: 9px 11px;
+  padding: 10px 12px;
   text-align: left;
   font-size: 11px;
   color: var(--q-gold);
@@ -51,48 +91,150 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
+
 .items-table td {
-  padding: 8px 11px;
+  padding: 10px 12px;
   border-bottom: 1px solid var(--border);
   font-size: 13px;
+  vertical-align: top;
 }
+
 .items-table tr:last-child td { border-bottom: none; }
+
 .items-table td input {
-  background: #0d0d1a;
+  background: var(--card-bg);
   border: 1px solid var(--border);
   color: var(--text);
-  padding: 4px 8px;
+  padding: 6px 10px;
   border-radius: 6px;
   font-size: 13px;
   width: 100%;
+  box-sizing: border-box;
 }
+
 .items-table td input:focus {
   border-color: var(--q-gold);
   outline: none;
-  background: rgba(245, 158, 11, 0.04);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
 }
-[data-theme="light"] .items-table td input { background: #ffffff; color: var(--text); }
-[data-theme="light"] .items-table td input:focus { background: rgba(231,197,28,0.05); }
 
+/* Sub-description textarea inside item row */
+.item-subdesc {
+  margin-top: 6px;
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  color: var(--text);
+  font-size: 12px;
+  resize: vertical;
+  outline: none;
+  min-height: 50px;
+  font-family: inherit;
+}
+.item-subdesc:focus { border-color: var(--q-gold); box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1); }
+
+/* Deliverable (sub-item) rows */
+.sub-item-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 5px;
+  align-items: center;
+}
+.sub-item-row input {
+  flex: 1;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 8px;
+  color: var(--text);
+  font-size: 12px;
+  outline: none;
+  box-sizing: border-box;
+}
+.sub-item-row input.sub-item-qty {
+  flex: 0 0 56px;
+  text-align: center;
+}
+.sub-item-row input:focus { border-color: var(--q-gold); }
+.sub-item-del {
+  background: none;
+  border: none;
+  color: var(--danger, #ef4444);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 0 3px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.add-deliverable-btn {
+  background: none;
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-size: 11px;
+  padding: 4px 10px;
+  cursor: pointer;
+  margin-top: 6px;
+  transition: border-color 0.15s, color 0.15s;
+  display: block;
+}
+.add-deliverable-btn:hover { border-color: var(--q-gold); color: var(--q-gold); }
+
+/* ── Totals ──────────────────────────────────────────────────────────────── */
 .totals-box {
   background: var(--q-gold-light);
   border: 1px solid var(--q-gold-border);
   border-radius: 8px;
-  padding: 16px;
-  margin-top: 16px;
+  padding: 14px 18px;
+  margin-top: 12px;
 }
-.total-row { display: flex; justify-content: space-between; padding: 5px 0; font-size: 13px; }
+.total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 0;
+  font-size: 13px;
+}
 .total-row.grand {
   font-size: 17px;
   font-weight: 800;
   color: var(--q-gold);
   border-top: 2px solid var(--q-gold-border);
   padding-top: 10px;
-  margin-top: 5px;
+  margin-top: 6px;
 }
 
-.q-status-draft         { background: rgba(107,114,128,0.15); color: #9ca3af; }
-.q-status-sent          { background: rgba(245,158,11,0.15);  color: #f59e0b; }
-.q-status-approved      { background: rgba(16,185,129,0.15);  color: #10b981; }
-.q-status-rejected      { background: rgba(239,68,68,0.15);   color: #ef4444; }
+/* GST % input inside total row */
+.gst-input {
+  width: 52px;
+  background: transparent;
+  border: 1px solid var(--q-gold-border);
+  color: var(--text);
+  border-radius: 4px;
+  padding: 2px 5px;
+  font-size: 12px;
+  text-align: center;
+  outline: none;
+  margin: 0 4px;
+}
+.gst-input:focus { border-color: var(--q-gold); }
+
+/* ── Status badges ───────────────────────────────────────────────────────── */
+.q-status-draft          { background: rgba(107,114,128,0.15); color: #9ca3af; }
+.q-status-sent           { background: rgba(245,158,11,0.15);  color: #f59e0b; }
+.q-status-approved       { background: rgba(16,185,129,0.15);  color: #10b981; }
+.q-status-rejected       { background: rgba(239,68,68,0.15);   color: #ef4444; }
 .q-status-not-responding { background: rgba(167,139,250,0.15); color: #a78bfa; }
+
+/* ── Light mode overrides ────────────────────────────────────────────────── */
+[data-theme="light"] .items-table td input,
+[data-theme="light"] .item-subdesc,
+[data-theme="light"] .sub-item-row input { background: #fff; color: var(--text); }
+
+[data-theme="light"] .items-table td input:focus,
+[data-theme="light"] .item-subdesc:focus,
+[data-theme="light"] .sub-item-row input:focus { background: rgba(231,197,28,0.04); }
