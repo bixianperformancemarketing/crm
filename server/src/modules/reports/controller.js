@@ -239,17 +239,32 @@ const getDashboard = async (req, res) => {
       ]);
     }
 
-    // Employee earnings: sum of ALL payments on leads assigned to this employee within the period
+    // Employee earnings: sum of the first invoice amount per lead (onboarding incentive).
+    // Only the first invoice raised for each lead counts; repeat invoices are excluded.
+    // Period filter applies to when that first invoice was created.
     let earnings = 0;
     if (isEmployee && canAccessLeads && employeeLeadIds !== null && employeeLeadIds.length) {
-      const total = await Payment.sum('amount', {
-        where: {
-          leadId: { [Op.in]: employeeLeadIds },
-          organizationId: orgId,
-          ...(periodFilter ? { receivedAt: periodFilter } : {}),
-        },
+      // Step 1: find the earliest invoice ID per lead
+      const firstByLead = await Invoice.findAll({
+        where: { leadId: { [Op.in]: employeeLeadIds }, organizationId: orgId },
+        attributes: ['leadId', [fn('MIN', col('id')), 'firstId']],
+        group: ['leadId'],
+        raw: true,
       });
-      earnings = parseFloat(total) || 0;
+      if (firstByLead.length) {
+        const firstIds = firstByLead.map(r => r.firstId);
+        // Step 2: fetch those first invoices, applying the period filter on createdAt
+        const firstInvoices = await Invoice.findAll({
+          where: {
+            id: { [Op.in]: firstIds },
+            organizationId: orgId,
+            ...(periodFilter ? { createdAt: periodFilter } : {}),
+          },
+          attributes: ['totalAmount'],
+          raw: true,
+        });
+        earnings = firstInvoices.reduce((s, i) => s + parseFloat(i.totalAmount || 0), 0);
+      }
     }
 
     res.json({
