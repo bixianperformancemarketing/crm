@@ -5,6 +5,17 @@ import { orgAPI, reportsAPI } from '../../services/api';
 import { formatCurrency } from '../../utils/helpers';
 import { useAuth } from '../../context/AuthContext';
 
+const PERIODS = [
+  { value: 'this_month',   label: 'This Month' },
+  { value: 'last_month',   label: 'Last Month' },
+  { value: 'this_week',    label: 'This Week' },
+  { value: 'last_week',    label: 'Last Week' },
+  { value: 'this_quarter', label: 'This Quarter' },
+  { value: 'this_year',    label: 'This Year' },
+  { value: 'overall',      label: 'Overall' },
+  { value: 'custom',       label: 'Custom Range' },
+];
+
 const MetricCard = ({ label, value, color, sub }) => (
   <div style={{ background: 'var(--card-bg)', border: `1px solid ${color}33`, borderRadius: 10, padding: '14px 16px' }}>
     <div style={{ fontSize: 26, fontWeight: 800, color }}>{value}</div>
@@ -18,21 +29,41 @@ const OwnerDashboard = () => {
   const [data, setData] = useState(null);
   const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [period, setPeriod] = useState('this_month');
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo] = useState('');
+  const [apiParams, setApiParams] = useState({ period: 'this_month' });
 
   useEffect(() => {
+    if (data !== null) setRefreshing(true);
     Promise.all([
-      orgAPI.getDashboard(),
-      reportsAPI.getDashboard(),
+      orgAPI.getDashboard(apiParams),
+      reportsAPI.getDashboard(apiParams),
     ])
       .then(([orgRes, metricsRes]) => {
         setData(orgRes.data);
         setMetrics(metricsRes.data);
       })
       .catch(() => toast.error('Failed to load dashboard'))
-      .finally(() => setLoading(false));
-  }, []);
+      .finally(() => { setLoading(false); setRefreshing(false); });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apiParams]);
 
-  // Backend returns: { success, org, stats: { totalLeads, totalWorkspaces }, revenueByWorkspace, leadsByWorkspace }
+  const handlePeriodChange = (val) => {
+    setPeriod(val);
+    if (val !== 'custom') setApiParams({ period: val });
+  };
+
+  const applyCustomRange = () => {
+    if (!customFrom || !customTo || customFrom > customTo) return;
+    setApiParams({ from: customFrom, to: customTo });
+  };
+
+  const periodLabel = apiParams.from
+    ? `${apiParams.from}  →  ${apiParams.to}`
+    : PERIODS.find(p => p.value === period)?.label;
+
   const stats = data?.stats || {};
   const cards = data ? [
     { label: 'Total Workspaces', value: stats.totalWorkspaces || 0, color: '#7c3aed', icon: '📁' },
@@ -49,7 +80,45 @@ const OwnerDashboard = () => {
 
   return (
     <Layout title="Owner Dashboard">
-      <div className="page-header"><div className="page-title">Organization Overview</div></div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>
+        <div style={{ fontSize: 20, fontWeight: 700 }}>Organization Overview</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>Period:</span>
+          <select
+            value={period}
+            onChange={(e) => handlePeriodChange(e.target.value)}
+            style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface-2)', color: 'var(--text)', fontSize: 13, cursor: 'pointer' }}
+          >
+            {PERIODS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+          </select>
+          {period === 'custom' && (
+            <>
+              <input
+                type="date"
+                value={customFrom}
+                max={customTo || undefined}
+                onChange={(e) => setCustomFrom(e.target.value)}
+                style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface-2)', color: 'var(--text)', fontSize: 13 }}
+              />
+              <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>to</span>
+              <input
+                type="date"
+                value={customTo}
+                min={customFrom || undefined}
+                onChange={(e) => setCustomTo(e.target.value)}
+                style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface-2)', color: 'var(--text)', fontSize: 13 }}
+              />
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={applyCustomRange}
+                disabled={!customFrom || !customTo || customFrom > customTo}
+              >
+                Apply
+              </button>
+            </>
+          )}
+        </div>
+      </div>
 
       {/* Plan / expiry banners */}
       {org?.plan === 'trial' && daysLeft !== null && daysLeft <= 14 && (
@@ -87,7 +156,11 @@ const OwnerDashboard = () => {
 
           {metrics && (
             <>
-              <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 14 }}>Live Org Metrics</div>
+              <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+                Live Org Metrics
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>— {periodLabel}</span>
+                {refreshing && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Updating...</span>}
+              </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12, marginBottom: 28 }}>
                 <MetricCard label="Active Leads" value={metrics.stats?.activeLeads ?? 0} color="#6366f1" />
                 <MetricCard label="Total Leads" value={metrics.stats?.totalLeads ?? 0} color="#10b981" />
@@ -133,7 +206,10 @@ const OwnerDashboard = () => {
 
           {data?.revenueByWorkspace?.length > 0 && (
             <>
-              <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 14 }}>Revenue by Workspace</div>
+              <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+                Revenue by Workspace
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>— {periodLabel}</span>
+              </div>
               <div className="table-wrap">
                 <table>
                   <thead><tr><th>Workspace</th><th>Leads</th><th>Revenue</th></tr></thead>

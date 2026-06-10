@@ -1,14 +1,35 @@
 const { Op, fn, col, literal } = require('sequelize');
 const crypto = require('crypto');
+const moment = require('moment-timezone');
 const {
   Organization, Workspace, User, Lead, Invoice, Payment, WebhookRoute,
 } = require('../../config/models');
 const { generateSlug } = require('../../utils/helpers');
 const { checkWorkspaceLimit } = require('../../middleware/entitlement');
 
+const getOwnerPeriodRange = (period) => {
+  const now = moment().tz('Asia/Kolkata');
+  switch (period) {
+    case 'this_week':    return { start: now.clone().startOf('isoWeek').toDate(), end: now.clone().endOf('isoWeek').toDate() };
+    case 'last_week':    return { start: now.clone().subtract(1, 'week').startOf('isoWeek').toDate(), end: now.clone().subtract(1, 'week').endOf('isoWeek').toDate() };
+    case 'last_month':   return { start: now.clone().subtract(1, 'month').startOf('month').toDate(), end: now.clone().subtract(1, 'month').endOf('month').toDate() };
+    case 'this_quarter': { const q = Math.floor(now.month() / 3); return { start: now.clone().month(q * 3).startOf('month').toDate(), end: now.clone().month(q * 3 + 2).endOf('month').toDate() }; }
+    case 'this_year':    return { start: now.clone().startOf('year').toDate(), end: now.clone().endOf('year').toDate() };
+    case 'overall':      return null;
+    default:             return { start: now.clone().startOf('month').toDate(), end: now.clone().endOf('month').toDate() };
+  }
+};
+
 const getOwnerDashboard = async (req, res) => {
   try {
     const orgId = req.user.organizationId;
+    const { period = 'this_month', from, to } = req.query;
+
+    const periodRange = (from && to)
+      ? { start: moment.tz(from, 'YYYY-MM-DD', 'Asia/Kolkata').startOf('day').toDate(), end: moment.tz(to, 'YYYY-MM-DD', 'Asia/Kolkata').endOf('day').toDate() }
+      : getOwnerPeriodRange(period);
+    const periodFilter = periodRange ? { [Op.between]: [periodRange.start, periodRange.end] } : undefined;
+
     const org = await Organization.findByPk(orgId, {
       attributes: ['id', 'name', 'plan', 'planExpiresAt', 'maxWorkspaces', 'maxLeadsTotal', 'settings'],
     });
@@ -22,14 +43,14 @@ const getOwnerDashboard = async (req, res) => {
     ]);
 
     const revenueByWorkspace = await Payment.findAll({
-      where: { organizationId: orgId },
+      where: { organizationId: orgId, ...(periodFilter ? { receivedAt: periodFilter } : {}) },
       attributes: ['workspaceId', [fn('SUM', col('amount')), 'total']],
       group: ['workspaceId'],
       raw: true,
     });
 
     const leadsByWorkspace = await Lead.findAll({
-      where: { organizationId: orgId },
+      where: { organizationId: orgId, ...(periodFilter ? { createdAt: periodFilter } : {}) },
       attributes: ['workspaceId', [fn('COUNT', col('id')), 'count']],
       group: ['workspaceId'],
       raw: true,

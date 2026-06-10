@@ -65,7 +65,7 @@ export const superAdminAPI = {
 
 // ─── ORGANIZATIONS ────────────────────────────────────────────────────────
 export const orgAPI = {
-  getDashboard: () => api.get('/organizations/dashboard'),
+  getDashboard: (params) => api.get('/organizations/dashboard', { params }),
   getWorkspaces: () => api.get('/organizations/workspaces'),
   createWorkspace: (data) => api.post('/organizations/workspaces', data),
   getWorkspace: (id) => api.get(`/organizations/workspaces/${id}`),
