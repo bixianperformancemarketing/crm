@@ -260,10 +260,10 @@ const getDashboard = async (req, res) => {
             organizationId: orgId,
             ...(periodFilter ? { createdAt: periodFilter } : {}),
           },
-          attributes: ['totalAmount'],
+          attributes: ['paidAmount'],
           raw: true,
         });
-        earnings = firstInvoices.reduce((s, i) => s + parseFloat(i.totalAmount || 0), 0);
+        earnings = firstInvoices.reduce((s, i) => s + parseFloat(i.paidAmount || 0), 0);
       }
     }
 
