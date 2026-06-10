@@ -239,29 +239,17 @@ const getDashboard = async (req, res) => {
       ]);
     }
 
-    // Employee earnings: sum of first payment per lead assigned to this employee within the period
+    // Employee earnings: sum of ALL payments on leads assigned to this employee within the period
     let earnings = 0;
-    if (isEmployee && canAccessLeads) {
-      const myLeads = await Lead.findAll({ where: { organizationId: orgId, ...ws, assignedTo: user.id }, attributes: ['id'], raw: true });
-      if (myLeads.length) {
-        const myLeadIds = myLeads.map(l => l.id);
-        const firstPayments = await Payment.findAll({
-          where: {
-            leadId: { [Op.in]: myLeadIds },
-            organizationId: orgId,
-            ...(periodFilter ? { receivedAt: periodFilter } : {}),
-          },
-          attributes: ['leadId', [fn('MIN', col('receivedAt')), 'firstAt'], [fn('SUM', col('amount')), 'total']],
-          group: ['leadId'],
-          raw: true,
-        });
-        // For earnings, take the first payment per lead (by receivedAt) and sum its amount
-        const firstPaymentAmounts = await Promise.all(firstPayments.map(async (fp) => {
-          const p = await Payment.findOne({ where: { leadId: fp.leadId, organizationId: orgId, receivedAt: fp.firstAt }, attributes: ['amount'], raw: true });
-          return parseFloat(p?.amount || 0);
-        }));
-        earnings = firstPaymentAmounts.reduce((s, a) => s + a, 0);
-      }
+    if (isEmployee && canAccessLeads && employeeLeadIds !== null && employeeLeadIds.length) {
+      const total = await Payment.sum('amount', {
+        where: {
+          leadId: { [Op.in]: employeeLeadIds },
+          organizationId: orgId,
+          ...(periodFilter ? { receivedAt: periodFilter } : {}),
+        },
+      });
+      earnings = parseFloat(total) || 0;
     }
 
     res.json({

@@ -132,6 +132,11 @@ const getEmployeeStats = async (req, res) => {
     const baseWhere = { organizationId: orgId, ...empWs };
     const leadWhere = { ...baseWhere, assignedTo: userId };
 
+    // Scope payment and invoice queries to only this employee's leads
+    const empLeads = await Lead.findAll({ where: leadWhere, attributes: ['id'], raw: true });
+    const empLeadIds = empLeads.map(l => l.id);
+    const leadIdScope = empLeadIds.length ? { leadId: { [Op.in]: empLeadIds } } : { leadId: { [Op.in]: [-1] } };
+
     const [
       totalLeads, activeLeads, wonLeads, hotLeads,
       totalRevenue, pendingRevenue, overdueInvoices,
@@ -141,15 +146,15 @@ const getEmployeeStats = async (req, res) => {
       Lead.count({ where: { ...leadWhere, status: { [Op.notIn]: ['Won', 'Lost'] } } }),
       Lead.count({ where: { ...leadWhere, status: 'Won' } }),
       Lead.count({ where: { ...leadWhere, isHot: true } }),
-      Payment.sum('amount', { where: baseWhere }),
-      Invoice.sum('dueAmount', { where: { ...baseWhere, status: { [Op.in]: ['Unpaid', 'Partial'] } } }),
-      Invoice.count({ where: { ...baseWhere, status: 'Overdue' } }),
-      Followup.count({ where: { ...baseWhere, status: 'pending', scheduledAt: { [Op.gte]: now } } }),
-      Followup.count({ where: { ...baseWhere, status: { [Op.in]: ['pending', 'overdue'] }, scheduledAt: { [Op.lt]: now } } }),
-      Appointment.count({ where: { ...baseWhere, startTime: { [Op.between]: [startOfTodayIST(), endOfTodayIST()] }, status: 'Scheduled' } }),
+      Payment.sum('amount', { where: { ...baseWhere, ...leadIdScope } }),
+      Invoice.sum('dueAmount', { where: { ...baseWhere, ...leadIdScope, status: { [Op.in]: ['Unpaid', 'Partial'] } } }),
+      Invoice.count({ where: { ...baseWhere, ...leadIdScope, status: 'Overdue' } }),
+      Followup.count({ where: { ...baseWhere, userId, status: 'pending', scheduledAt: { [Op.gte]: now } } }),
+      Followup.count({ where: { ...baseWhere, userId, status: { [Op.in]: ['pending', 'overdue'] }, scheduledAt: { [Op.lt]: now } } }),
+      Appointment.count({ where: { ...baseWhere, assignedTo: userId, startTime: { [Op.between]: [startOfTodayIST(), endOfTodayIST()] }, status: 'Scheduled' } }),
     ]);
 
-    const wonInvoices = await Invoice.findAll({ where: { ...baseWhere, status: 'Paid' }, attributes: ['totalAmount'], raw: true });
+    const wonInvoices = await Invoice.findAll({ where: { ...baseWhere, ...leadIdScope, status: 'Paid' }, attributes: ['totalAmount'], raw: true });
     const avgDealSize = wonInvoices.length
       ? wonInvoices.reduce((s, i) => s + parseFloat(i.totalAmount), 0) / wonInvoices.length
       : 0;
