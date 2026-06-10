@@ -67,7 +67,7 @@ const createInvoice = async (req, res) => {
     // Find or create lead
     let lead = null;
     if (leadId) {
-      lead = await Lead.findOne({ where: { id: leadId, organizationId: user.organizationId, workspaceId } });
+      lead = await Lead.findOne({ where: { id: leadId, organizationId: user.organizationId } });
     } else {
       const orClauses = [{ phone: clientPhone.trim() }];
       if (clientEmail?.trim()) orClauses.push({ email: clientEmail.trim() });

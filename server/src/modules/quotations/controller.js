@@ -71,7 +71,7 @@ const createQuotation = async (req, res) => {
 
     let lead = null;
     if (leadId) {
-      lead = await Lead.findOne({ where: { id: leadId, organizationId: user.organizationId, workspaceId } });
+      lead = await Lead.findOne({ where: { id: leadId, organizationId: user.organizationId } });
     } else {
       // Check if a lead already exists with matching phone or email
       const existing = await Lead.findOne({
