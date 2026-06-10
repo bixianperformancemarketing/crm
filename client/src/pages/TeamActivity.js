@@ -23,7 +23,7 @@ const ACTION_LABELS = {
   webhook_received: 'Webhook',
 };
 
-const STAT_CARDS = [
+const LEAD_STAT_CARDS = [
   { key: 'totalLeads',       label: 'Total Leads',       icon: '👥', color: '#0ea5e9', currency: false },
   { key: 'activeLeads',      label: 'Active Leads',      icon: '🔥', color: '#f59e0b', currency: false },
   { key: 'wonLeads',         label: 'Won Leads',         icon: '✅', color: '#22c55e', currency: false },
@@ -36,6 +36,14 @@ const STAT_CARDS = [
   { key: 'overdueFollowups', label: 'Overdue Followups', icon: '⏰', color: '#ef4444', currency: false },
   { key: 'conversionRate',   label: 'Conversion Rate',   icon: '📈', color: '#22c55e', currency: false, pct: true },
   { key: 'avgDealSize',      label: 'Avg Deal Size',     icon: '💎', color: '#7c3aed', currency: true  },
+];
+
+const TASK_STAT_CARDS = [
+  { key: 'totalTasks',      label: 'Total Tasks',      icon: '📋', color: '#0ea5e9', currency: false },
+  { key: 'pendingTaskCount',label: 'Pending Tasks',    icon: '⏳', color: '#f59e0b', currency: false },
+  { key: 'inProgressTasks', label: 'In Progress',      icon: '⚙️', color: '#7c3aed', currency: false },
+  { key: 'reviewTasks',     label: 'In Review',        icon: '🔍', color: '#0ea5e9', currency: false },
+  { key: 'overdueTasks',    label: 'Overdue Tasks',    icon: '⏰', color: '#ef4444', currency: false },
 ];
 
 const formatCurrency = (v) => `₹${Number(v).toLocaleString('en-IN')}`;
@@ -61,10 +69,10 @@ const TeamActivity = () => {
   const openStats = async (e, emp) => {
     e.stopPropagation();
     setStatsLoading(true);
-    setStatsModal({ employee: emp, stats: null });
+    setStatsModal({ employee: emp, stats: null, canAccessLeads: true, canUseTasks: true });
     try {
       const { data } = await teamActivityAPI.getEmployeeStats(emp.id);
-      setStatsModal({ employee: emp, stats: data.stats });
+      setStatsModal({ employee: emp, stats: data.stats, canAccessLeads: data.canAccessLeads, canUseTasks: data.canUseTasks });
     } catch { toast.error('Failed to load stats'); setStatsModal(null); }
     finally { setStatsLoading(false); }
   };
@@ -186,12 +194,12 @@ const TeamActivity = () => {
                       </div>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 4 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${[emp.canAccessLeads, emp.canAccessLeads, emp.canUseTasks].filter(Boolean).length || 1}, 1fr)`, gap: 4 }}>
                       {[
-                        { label: 'Active', value: emp.activeLeads, color: '#0ea5e9' },
-                        { label: 'Won', value: emp.wonThisMonth, color: '#22c55e' },
-                        { label: 'Tasks', value: emp.pendingTasks, color: '#f59e0b' },
-                      ].map(s => (
+                        emp.canAccessLeads && { label: 'Active', value: emp.activeLeads, color: '#0ea5e9' },
+                        emp.canAccessLeads && { label: 'Won',    value: emp.wonThisMonth, color: '#22c55e' },
+                        emp.canUseTasks    && { label: 'Tasks',  value: emp.pendingTasks, color: '#f59e0b' },
+                      ].filter(Boolean).map(s => (
                         <div key={s.label} style={{ textAlign: 'center', background: 'var(--surface)', borderRadius: 6, padding: '5px 4px' }}>
                           <div style={{ fontWeight: 700, fontSize: 14, color: s.color }}>{s.value}</div>
                           <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{s.label}</div>
@@ -339,29 +347,48 @@ const TeamActivity = () => {
             {statsLoading || !statsModal.stats ? (
               <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-muted)' }}>Loading stats…</div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(145px, 1fr))', gap: 10 }}>
-                {STAT_CARDS.map(card => {
-                  const raw = statsModal.stats[card.key] ?? 0;
-                  const display = card.currency ? formatCurrency(raw) : card.pct ? `${raw}%` : raw;
-                  const isAlert = (card.key === 'overdueInvoices' || card.key === 'overdueFollowups') && raw > 0;
-                  return (
-                    <div
-                      key={card.key}
-                      style={{
-                        background: 'var(--surface)',
-                        border: `1px solid ${isAlert ? '#ef4444' : 'var(--border)'}`,
-                        borderRadius: 12,
-                        padding: '18px 16px 14px',
-                        textAlign: 'center',
-                      }}
-                    >
-                      <div style={{ fontSize: 26, marginBottom: 8 }}>{card.icon}</div>
-                      <div style={{ fontSize: 22, fontWeight: 800, color: isAlert ? '#ef4444' : card.color, lineHeight: 1 }}>{display}</div>
-                      <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 7, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{card.label}</div>
+              <>
+                {statsModal.canAccessLeads && (
+                  <>
+                    <div style={{ fontWeight: 600, fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Lead Stats</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(145px, 1fr))', gap: 10, marginBottom: statsModal.canUseTasks ? 20 : 0 }}>
+                      {LEAD_STAT_CARDS.map(card => {
+                        const raw = statsModal.stats[card.key] ?? 0;
+                        const display = card.currency ? formatCurrency(raw) : card.pct ? `${raw}%` : raw;
+                        const isAlert = (card.key === 'overdueInvoices' || card.key === 'overdueFollowups') && raw > 0;
+                        return (
+                          <div key={card.key} style={{ background: 'var(--surface)', border: `1px solid ${isAlert ? '#ef4444' : 'var(--border)'}`, borderRadius: 12, padding: '18px 16px 14px', textAlign: 'center' }}>
+                            <div style={{ fontSize: 26, marginBottom: 8 }}>{card.icon}</div>
+                            <div style={{ fontSize: 22, fontWeight: 800, color: isAlert ? '#ef4444' : card.color, lineHeight: 1 }}>{display}</div>
+                            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 7, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{card.label}</div>
+                          </div>
+                        );
+                      })}
                     </div>
-                  );
-                })}
-              </div>
+                  </>
+                )}
+                {statsModal.canUseTasks && (
+                  <>
+                    <div style={{ fontWeight: 600, fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Task Stats</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(145px, 1fr))', gap: 10 }}>
+                      {TASK_STAT_CARDS.map(card => {
+                        const raw = statsModal.stats[card.key] ?? 0;
+                        const isAlert = card.key === 'overdueTasks' && raw > 0;
+                        return (
+                          <div key={card.key} style={{ background: 'var(--surface)', border: `1px solid ${isAlert ? '#ef4444' : 'var(--border)'}`, borderRadius: 12, padding: '18px 16px 14px', textAlign: 'center' }}>
+                            <div style={{ fontSize: 26, marginBottom: 8 }}>{card.icon}</div>
+                            <div style={{ fontSize: 22, fontWeight: 800, color: isAlert ? '#ef4444' : card.color, lineHeight: 1 }}>{raw}</div>
+                            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 7, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{card.label}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+                {!statsModal.canAccessLeads && !statsModal.canUseTasks && (
+                  <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-muted)', fontSize: 13 }}>No features enabled for this employee.</div>
+                )}
+              </>
             )}
           </div>
         </div>

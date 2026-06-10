@@ -10,13 +10,21 @@ const getTeamSummary = async (req, res) => {
 
     const employees = await User.findAll({
       where: { ...ws, organizationId: orgId, role: { [Op.in]: ['employee', 'admin'] }, isActive: true, workspaceId: { [Op.ne]: null } },
-      attributes: ['id', 'name', 'email', 'label', 'role', 'workspaceId'],
+      attributes: ['id', 'name', 'email', 'label', 'role', 'workspaceId', 'canAccessLeads', 'canUseContentCalendar'],
       include: [{ model: Workspace, as: 'workspace', attributes: ['id', 'name'], required: false }],
     });
 
     if (!employees.length) return res.json({ success: true, summary: [] });
 
     const employeeIds = employees.map(e => e.id);
+
+    const leadEmpIds = employees
+      .filter(e => e.role !== 'employee' || e.canAccessLeads !== false)
+      .map(e => e.id);
+    const taskEmpIds = employees
+      .filter(e => e.role !== 'employee' || !!e.canUseContentCalendar)
+      .map(e => e.id);
+
     const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
     const [todayActions, activeLeads, wonLeads, pendingTasks, lastActivity] = await Promise.all([
@@ -25,21 +33,21 @@ const getTeamSummary = async (req, res) => {
         attributes: ['userId', [fn('COUNT', col('id')), 'count']],
         group: ['userId'], raw: true,
       }),
-      Lead.findAll({
-        where: { organizationId: orgId, ...ws, status: { [Op.notIn]: ['Won', 'Lost'] }, assignedTo: { [Op.in]: employeeIds } },
+      leadEmpIds.length ? Lead.findAll({
+        where: { organizationId: orgId, ...ws, status: { [Op.notIn]: ['Won', 'Lost'] }, assignedTo: { [Op.in]: leadEmpIds } },
         attributes: ['assignedTo', [fn('COUNT', col('id')), 'count']],
         group: ['assignedTo'], raw: true,
-      }),
-      Lead.findAll({
-        where: { organizationId: orgId, ...ws, status: 'Won', assignedTo: { [Op.in]: employeeIds }, updatedAt: { [Op.gte]: monthStart } },
+      }) : Promise.resolve([]),
+      leadEmpIds.length ? Lead.findAll({
+        where: { organizationId: orgId, ...ws, status: 'Won', assignedTo: { [Op.in]: leadEmpIds }, updatedAt: { [Op.gte]: monthStart } },
         attributes: ['assignedTo', [fn('COUNT', col('id')), 'count']],
         group: ['assignedTo'], raw: true,
-      }),
-      ContentTask.findAll({
-        where: { organizationId: orgId, ...ws, status: { [Op.in]: ['Pending', 'In Progress', 'Review'] }, assignedTo: { [Op.in]: employeeIds } },
+      }) : Promise.resolve([]),
+      taskEmpIds.length ? ContentTask.findAll({
+        where: { organizationId: orgId, ...ws, status: { [Op.in]: ['Pending', 'In Progress', 'Review'] }, assignedTo: { [Op.in]: taskEmpIds } },
         attributes: ['assignedTo', [fn('COUNT', col('id')), 'count']],
         group: ['assignedTo'], raw: true,
-      }),
+      }) : Promise.resolve([]),
       LeadActivity.findAll({
         where: { organizationId: orgId, ...ws, type: { [Op.ne]: 'viewed' }, userId: { [Op.in]: employeeIds } },
         attributes: ['userId', [fn('MAX', col('createdAt')), 'lastAt']],
@@ -54,19 +62,26 @@ const getTeamSummary = async (req, res) => {
     const taskMap = toMap(pendingTasks, 'assignedTo');
     const lastMap = lastActivity.reduce((m, r) => { m[r.userId] = r.lastAt; return m; }, {});
 
-    const summary = employees.map(e => ({
-      id: e.id,
-      name: e.name,
-      email: e.email,
-      label: e.label || e.role,
-      role: e.role,
-      workspace: e.workspace ? e.workspace.name : null,
-      todayActions: todayMap[e.id] || 0,
-      activeLeads: activeMap[e.id] || 0,
-      wonThisMonth: wonMap[e.id] || 0,
-      pendingTasks: taskMap[e.id] || 0,
-      lastActivityAt: lastMap[e.id] || null,
-    })).sort((a, b) => b.todayActions - a.todayActions);
+    const summary = employees.map(e => {
+      const isEmpRole = e.role === 'employee';
+      const empCanAccessLeads = !isEmpRole || e.canAccessLeads !== false;
+      const empCanUseTasks = !isEmpRole || !!e.canUseContentCalendar;
+      return {
+        id: e.id,
+        name: e.name,
+        email: e.email,
+        label: e.label || e.role,
+        role: e.role,
+        workspace: e.workspace ? e.workspace.name : null,
+        canAccessLeads: empCanAccessLeads,
+        canUseTasks: empCanUseTasks,
+        todayActions: todayMap[e.id] || 0,
+        activeLeads: empCanAccessLeads ? (activeMap[e.id] || 0) : null,
+        wonThisMonth: empCanAccessLeads ? (wonMap[e.id] || 0) : null,
+        pendingTasks: empCanUseTasks ? (taskMap[e.id] || 0) : null,
+        lastActivityAt: lastMap[e.id] || null,
+      };
+    }).sort((a, b) => b.todayActions - a.todayActions);
 
     res.json({ success: true, summary });
   } catch (err) {
@@ -123,52 +138,79 @@ const getEmployeeStats = async (req, res) => {
 
     const employee = await User.findOne({
       where: { id: userId, organizationId: orgId, isActive: true },
-      attributes: ['id', 'name', 'email', 'label', 'role', 'workspaceId'],
+      attributes: ['id', 'name', 'email', 'label', 'role', 'workspaceId', 'canAccessLeads', 'canUseContentCalendar'],
     });
     if (!employee) return res.status(404).json({ success: false, message: 'Employee not found' });
+
+    const isEmpRole = employee.role === 'employee';
+    const empCanAccessLeads = !isEmpRole || employee.canAccessLeads !== false;
+    const empCanUseTasks = !isEmpRole || !!employee.canUseContentCalendar;
 
     // Use the employee's own workspaceId so stats match exactly what they see on their dashboard
     const empWs = employee.workspaceId ? { workspaceId: employee.workspaceId } : {};
     const baseWhere = { organizationId: orgId, ...empWs };
     const leadWhere = { ...baseWhere, assignedTo: userId };
+    const taskWhere = { ...baseWhere, assignedTo: userId };
 
-    // Scope payment and invoice queries to only this employee's leads
-    const empLeads = await Lead.findAll({ where: leadWhere, attributes: ['id'], raw: true });
-    const empLeadIds = empLeads.map(l => l.id);
+    const zero = Promise.resolve(0);
+
+    // Scope payment and invoice queries to only this employee's leads (only if they have lead access)
+    let empLeadIds = [];
+    if (empCanAccessLeads) {
+      const empLeads = await Lead.findAll({ where: leadWhere, attributes: ['id'], raw: true });
+      empLeadIds = empLeads.map(l => l.id);
+    }
     const leadIdScope = empLeadIds.length ? { leadId: { [Op.in]: empLeadIds } } : { leadId: { [Op.in]: [-1] } };
 
     const [
       totalLeads, activeLeads, wonLeads, hotLeads,
       totalRevenue, pendingRevenue, overdueInvoices,
       pendingFollowups, overdueFollowups, todayAppts,
+      totalTasks, overdueTasks, inProgressTasks, pendingTaskCount, reviewTasks,
     ] = await Promise.all([
-      Lead.count({ where: leadWhere }),
-      Lead.count({ where: { ...leadWhere, status: { [Op.notIn]: ['Won', 'Lost'] } } }),
-      Lead.count({ where: { ...leadWhere, status: 'Won' } }),
-      Lead.count({ where: { ...leadWhere, isHot: true } }),
-      Payment.sum('amount', { where: { ...baseWhere, ...leadIdScope } }),
-      Invoice.sum('dueAmount', { where: { ...baseWhere, ...leadIdScope, status: { [Op.in]: ['Unpaid', 'Partial'] } } }),
-      Invoice.count({ where: { ...baseWhere, ...leadIdScope, status: 'Overdue' } }),
-      Followup.count({ where: { ...baseWhere, userId, status: 'pending', scheduledAt: { [Op.gte]: now } } }),
-      Followup.count({ where: { ...baseWhere, userId, status: { [Op.in]: ['pending', 'overdue'] }, scheduledAt: { [Op.lt]: now } } }),
-      Appointment.count({ where: { ...baseWhere, assignedTo: userId, startTime: { [Op.between]: [startOfTodayIST(), endOfTodayIST()] }, status: 'Scheduled' } }),
+      empCanAccessLeads ? Lead.count({ where: leadWhere }) : zero,
+      empCanAccessLeads ? Lead.count({ where: { ...leadWhere, status: { [Op.notIn]: ['Won', 'Lost'] } } }) : zero,
+      empCanAccessLeads ? Lead.count({ where: { ...leadWhere, status: 'Won' } }) : zero,
+      empCanAccessLeads ? Lead.count({ where: { ...leadWhere, isHot: true } }) : zero,
+      empCanAccessLeads ? Payment.sum('amount', { where: { ...baseWhere, ...leadIdScope } }) : zero,
+      empCanAccessLeads ? Invoice.sum('dueAmount', { where: { ...baseWhere, ...leadIdScope, status: { [Op.in]: ['Unpaid', 'Partial'] } } }) : zero,
+      empCanAccessLeads ? Invoice.count({ where: { ...baseWhere, ...leadIdScope, status: 'Overdue' } }) : zero,
+      empCanAccessLeads ? Followup.count({ where: { ...baseWhere, userId, status: 'pending', scheduledAt: { [Op.gte]: now } } }) : zero,
+      empCanAccessLeads ? Followup.count({ where: { ...baseWhere, userId, status: { [Op.in]: ['pending', 'overdue'] }, scheduledAt: { [Op.lt]: now } } }) : zero,
+      empCanAccessLeads ? Appointment.count({ where: { ...baseWhere, assignedTo: userId, startTime: { [Op.between]: [startOfTodayIST(), endOfTodayIST()] }, status: 'Scheduled' } }) : zero,
+      empCanUseTasks ? ContentTask.count({ where: taskWhere }) : zero,
+      empCanUseTasks ? ContentTask.count({ where: { ...taskWhere, status: 'Overdue' } }) : zero,
+      empCanUseTasks ? ContentTask.count({ where: { ...taskWhere, status: 'In Progress' } }) : zero,
+      empCanUseTasks ? ContentTask.count({ where: { ...taskWhere, status: { [Op.in]: ['Pending', 'To Do Today'] } } }) : zero,
+      empCanUseTasks ? ContentTask.count({ where: { ...taskWhere, status: 'Review' } }) : zero,
     ]);
 
-    const wonInvoices = await Invoice.findAll({ where: { ...baseWhere, ...leadIdScope, status: 'Paid' }, attributes: ['totalAmount'], raw: true });
-    const avgDealSize = wonInvoices.length
-      ? wonInvoices.reduce((s, i) => s + parseFloat(i.totalAmount), 0) / wonInvoices.length
-      : 0;
-    const conversionRate = totalLeads > 0 ? Math.round((wonLeads / totalLeads) * 100) : 0;
+    let avgDealSize = 0;
+    let conversionRate = 0;
+    if (empCanAccessLeads) {
+      const wonInvoices = await Invoice.findAll({ where: { ...baseWhere, ...leadIdScope, status: 'Paid' }, attributes: ['totalAmount'], raw: true });
+      avgDealSize = wonInvoices.length
+        ? wonInvoices.reduce((s, i) => s + parseFloat(i.totalAmount), 0) / wonInvoices.length
+        : 0;
+      conversionRate = totalLeads > 0 ? Math.round((wonLeads / totalLeads) * 100) : 0;
+    }
 
     res.json({
       success: true,
       employee: { id: employee.id, name: employee.name, label: employee.label || employee.role },
+      canAccessLeads: empCanAccessLeads,
+      canUseTasks: empCanUseTasks,
       stats: {
-        totalLeads, activeLeads, wonLeads, hotLeads,
-        totalRevenue: parseFloat(totalRevenue) || 0,
-        pendingRevenue: parseFloat(pendingRevenue) || 0,
-        overdueInvoices, pendingFollowups, overdueFollowups, todayAppts,
-        conversionRate, avgDealSize: Math.round(avgDealSize),
+        ...(empCanAccessLeads ? {
+          totalLeads, activeLeads, wonLeads, hotLeads,
+          totalRevenue: parseFloat(totalRevenue) || 0,
+          pendingRevenue: parseFloat(pendingRevenue) || 0,
+          overdueInvoices, pendingFollowups, overdueFollowups, todayAppts,
+          conversionRate, avgDealSize: Math.round(avgDealSize),
+        } : {}),
+        ...(empCanUseTasks ? {
+          totalTasks, overdueTasks, inProgressTasks, pendingTaskCount, reviewTasks,
+        } : {}),
       },
     });
   } catch (err) {
