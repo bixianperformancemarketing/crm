@@ -117,8 +117,13 @@ const getDashboard = async (req, res) => {
     const ws = workspaceId ? { workspaceId } : {};
     const canAccessLeads = !isEmployee || user.canAccessLeads !== false;
     const canUseTasks = !isEmployee || !!user.canUseContentCalendar;
-    const period = req.query.period || 'this_month';
-    const periodRange = getPeriodRange(period);
+    const { period = 'this_month', from, to } = req.query;
+    const periodRange = (from && to)
+      ? {
+          start: moment.tz(from, 'YYYY-MM-DD', 'Asia/Kolkata').startOf('day').toDate(),
+          end:   moment.tz(to,   'YYYY-MM-DD', 'Asia/Kolkata').endOf('day').toDate(),
+        }
+      : getPeriodRange(period);
     const periodFilter = periodRange ? { [Op.between]: [periodRange.start, periodRange.end] } : undefined;
 
     const baseWhere = { organizationId: orgId, ...ws };

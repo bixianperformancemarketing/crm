@@ -11,13 +11,14 @@ import './Dashboard.css';
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend);
 
 const PERIODS = [
-  { value: 'this_month', label: 'This Month' },
-  { value: 'last_month', label: 'Last Month' },
-  { value: 'this_week', label: 'This Week' },
-  { value: 'last_week', label: 'Last Week' },
+  { value: 'this_month',   label: 'This Month' },
+  { value: 'last_month',   label: 'Last Month' },
+  { value: 'this_week',    label: 'This Week' },
+  { value: 'last_week',    label: 'Last Week' },
   { value: 'this_quarter', label: 'This Quarter' },
-  { value: 'this_year', label: 'This Year' },
-  { value: 'overall', label: 'Overall' },
+  { value: 'this_year',    label: 'This Year' },
+  { value: 'overall',      label: 'Overall' },
+  { value: 'custom',       label: 'Custom Range' },
 ];
 
 const Dashboard = () => {
@@ -26,6 +27,9 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [overdueCount, setOverdueCount] = useState(0);
   const [period, setPeriod] = useState('this_month');
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo] = useState('');
+  const [apiParams, setApiParams] = useState({ period: 'this_month' });
   const [theme, setTheme] = useState(() => document.documentElement.getAttribute('data-theme') || 'dark');
 
   const canAccessLeads = user?.role !== 'employee' || user?.canAccessLeads !== false;
@@ -38,12 +42,27 @@ const Dashboard = () => {
     return () => observer.disconnect();
   }, []);
 
+  const handlePeriodChange = (val) => {
+    setPeriod(val);
+    if (val !== 'custom') setApiParams({ period: val });
+  };
+
+  const applyCustomRange = () => {
+    if (!customFrom || !customTo) return;
+    if (customFrom > customTo) return;
+    setApiParams({ from: customFrom, to: customTo });
+  };
+
+  const periodLabel = apiParams.from
+    ? `${apiParams.from}  →  ${apiParams.to}`
+    : PERIODS.find(p => p.value === period)?.label;
+
   useEffect(() => {
     const load = async () => {
       setLoading(true);
       try {
         const [dashRes, overdueRes] = await Promise.all([
-          reportsAPI.getDashboard({ period }),
+          reportsAPI.getDashboard(apiParams),
           followupsAPI.getOverdueCount(),
         ]);
         setData(dashRes.data);
@@ -55,7 +74,7 @@ const Dashboard = () => {
       }
     };
     load();
-  }, [period]);
+  }, [apiParams]);
 
   if (loading) return <Layout title="Dashboard"><div className="loading-spinner"><div className="spinner" /></div></Layout>;
   if (!data) return <Layout title="Dashboard"><div className="empty-state"><div className="empty-icon">📊</div><div className="empty-title">Failed to load dashboard</div></div></Layout>;
@@ -119,15 +138,41 @@ const Dashboard = () => {
     <Layout title="Dashboard">
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>
         <div style={{ fontSize: 20, fontWeight: 700 }}>Dashboard</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>Period:</span>
           <select
             value={period}
-            onChange={(e) => setPeriod(e.target.value)}
+            onChange={(e) => handlePeriodChange(e.target.value)}
             style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface-2)', color: 'var(--text)', fontSize: 13, cursor: 'pointer' }}
           >
             {PERIODS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
           </select>
+          {period === 'custom' && (
+            <>
+              <input
+                type="date"
+                value={customFrom}
+                max={customTo || undefined}
+                onChange={(e) => setCustomFrom(e.target.value)}
+                style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface-2)', color: 'var(--text)', fontSize: 13 }}
+              />
+              <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>to</span>
+              <input
+                type="date"
+                value={customTo}
+                min={customFrom || undefined}
+                onChange={(e) => setCustomTo(e.target.value)}
+                style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface-2)', color: 'var(--text)', fontSize: 13 }}
+              />
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={applyCustomRange}
+                disabled={!customFrom || !customTo || customFrom > customTo}
+              >
+                Apply
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -135,7 +180,7 @@ const Dashboard = () => {
         <div style={{ marginBottom: 20, padding: '16px 20px', background: 'linear-gradient(135deg, rgba(34,197,94,0.1), rgba(34,197,94,0.05))', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 12, display: 'flex', alignItems: 'center', gap: 16 }}>
           <div style={{ fontSize: 32 }}>💼</div>
           <div>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>My Earnings — {PERIODS.find(p => p.value === period)?.label}</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>My Earnings — {periodLabel}</div>
             <div style={{ fontSize: 28, fontWeight: 800, color: '#22c55e', marginTop: 2 }}>{formatCurrency(data?.stats?.earnings || 0)}</div>
             <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>Based on first invoice raised per onboarded lead</div>
           </div>
