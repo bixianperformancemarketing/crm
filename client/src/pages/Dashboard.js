@@ -137,7 +137,7 @@ const Dashboard = () => {
           <div>
             <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>My Earnings — {PERIODS.find(p => p.value === period)?.label}</div>
             <div style={{ fontSize: 28, fontWeight: 800, color: '#22c55e', marginTop: 2 }}>{formatCurrency(data?.stats?.earnings || 0)}</div>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>First invoice per onboarded lead (incentive)</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>Based on first invoice raised per onboarded lead</div>
           </div>
         </div>
       )}
