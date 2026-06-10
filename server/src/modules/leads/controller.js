@@ -114,7 +114,13 @@ const getLead = async (req, res) => {
 
 const createLead = async (req, res) => {
   try {
-    const { user, workspaceId, org } = req;
+    const { user, workspaceId: headerWsId, org } = req;
+    let workspaceId = headerWsId;
+    if (!workspaceId && user.role === 'owner' && req.body.workspaceId) {
+      const ws = await Workspace.findOne({ where: { id: req.body.workspaceId, organizationId: user.organizationId } });
+      if (!ws) return res.status(400).json({ success: false, message: 'Invalid workspace' });
+      workspaceId = req.body.workspaceId;
+    }
     if (!workspaceId) return res.status(400).json({ success: false, message: 'Workspace context required for this action' });
     const {
       name, phone, email, source, campaign, priority, status,

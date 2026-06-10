@@ -109,14 +109,19 @@ const Users = () => {
                   <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>{u.phone || '—'}</td>
                   <td><span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: u.isActive ? 'rgba(34,197,94,0.12)' : 'rgba(107,114,128,0.12)', color: u.isActive ? '#22c55e' : '#6b7280' }}>{u.isActive ? 'Active' : 'Inactive'}</span></td>
                   <td>
-                    {u.id !== me?.id && (isRole('owner') || isRole('admin')) && (
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        <button className="btn btn-ghost btn-sm" onClick={() => openEdit(u)}>Edit</button>
-                        <button className="btn btn-ghost btn-sm" style={{ color: u.isActive ? 'var(--danger)' : 'var(--success)' }} onClick={() => handleDeactivate(u.id, u.isActive)}>
-                          {u.isActive ? 'Deactivate' : 'Reactivate'}
-                        </button>
-                      </div>
-                    )}
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                      {u.phone && (isRole('owner') || isRole('admin')) && (
+                        <a href={`tel:${u.phone}`} className="btn btn-ghost btn-sm" title={`Call ${u.name}`}>📞</a>
+                      )}
+                      {u.id !== me?.id && (isRole('owner') || isRole('admin')) && (
+                        <>
+                          <button className="btn btn-ghost btn-sm" onClick={() => openEdit(u)}>Edit</button>
+                          <button className="btn btn-ghost btn-sm" style={{ color: u.isActive ? 'var(--danger)' : 'var(--success)' }} onClick={() => handleDeactivate(u.id, u.isActive)}>
+                            {u.isActive ? 'Deactivate' : 'Reactivate'}
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

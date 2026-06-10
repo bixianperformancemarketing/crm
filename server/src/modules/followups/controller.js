@@ -40,7 +40,10 @@ const getFollowups = async (req, res) => {
     const { count, rows } = await Followup.findAndCountAll({
       where,
       include: [
-        { model: Lead, as: 'lead', attributes: ['id', 'name', 'phone', 'status', 'priority'], required: false },
+        {
+          model: Lead, as: 'lead', attributes: ['id', 'name', 'phone', 'status', 'priority'], required: false,
+          include: [{ model: User, as: 'assignedAgent', attributes: ['id', 'name'], required: false }],
+        },
         { model: User, as: 'user', attributes: ['id', 'name'], required: false },
       ],
       order,

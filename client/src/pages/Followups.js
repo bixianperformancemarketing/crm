@@ -86,6 +86,11 @@ const Followups = () => {
                 <div className="fc-lead">
                   {f.lead ? <Link to={`/leads/${f.lead.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>{f.lead.name}</Link> : 'Unknown Lead'}
                   {f.lead?.phone && <span style={{ marginLeft: 8, fontSize: 12, color: 'var(--text-muted)' }}>{f.lead.phone}</span>}
+                  {f.lead?.assignedAgent?.name && (
+                    <span style={{ marginLeft: 8, fontSize: 11, background: 'rgba(14,165,233,0.12)', color: '#0ea5e9', padding: '1px 8px', borderRadius: 20, fontWeight: 600, whiteSpace: 'nowrap' }}>
+                      👤 {f.lead.assignedAgent.name}
+                    </span>
+                  )}
                 </div>
                 <div className="fc-time">{formatDateTime(f.scheduledAt)}</div>
                 {f.note && <div className="fc-note">"{f.note}"</div>}
