@@ -40,6 +40,9 @@ const Content = () => {
   const [users, setUsers] = useState([]);
   const [workspaces, setWorkspaces] = useState([]);
   const [upgradeModal, setUpgradeModal] = useState(null);
+  const [editTask, setEditTask] = useState(null);
+  const [editForm, setEditForm] = useState(emptyForm());
+  const [editSaving, setEditSaving] = useState(false);
 
   const loadList = useCallback(async () => {
     setLoading(true);
@@ -108,6 +111,34 @@ const Content = () => {
       setShowTask(null);
       view === 'list' ? loadList() : loadCal();
     } catch { toast.error('Failed to delete'); }
+  };
+
+  const openEdit = (e, t) => {
+    e.stopPropagation();
+    setEditForm({
+      title: t.title || '',
+      description: t.description || '',
+      dueDate: t.dueDate ? t.dueDate.split('T')[0] : '',
+      dueTime: t.dueTime || '',
+      assignedTo: t.assignedTo ? String(t.assignedTo) : '',
+      workspaceId: t.workspaceId ? String(t.workspaceId) : '',
+      priority: t.priority || 'Medium',
+      notes: t.notes || '',
+    });
+    setEditTask(t);
+  };
+
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    if (!editForm.title || !editForm.dueDate) return toast.error('Title and due date required');
+    setEditSaving(true);
+    try {
+      await contentAPI.update(editTask.id, editForm);
+      toast.success('Task updated');
+      setEditTask(null);
+      view === 'list' ? loadList() : loadCal();
+    } catch { toast.error('Failed to update task'); }
+    finally { setEditSaving(false); }
   };
 
   const prevMonth = () => {
@@ -191,6 +222,14 @@ const Content = () => {
                         <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t.dueDate ? `${formatDate(t.dueDate)}${t.dueTime ? ` ${fmtDueTime(t.dueTime)}` : ''}` : '—'}</td>
                         <td><span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: t.priority === 'High' ? 'rgba(239,68,68,0.15)' : t.priority === 'Medium' ? 'rgba(245,158,11,0.15)' : 'rgba(107,114,128,0.15)', color: t.priority === 'High' ? '#ef4444' : t.priority === 'Medium' ? '#f59e0b' : '#6b7280' }}>{t.priority}</span></td>
                         <td><span className="task-status-badge" style={{ background: `${STATUS_COLORS[t.status]}22`, color: STATUS_COLORS[t.status] }}>{t.status}</span></td>
+                        <td onClick={e => e.stopPropagation()}>
+                          {canManage && (
+                            <div style={{ display: 'flex', gap: 6 }}>
+                              <button className="btn btn-ghost btn-sm" onClick={(e) => openEdit(e, t)}>Edit</button>
+                              <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={(e) => { e.stopPropagation(); handleDelete(t.id); }}>Delete</button>
+                            </div>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -306,6 +345,52 @@ const Content = () => {
               <div className="modal-actions">
                 <button type="button" className="btn btn-ghost" onClick={() => setShowCreate(false)}>Cancel</button>
                 <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Creating...' : 'Create Task'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {editTask && (
+        <div className="modal-overlay" onClick={() => setEditTask(null)}>
+          <div className="modal" style={{ maxWidth: 520 }} onClick={e => e.stopPropagation()}>
+            <h3>Edit Task</h3>
+            <button className="modal-close" onClick={() => setEditTask(null)}>×</button>
+            <form onSubmit={handleUpdate}>
+              <div className="form-group"><label className="form-label">Title *</label><input className="form-control" value={editForm.title} onChange={e => setEditForm({ ...editForm, title: e.target.value })} placeholder="Task title" /></div>
+              <div className="form-group"><label className="form-label">Description</label><textarea className="form-control" rows={2} value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })} placeholder="What needs to be done..." /></div>
+              <div className="form-row">
+                <div className="form-group"><label className="form-label">Due Date *</label><input className="form-control" type="date" value={editForm.dueDate} onChange={e => setEditForm({ ...editForm, dueDate: e.target.value })} /></div>
+                <div className="form-group"><label className="form-label">Due Time</label><input className="form-control" type="time" value={editForm.dueTime} onChange={e => setEditForm({ ...editForm, dueTime: e.target.value })} /></div>
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">Priority</label>
+                  <select className="form-control" value={editForm.priority} onChange={e => setEditForm({ ...editForm, priority: e.target.value })}>
+                    {['Low', 'Medium', 'High'].map(p => <option key={p}>{p}</option>)}
+                  </select>
+                </div>
+              </div>
+              {isRole('owner') && (
+                <div className="form-group">
+                  <label className="form-label">Workspace</label>
+                  <select className="form-control" value={editForm.workspaceId} onChange={e => setEditForm({ ...editForm, workspaceId: e.target.value, assignedTo: '' })}>
+                    <option value="">— Select Workspace —</option>
+                    {workspaces.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+                  </select>
+                </div>
+              )}
+              <div className="form-group">
+                <label className="form-label">Assign To</label>
+                <select className="form-control" value={editForm.assignedTo} onChange={e => setEditForm({ ...editForm, assignedTo: e.target.value })}>
+                  <option value="">— Unassigned —</option>
+                  {users.filter(u => u.canUseContentCalendar !== false && (!isRole('owner') || !editForm.workspaceId || String(u.workspaceId) === String(editForm.workspaceId))).map(u => <option key={u.id} value={u.id}>{u.name} ({u.label || u.role})</option>)}
+                </select>
+              </div>
+              <div className="form-group"><label className="form-label">Notes</label><textarea className="form-control" rows={2} value={editForm.notes} onChange={e => setEditForm({ ...editForm, notes: e.target.value })} placeholder="Additional notes..." /></div>
+              <div className="modal-actions">
+                <button type="button" className="btn btn-ghost" onClick={() => setEditTask(null)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={editSaving}>{editSaving ? 'Saving...' : 'Save Changes'}</button>
               </div>
             </form>
           </div>
