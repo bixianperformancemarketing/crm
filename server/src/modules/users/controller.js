@@ -60,14 +60,14 @@ const createUser = async (req, res) => {
     }
 
     const existing = await User.findOne({ where: { email: email.toLowerCase(), organizationId: user.organizationId } });
-    if (existing && existing.isActive) {
+    if (existing && existing.isActive && existing.workspaceId) {
       return res.status(400).json({ success: false, message: 'Email already exists in this organization' });
     }
 
     const hash = await bcrypt.hash(password, 12);
 
     let savedUser;
-    if (existing && !existing.isActive) {
+    if (existing && (!existing.isActive || !existing.workspaceId)) {
       await existing.update({
         workspaceId,
         name, password: hash, role, label: label || null,
