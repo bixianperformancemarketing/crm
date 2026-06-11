@@ -210,7 +210,7 @@ const removeUserFromWorkspace = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Cannot remove the owner from a workspace' });
     }
 
-    await target.update({ workspaceId: null });
+    await target.update({ isActive: false, workspaceId: null });
     res.json({ success: true, message: 'User removed from workspace' });
   } catch (err) {
     console.error('removeUserFromWorkspace error:', err);
