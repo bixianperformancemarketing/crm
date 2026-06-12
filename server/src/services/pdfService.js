@@ -18,7 +18,9 @@ const ACCENT_BG = '#fffef0';
 const LIGHT_GRAY = '#f5f5f5';
 const GRAY = '#888888';
 const BLACK = '#000000';
-const WHITE = '#ffffff';
+
+// Height reserved at the bottom of every page for the footer (last page) or bottom margin
+const FOOTER_HEIGHT = 130;
 
 const drawLine = (doc, y, color = '#dddddd') => {
   doc.strokeColor(color).lineWidth(0.5).moveTo(50, y).lineTo(545, y).stroke();
@@ -45,6 +47,16 @@ const addHeader = (doc, orgSettings, type) => {
 
   doc.fontSize(16).fillColor(PRIMARY_DARK).font('Helvetica-Bold').text(type.toUpperCase(), 395, 40, { align: 'right', width: 150 });
   doc.moveDown(0.5);
+};
+
+// Lightweight header drawn at the top of continuation pages
+const addContinuationHeader = (doc, orgSettings, type) => {
+  const branding = orgSettings?.branding || {};
+  const companyName = branding.companyName || process.env.COMPANY_NAME || 'Company';
+  doc.rect(0, 0, doc.page.width, 36).fill(PRIMARY);
+  doc.fontSize(9).fillColor(PRIMARY_DARK).font('Helvetica-Bold')
+    .text(`${companyName}  ·  ${type} (Continued)`, 50, 13, { width: 495 });
+  return 46;
 };
 
 const addClientSection = (doc, clientData, docData, type) => {
@@ -82,7 +94,138 @@ const parseTerms = (raw) => {
   } catch { return raw.trim() ? [raw] : []; }
 };
 
-const addTermsAndPayment = (doc, bankDetails, termsRaw, startY, qrBuffer = null) => {
+const addItemsTable = (doc, items, startY, orgSettings, type) => {
+  const safeBottom = doc.page.height - FOOTER_HEIGHT;
+  const cols = [
+    { x: 50, w: 235, label: 'SERVICE', align: 'left' },
+    { x: 290, w: 155, label: 'DELIVERABLES', align: 'center' },
+    { x: 450, w: 95, label: 'AMOUNT', align: 'right' },
+  ];
+
+  const drawTableHeader = (y) => {
+    doc.rect(50, y, 495, 22).fill(PRIMARY);
+    doc.fontSize(9).fillColor(PRIMARY_DARK).font('Helvetica-Bold');
+    cols.forEach((col) => {
+      doc.text(col.label, col.x + 5, y + 7, { width: col.w - 10, align: col.align });
+    });
+    return y + 22;
+  };
+
+  let headerY = startY + 10;
+  if (headerY + 22 > safeBottom) {
+    doc.addPage();
+    headerY = addContinuationHeader(doc, orgSettings, type);
+  }
+  let currentY = drawTableHeader(headerY);
+
+  items.forEach((item, idx) => {
+    doc.fontSize(9).font('Helvetica-Bold');
+    const descH = doc.heightOfString(item.description || '', { width: cols[0].w - 10 });
+    doc.fontSize(8).font('Helvetica');
+    const subDescH = item.subDescription
+      ? doc.heightOfString(item.subDescription, { width: cols[0].w - 10 }) + 4
+      : 0;
+
+    const subItemsText = (item.subItems || [])
+      .filter((si) => si.label || si.qty)
+      .map((si) => {
+        const qty = si.qty ? Number(si.qty).toLocaleString('en-IN') : '';
+        return `${qty} ${si.label || ''}`.trim();
+      })
+      .join('  •  ');
+    const siH = subItemsText
+      ? doc.heightOfString(subItemsText, { width: cols[1].w - 10 }) + 4
+      : 0;
+
+    const rowH = Math.max(descH + subDescH, siH, 18) + 16;
+
+    // Add new page if this row won't fit
+    if (currentY + rowH > safeBottom) {
+      doc.addPage();
+      const newY = addContinuationHeader(doc, orgSettings, type);
+      currentY = drawTableHeader(newY);
+    }
+
+    if (idx % 2 === 0) doc.rect(50, currentY, 495, rowH).fill(ACCENT_BG);
+
+    doc.fontSize(9).fillColor(BLACK).font('Helvetica-Bold');
+    doc.text(item.description || '', cols[0].x + 5, currentY + 8, { width: cols[0].w - 10 });
+
+    if (item.subDescription) {
+      doc.fontSize(9).font('Helvetica-Bold');
+      const mainH = doc.heightOfString(item.description || '', { width: cols[0].w - 10 });
+      doc.fontSize(8).fillColor(GRAY).font('Helvetica');
+      doc.text(item.subDescription, cols[0].x + 5, currentY + 8 + mainH + 2, { width: cols[0].w - 10 });
+    }
+
+    if (subItemsText) {
+      doc.fontSize(8).fillColor('#333').font('Helvetica');
+      doc.text(subItemsText, cols[1].x + 5, currentY + 8, { width: cols[1].w - 10, align: 'center' });
+    }
+
+    doc.fontSize(10).fillColor(BLACK).font('Helvetica-Bold');
+    doc.text(`Rs. ${parseFloat(item.totalPrice || 0).toLocaleString('en-IN')}`, cols[2].x + 5, currentY + 8, { width: cols[2].w - 10, align: 'right' });
+
+    currentY += rowH;
+    drawLine(doc, currentY, '#eeeeee');
+  });
+
+  return currentY;
+};
+
+const addTotals = (doc, data, startY, orgSettings, type) => {
+  const safeBottom = doc.page.height - FOOTER_HEIGHT;
+
+  const paidAmt = parseFloat(data.paidAmount || 0);
+  const rowCount = 2 + (paidAmt > 0 ? 2 : 0) + (data.status ? 1 : 0);
+  const estimatedH = rowCount * 18 + 50;
+
+  let y = startY + 10;
+  if (y + estimatedH > safeBottom) {
+    doc.addPage();
+    y = addContinuationHeader(doc, orgSettings, type) + 10;
+  }
+
+  const labelX = 350;
+  const valueX = 450;
+
+  drawLine(doc, y);
+  y += 8;
+
+  const addTotalRow = (label, value, bold = false, color = BLACK) => {
+    doc.fontSize(10).fillColor(GRAY).font(bold ? 'Helvetica-Bold' : 'Helvetica').text(label, labelX, y, { width: 90, align: 'right' });
+    doc.fillColor(color).font(bold ? 'Helvetica-Bold' : 'Helvetica').text(`Rs. ${parseFloat(value || 0).toLocaleString('en-IN')}`, valueX, y, { width: 95, align: 'right' });
+    y += 18;
+  };
+
+  addTotalRow('Subtotal:', data.subtotal);
+  addTotalRow(`GST (${data.gstPercent || 18}%):`, data.gstAmount);
+
+  drawLine(doc, y);
+  y += 8;
+  addTotalRow('TOTAL:', data.totalAmount, true, PRIMARY_DARK);
+
+  if (paidAmt > 0) {
+    y += 4;
+    addTotalRow('Paid Amount:', paidAmt, false, '#22c55e');
+    const due = Math.max(0, parseFloat(data.totalAmount) - paidAmt);
+    drawLine(doc, y);
+    y += 8;
+    addTotalRow('AMOUNT DUE:', due, true, '#ef4444');
+  }
+
+  if (data.status) {
+    y += 6;
+    const statusColor = data.status === 'Paid' ? '#22c55e' : data.status === 'Partial' ? '#f59e0b' : data.status === 'Overdue' ? '#ef4444' : '#6b7280';
+    doc.fontSize(9).fillColor(GRAY).font('Helvetica').text('Status:', labelX, y, { width: 90, align: 'right' });
+    doc.fillColor(statusColor).font('Helvetica-Bold').text(data.status, valueX, y, { width: 95, align: 'right' });
+    y += 18;
+  }
+
+  return y + 10;
+};
+
+const addTermsAndPayment = (doc, bankDetails, termsRaw, startY, qrBuffer = null, orgSettings = null, type = '') => {
   const terms = parseTerms(termsRaw);
   const bankFields = [
     bankDetails?.bankName      && ['Bank',        bankDetails.bankName],
@@ -96,10 +239,18 @@ const addTermsAndPayment = (doc, bankDetails, termsRaw, startY, qrBuffer = null)
   if (!hasBank && !hasTerms) return startY;
 
   const QR_SIZE = 58;
-  const boxY    = startY + 14;
   const termH   = hasTerms ? terms.length * 14 + 28 : 0;
   const bankH   = hasBank  ? bankFields.length * 13 + 28 + (qrBuffer ? QR_SIZE + 14 : 0) : 0;
   const boxH    = Math.max(termH, bankH, 52);
+
+  const safeBottom = doc.page.height - FOOTER_HEIGHT;
+  let y = startY;
+  if (y + boxH + 22 > safeBottom) {
+    doc.addPage();
+    y = addContinuationHeader(doc, orgSettings, type);
+  }
+
+  const boxY = y + 14;
 
   if (hasBank && hasTerms) {
     doc.rect(50,  boxY, 240, boxH).fill(LIGHT_GRAY);
@@ -157,141 +308,20 @@ const addTermsAndPayment = (doc, bankDetails, termsRaw, startY, qrBuffer = null)
   return boxY + boxH + 8;
 };
 
-const addItemsTable = (doc, items, startY) => {
-  const tableY = startY + 10;
-  const cols = [
-    { x: 50, w: 235, label: 'SERVICE', align: 'left' },
-    { x: 290, w: 155, label: 'DELIVERABLES', align: 'center' },
-    { x: 450, w: 95, label: 'AMOUNT', align: 'right' },
-  ];
-
-  doc.rect(50, tableY, 495, 22).fill(PRIMARY);
-  doc.fontSize(9).fillColor(PRIMARY_DARK).font('Helvetica-Bold');
-  cols.forEach((col) => {
-    doc.text(col.label, col.x + 5, tableY + 7, { width: col.w - 10, align: col.align });
-  });
-
-  let currentY = tableY + 22;
-
-  items.forEach((item, idx) => {
-    // Calculate left-column height
-    doc.fontSize(9).font('Helvetica-Bold');
-    const descH = doc.heightOfString(item.description || '', { width: cols[0].w - 10 });
-    doc.fontSize(8).font('Helvetica');
-    const subDescH = item.subDescription
-      ? doc.heightOfString(item.subDescription, { width: cols[0].w - 10 }) + 4
-      : 0;
-
-    // Format deliverables
-    const subItemsText = (item.subItems || [])
-      .filter((si) => si.label || si.qty)
-      .map((si) => {
-        const qty = si.qty ? Number(si.qty).toLocaleString('en-IN') : '';
-        return `${qty} ${si.label || ''}`.trim();
-      })
-      .join('  •  ');
-    const siH = subItemsText
-      ? doc.heightOfString(subItemsText, { width: cols[1].w - 10 }) + 4
-      : 0;
-
-    const rowH = Math.max(descH + subDescH, siH, 18) + 16;
-
-    if (idx % 2 === 0) doc.rect(50, currentY, 495, rowH).fill(ACCENT_BG);
-
-    // Service name
-    doc.fontSize(9).fillColor(BLACK).font('Helvetica-Bold');
-    doc.text(item.description || '', cols[0].x + 5, currentY + 8, { width: cols[0].w - 10 });
-
-    // Sub-description
-    if (item.subDescription) {
-      doc.fontSize(9).font('Helvetica-Bold');
-      const mainH = doc.heightOfString(item.description || '', { width: cols[0].w - 10 });
-      doc.fontSize(8).fillColor(GRAY).font('Helvetica');
-      doc.text(item.subDescription, cols[0].x + 5, currentY + 8 + mainH + 2, { width: cols[0].w - 10 });
-    }
-
-    // Deliverables
-    if (subItemsText) {
-      doc.fontSize(8).fillColor('#333').font('Helvetica');
-      doc.text(subItemsText, cols[1].x + 5, currentY + 8, { width: cols[1].w - 10, align: 'center' });
-    }
-
-    // Amount
-    doc.fontSize(10).fillColor(BLACK).font('Helvetica-Bold');
-    doc.text(`Rs. ${parseFloat(item.totalPrice || 0).toLocaleString('en-IN')}`, cols[2].x + 5, currentY + 8, { width: cols[2].w - 10, align: 'right' });
-
-    currentY += rowH;
-    drawLine(doc, currentY, '#eeeeee');
-  });
-
-  return currentY;
-};
-
-const addTotals = (doc, data, startY) => {
-  const totalY = startY + 10;
-  const labelX = 350;
-  const valueX = 450;
-  let y = totalY;
-
-  drawLine(doc, y);
-  y += 8;
-
-  const addTotalRow = (label, value, bold = false, color = BLACK) => {
-    doc.fontSize(10).fillColor(GRAY).font(bold ? 'Helvetica-Bold' : 'Helvetica').text(label, labelX, y, { width: 90, align: 'right' });
-    doc.fillColor(color).font(bold ? 'Helvetica-Bold' : 'Helvetica').text(`Rs. ${parseFloat(value || 0).toLocaleString('en-IN')}`, valueX, y, { width: 95, align: 'right' });
-    y += 18;
-  };
-
-  addTotalRow('Subtotal:', data.subtotal);
-  addTotalRow(`GST (${data.gstPercent || 18}%):`, data.gstAmount);
-
-  drawLine(doc, y);
-  y += 8;
-  addTotalRow('TOTAL:', data.totalAmount, true, PRIMARY_DARK);
-
-  const paidAmt = parseFloat(data.paidAmount || 0);
-  if (paidAmt > 0) {
-    y += 4;
-    addTotalRow('Paid Amount:', paidAmt, false, '#22c55e');
-    const due = Math.max(0, parseFloat(data.totalAmount) - paidAmt);
-    drawLine(doc, y);
-    y += 8;
-    addTotalRow('AMOUNT DUE:', due, true, '#ef4444');
-  }
-
-  if (data.status) {
-    y += 6;
-    const statusColor = data.status === 'Paid' ? '#22c55e' : data.status === 'Partial' ? '#f59e0b' : data.status === 'Overdue' ? '#ef4444' : '#6b7280';
-    doc.fontSize(9).fillColor(GRAY).font('Helvetica').text('Status:', labelX, y, { width: 90, align: 'right' });
-    doc.fillColor(statusColor).font('Helvetica-Bold').text(data.status, valueX, y, { width: 95, align: 'right' });
-    y += 18;
-  }
-
-  return y + 10;
-};
-
 const addFooter = (doc, data, orgSettings, logoBuffer, signatureBuffer, type, customMessage) => {
   const branding = orgSettings?.branding || {};
-  const bankDetails = orgSettings?.bankDetails || {};
   const signatoryName = branding.signatoryName || '';
   const signatoryDesignation = branding.signatoryDesignation || '';
-  const hasBankDetails = false; // bank details now shown as a body section, not in footer
 
-  const footerY = doc.page.height - 130;
+  const footerY = doc.page.height - FOOTER_HEIGHT;
 
-  // Yellow background — mirrors the header
-  doc.rect(0, footerY, doc.page.width, doc.page.height - footerY).fill(PRIMARY);
+  // Clean line separator — no background color
+  doc.strokeColor('#cccccc').lineWidth(1).moveTo(50, footerY).lineTo(545, footerY).stroke();
 
-  const TEXT_DARK = PRIMARY_DARK;   // #1a1a2e — headings on yellow
-  const TEXT_MID  = '#5a4a00';      // dark amber — secondary text on yellow
-  const LINE_COLOR = 'rgba(26,26,46,0.25)';
+  const TEXT_DARK = PRIMARY_DARK;  // #1a1a2e on white
+  const TEXT_MID  = '#666666';     // gray on white
 
-  // Thin separator line at top of footer
-  doc.strokeColor(TEXT_DARK).lineWidth(0.5).opacity(0.3)
-    .moveTo(50, footerY + 1).lineTo(545, footerY + 1).stroke();
-  doc.opacity(1);
-
-  // ── Left column: Logo + company name ────────────────────────────────────
+  // Left column: Logo + company info
   let leftY = footerY + 14;
   if (logoBuffer) {
     try {
@@ -311,14 +341,7 @@ const addFooter = (doc, data, orgSettings, logoBuffer, signatureBuffer, type, cu
   if (branding.email)   { doc.fontSize(7.5).fillColor(TEXT_MID).font('Helvetica').text(branding.email,   50, leftY, { width: 145 }); leftY += 11; }
   if (branding.website) { doc.fontSize(7.5).fillColor(TEXT_MID).font('Helvetica').text(branding.website, 50, leftY, { width: 145 }); }
 
-  // ── Middle column: Bank details (invoice) or Terms (quotation) ──────────
-  const midX = 215;
-  const midWidth = 170;
-  let midY = footerY + 14;
-
-  // Payment details and terms are shown in the body section above the footer
-
-  // ── Right column: Signature + signatory ─────────────────────────────────
+  // Right column: Signature + signatory
   const rightX = 400;
   const rightWidth = 145;
   let rightY = footerY + 14;
@@ -344,17 +367,14 @@ const addFooter = (doc, data, orgSettings, logoBuffer, signatureBuffer, type, cu
     doc.fontSize(7.5).fillColor(TEXT_MID).font('Helvetica').text(signatoryDesignation, rightX, rightY, { width: rightWidth, align: 'center' });
   }
 
-  // ── Bottom strip: notes + thank-you ─────────────────────────────────────
+  // Bottom strip: thank-you message
   const stripY = doc.page.height - 22;
-  doc.strokeColor(TEXT_DARK).lineWidth(0.5).opacity(0.15)
-    .moveTo(50, stripY - 5).lineTo(545, stripY - 5).stroke();
-  doc.opacity(1);
-
+  drawLine(doc, stripY - 5, '#eeeeee');
   const defaultMsg = type === 'Invoice'
     ? 'Thank you for accepting us to achieve your missions.'
     : 'We will be happy to help you to achieve your missions.';
   const footerMsg = customMessage || defaultMsg;
-  doc.fontSize(8).fillColor(TEXT_DARK).font('Helvetica-Bold').text(footerMsg, 50, stripY, { align: 'center', width: 495 });
+  doc.fontSize(8).fillColor(GRAY).font('Helvetica').text(footerMsg, 50, stripY, { align: 'center', width: 495 });
 };
 
 const generateQuotationPDF = async (quotation, items, orgSettings) => {
@@ -383,9 +403,9 @@ const generateQuotationPDF = async (quotation, items, orgSettings) => {
       status: quotation.status,
     }, 'Quotation');
 
-    const itemsEndY = addItemsTable(doc, items || [], clientY);
-    const totalsEndY = addTotals(doc, quotation, itemsEndY);
-    addTermsAndPayment(doc, bankDetails, quotation.terms, totalsEndY, qrBuffer);
+    const itemsEndY = addItemsTable(doc, items || [], clientY, orgSettings, 'Quotation');
+    const totalsEndY = addTotals(doc, quotation, itemsEndY, orgSettings, 'Quotation');
+    addTermsAndPayment(doc, bankDetails, quotation.terms, totalsEndY, qrBuffer, orgSettings, 'Quotation');
     addFooter(doc, quotation, orgSettings, logoBuffer, signatureBuffer, 'Quotation', orgSettings?.messages?.quotationFooter || '');
     doc.end();
   });
@@ -419,9 +439,9 @@ const generateInvoicePDF = async (invoice, orgSettings, invoiceItems) => {
       status: invoice.status,
     }, 'Invoice');
 
-    const itemsEndY = addItemsTable(doc, items, clientY);
-    const totalsEndY = addTotals(doc, invoice, itemsEndY);
-    addTermsAndPayment(doc, bankDetails, invoice.terms, totalsEndY, qrBuffer);
+    const itemsEndY = addItemsTable(doc, items, clientY, orgSettings, 'Invoice');
+    const totalsEndY = addTotals(doc, invoice, itemsEndY, orgSettings, 'Invoice');
+    addTermsAndPayment(doc, bankDetails, invoice.terms, totalsEndY, qrBuffer, orgSettings, 'Invoice');
     addFooter(doc, invoice, orgSettings, logoBuffer, signatureBuffer, 'Invoice', orgSettings?.messages?.invoiceFooter || '');
     doc.end();
   });

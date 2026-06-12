@@ -87,7 +87,7 @@ const TaskFormFields = ({ f, setF, isOwner, users, workspaces }) => (
         setF({ ...f, assignedTo: e.target.value, workspaceId: selected?.workspaceId ? String(selected.workspaceId) : f.workspaceId });
       }}>
         <option value="">— Unassigned —</option>
-        {users.filter(u => u.canUseContentCalendar !== false && (!isOwner || !f.workspaceId || String(u.workspaceId) === String(f.workspaceId))).map(u => <option key={u.id} value={u.id}>{u.name} ({u.label || u.role})</option>)}
+        {users.filter(u => (u.role !== 'employee' || u.canUseContentCalendar !== false) && (!isOwner || !f.workspaceId || String(u.workspaceId) === String(f.workspaceId))).map(u => <option key={u.id} value={u.id}>{u.name} ({u.label || u.role})</option>)}
       </select>
     </div>
     <ApprovalToggle value={f.requiresApproval} onChange={v => setF({ ...f, requiresApproval: v })} />
@@ -160,7 +160,7 @@ const Content = () => {
   }, [view, loadList, loadCal, loadArchived]);
 
   useEffect(() => {
-    usersAPI.getAll({ role: 'employee', limit: 100 }).then(({ data }) => setUsers(data.data || [])).catch(() => {});
+    usersAPI.getAll({ limit: 100 }).then(({ data }) => setUsers((data.data || []).filter(u => ['admin', 'employee'].includes(u.role)))).catch(() => {});
     if (isRole('owner')) orgAPI.getWorkspaces().then(({ data }) => setWorkspaces(data.workspaces || [])).catch(() => {});
   }, [isRole]);
 
@@ -490,7 +490,7 @@ const Content = () => {
             <h3>Edit Task</h3>
             <button className="modal-close" onClick={() => setEditTask(null)}>×</button>
             <form onSubmit={handleUpdate}>
-              <TaskFormFields f={editForm} setF={setEditForm} isOwner={isRole('owner')} />
+              <TaskFormFields f={editForm} setF={setEditForm} isOwner={isRole('owner')} users={users} workspaces={workspaces} />
               <div className="modal-actions">
                 <button type="button" className="btn btn-ghost" onClick={() => setEditTask(null)}>Cancel</button>
                 <button type="submit" className="btn btn-primary" disabled={editSaving}>{editSaving ? 'Saving...' : 'Save Changes'}</button>

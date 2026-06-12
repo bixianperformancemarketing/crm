@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import Layout from '../components/layout/Layout';
-import { leadsAPI, followupsAPI, appointmentsAPI, quotationsAPI, communicationAPI, usersAPI } from '../services/api';
+import { leadsAPI, followupsAPI, appointmentsAPI, quotationsAPI, communicationAPI, usersAPI, orgAPI } from '../services/api';
 import { formatDateTime, getStatusColor, getPriorityColor, ENUMS, timeAgo } from '../utils/helpers';
 import { useAuth } from '../context/AuthContext';
 import './LeadDetail.css';
@@ -42,6 +42,7 @@ const LeadDetail = () => {
   const [lead, setLead] = useState(null);
   const [loading, setLoading] = useState(true);
   const [agents, setAgents] = useState([]);
+  const [workspaces, setWorkspaces] = useState([]);
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState({});
   const [showViewHistory, setShowViewHistory] = useState(false);
@@ -64,13 +65,20 @@ const LeadDetail = () => {
     try {
       const { data } = await leadsAPI.get(id);
       setLead(data.lead);
-      setEditForm({ name: data.lead.name, phone: data.lead.phone || '', email: data.lead.email || '', source: data.lead.source, priority: data.lead.priority, status: data.lead.status, assignedTo: data.lead.assignedTo || '', city: data.lead.city || '', clientAddress: data.lead.clientAddress || '', clientGST: data.lead.clientGST || '', campaign: data.lead.campaign || '' });
+      setEditForm({ name: data.lead.name, phone: data.lead.phone || '', email: data.lead.email || '', source: data.lead.source, priority: data.lead.priority, status: data.lead.status, assignedTo: data.lead.assignedTo || '', city: data.lead.city || '', clientAddress: data.lead.clientAddress || '', clientGST: data.lead.clientGST || '', campaign: data.lead.campaign || '', workspaceId: data.lead.workspaceId ? String(data.lead.workspaceId) : '' });
     } catch { toast.error('Lead not found'); navigate('/leads'); }
     finally { setLoading(false); }
   };
 
   useEffect(() => { loadLead(); }, [id]);
-  useEffect(() => { if (user?.role === 'admin' || user?.role === 'owner') usersAPI.getAll({ role: 'employee', limit: 100 }).then(({ data }) => setAgents(data.data || [])).catch(() => {}); }, [user]);
+  useEffect(() => {
+    if (user?.role === 'admin' || user?.role === 'owner') {
+      usersAPI.getAll({ role: 'employee', limit: 100 }).then(({ data }) => setAgents(data.data || [])).catch(() => {});
+    }
+    if (user?.role === 'owner') {
+      orgAPI.getWorkspaces().then(({ data }) => setWorkspaces(data.workspaces || data.data || [])).catch(() => {});
+    }
+  }, [user]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -240,6 +248,15 @@ const LeadDetail = () => {
                 <div className="form-group"><label className="form-label">Source</label><select className="form-control" value={editForm.source} onChange={(e) => setEditForm({ ...editForm, source: e.target.value })}>{ENUMS.LEAD_SOURCES.map((s) => <option key={s}>{s}</option>)}</select></div>
 
               </div>
+              {user?.role === 'owner' && workspaces.length > 0 && (
+                <div className="form-group">
+                  <label className="form-label">Workspace</label>
+                  <select className="form-control" value={editForm.workspaceId} onChange={(e) => setEditForm({ ...editForm, workspaceId: e.target.value })}>
+                    <option value="">— Select Workspace —</option>
+                    {workspaces.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
+                  </select>
+                </div>
+              )}
               {(user?.role === 'admin' || user?.role === 'owner') && agents.length > 0 && <div className="form-group"><label className="form-label">Assign To</label><select className="form-control" value={editForm.assignedTo} onChange={(e) => setEditForm({ ...editForm, assignedTo: e.target.value })}><option value="">Unassigned</option>{agents.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></div>}
               <div className="form-row">
                 <div className="form-group"><label className="form-label">City</label><input className="form-control" value={editForm.city} onChange={(e) => setEditForm({ ...editForm, city: e.target.value })} placeholder="e.g. Mumbai" /></div>

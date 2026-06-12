@@ -197,6 +197,12 @@ const updateLead = async (req, res) => {
     }
     if (updates.assignedTo === '' || updates.assignedTo === 0) updates.assignedTo = null;
 
+    if (user.role === 'owner' && req.body.workspaceId) {
+      const ws = await Workspace.findOne({ where: { id: req.body.workspaceId, organizationId: user.organizationId } });
+      if (!ws) return res.status(400).json({ success: false, message: 'Invalid workspace' });
+      updates.workspaceId = req.body.workspaceId;
+    }
+
     if (Object.keys(updates).length) {
       const merged = { ...lead.toJSON(), ...updates };
       updates.score = calculateLeadScore(merged);
