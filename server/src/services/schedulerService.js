@@ -1,7 +1,7 @@
 const { Op } = require('sequelize');
 const moment = require('moment-timezone');
 const {
-  Appointment, Followup, Invoice, Quotation, ContentTask, Organization, User, Lead, MetaIntegration,
+  sequelize, Appointment, Followup, Invoice, Quotation, ContentTask, Organization, User, Lead, MetaIntegration,
 } = require('../config/models');
 const { emitToUser } = require('../sockets');
 const notificationService = require('./notificationService');
@@ -152,6 +152,7 @@ const runDailyJobs = async () => {
   await markOverdueInvoices();
   await checkPlanExpiry();
   await markOverdueFollowups();
+  await markOverdueTasks();
   await checkInvoicePaymentReminders();
   await checkQuotationExpiryEmails();
 };
@@ -224,6 +225,34 @@ const markOverdueFollowups = async () => {
     console.log(`[Scheduler] Marked ${result[0]} followups as overdue`);
   } catch (err) {
     console.error('Mark overdue followups error:', err.message);
+  }
+};
+
+const markOverdueTasks = async () => {
+  try {
+    // Tasks with dueTime: overdue when dueDate+dueTime < now
+    const [withTime] = await sequelize.query(`
+      UPDATE content_tasks
+      SET status = 'Overdue'
+      WHERE status NOT IN ('Approved', 'Done', 'Cancelled', 'Overdue')
+        AND dueDate IS NOT NULL
+        AND dueTime IS NOT NULL
+        AND STR_TO_DATE(CONCAT(dueDate, ' ', dueTime), '%Y-%m-%d %H:%i') < NOW()
+    `);
+
+    // Tasks without dueTime: overdue when dueDate < today (end of day has passed)
+    const [withoutTime] = await sequelize.query(`
+      UPDATE content_tasks
+      SET status = 'Overdue'
+      WHERE status NOT IN ('Approved', 'Done', 'Cancelled', 'Overdue')
+        AND dueDate IS NOT NULL
+        AND (dueTime IS NULL OR dueTime = '')
+        AND dueDate < CURDATE()
+    `);
+
+    console.log(`[Scheduler] Marked ${withTime + withoutTime} tasks as Overdue`);
+  } catch (err) {
+    console.error('Mark overdue tasks error:', err.message);
   }
 };
 
