@@ -401,6 +401,8 @@ const ContentTask = sequelize.define('ContentTask', {
   dueTime: { type: DataTypes.STRING(5), allowNull: true },
   reminderSentAt: { type: DataTypes.DATE, allowNull: true },
   notes: { type: DataTypes.TEXT },
+  isArchived: { type: DataTypes.BOOLEAN, defaultValue: false },
+  requiresApproval: { type: DataTypes.BOOLEAN, defaultValue: true },
 }, { tableName: 'content_tasks' });
 
 // ─── NOTIFICATION ─────────────────────────────────────────────────────────
@@ -688,6 +690,17 @@ const syncDatabase = async () => {
       const ctCols2 = await qi.describeTable('content_tasks');
       if (!ctCols2.reminderSentAt) {
         await qi.addColumn('content_tasks', 'reminderSentAt', { type: DataTypes.DATE, allowNull: true });
+      }
+    } catch (e) { /* ignore */ }
+
+    // Add isArchived and requiresApproval to content_tasks if missing
+    try {
+      const ctCols3 = await qi.describeTable('content_tasks');
+      if (!ctCols3.isArchived) {
+        await qi.addColumn('content_tasks', 'isArchived', { type: DataTypes.BOOLEAN, defaultValue: false });
+      }
+      if (!ctCols3.requiresApproval) {
+        await qi.addColumn('content_tasks', 'requiresApproval', { type: DataTypes.BOOLEAN, defaultValue: true });
       }
     } catch (e) { /* ignore */ }
 

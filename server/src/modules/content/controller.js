@@ -2,6 +2,9 @@ const { Op } = require('sequelize');
 const { ContentTask, User, Lead } = require('../../config/models');
 const { paginate, paginateResponse } = require('../../utils/helpers');
 
+const PIPELINE_COLUMNS = ['Overdue', 'To Do Today', 'In Progress', 'Done', 'Review', 'Approved', 'Not Approved'];
+const COMPLETED_STATUSES = ['Done', 'Approved', 'Cancelled'];
+
 const getTasks = async (req, res) => {
   try {
     const { user, workspaceId } = req;
@@ -9,7 +12,7 @@ const getTasks = async (req, res) => {
     const { limit: lim, offset } = paginate(page, limit);
 
     const ws = workspaceId ? { workspaceId } : {};
-    const where = { organizationId: user.organizationId, ...ws };
+    const where = { organizationId: user.organizationId, ...ws, isArchived: false };
     if (user.role === 'employee') where.assignedTo = user.id;
     if (status) where.status = status;
     if (assignedTo && user.role !== 'employee') where.assignedTo = assignedTo;
@@ -49,6 +52,7 @@ const getCalendarTasks = async (req, res) => {
     const where = {
       organizationId: user.organizationId, ...ws,
       dueDate: { [Op.between]: [startDate, endDate] },
+      isArchived: false,
     };
     if (user.role === 'employee') where.assignedTo = user.id;
 
@@ -92,7 +96,7 @@ const createTask = async (req, res) => {
   try {
     const { user, workspaceId } = req;
     if (!workspaceId) return res.status(400).json({ success: false, message: 'Workspace context required for this action' });
-    const { leadId, title, description, assignedTo, dueDate, dueTime, priority, notes } = req.body;
+    const { leadId, title, description, assignedTo, dueDate, dueTime, priority, notes, requiresApproval } = req.body;
     if (!title) return res.status(400).json({ success: false, message: 'Title is required' });
 
     const task = await ContentTask.create({
@@ -101,6 +105,8 @@ const createTask = async (req, res) => {
       title, description: description || '',
       priority: priority || 'Medium', status: 'To Do Today',
       dueDate: dueDate || null, dueTime: dueTime || null, notes: notes || '',
+      requiresApproval: requiresApproval !== false,
+      isArchived: false,
     });
     res.status(201).json({ success: true, message: 'Content task created', task });
   } catch (err) {
@@ -119,7 +125,7 @@ const updateTask = async (req, res) => {
     const task = await ContentTask.findOne({ where });
     if (!task) return res.status(404).json({ success: false, message: 'Task not found' });
 
-    const allowed = ['title', 'description', 'priority', 'status', 'assignedTo', 'dueDate', 'dueTime', 'notes'];
+    const allowed = ['title', 'description', 'priority', 'status', 'assignedTo', 'dueDate', 'dueTime', 'notes', 'requiresApproval'];
     const updates = {};
     for (const k of allowed) { if (req.body[k] !== undefined) updates[k] = req.body[k]; }
     await task.update(updates);
@@ -147,7 +153,7 @@ const getTaskPipeline = async (req, res) => {
   try {
     const { user, workspaceId } = req;
     const ws = workspaceId ? { workspaceId } : {};
-    const where = { organizationId: user.organizationId, ...ws };
+    const where = { organizationId: user.organizationId, ...ws, isArchived: false };
     if (user.role === 'employee') where.assignedTo = user.id;
 
     const tasks = await ContentTask.findAll({
@@ -159,16 +165,90 @@ const getTaskPipeline = async (req, res) => {
       order: [['dueDate', 'ASC'], ['createdAt', 'DESC']],
     });
 
-    const columns = ['Overdue', 'To Do Today', 'In Progress', 'Review', 'Approved', 'Not Approved'];
     const pipeline = {};
-    columns.forEach((col) => { pipeline[col] = []; });
-    tasks.forEach((task) => { if (pipeline[task.status]) pipeline[task.status].push(task); });
+    PIPELINE_COLUMNS.forEach((col) => { pipeline[col] = []; });
+    tasks.forEach((task) => { if (pipeline[task.status] !== undefined) pipeline[task.status].push(task); });
 
-    res.json({ success: true, pipeline, columns });
+    res.json({ success: true, pipeline, columns: PIPELINE_COLUMNS });
   } catch (err) {
     console.error('getTaskPipeline error:', err);
     res.status(500).json({ success: false, message: 'Failed to fetch task pipeline' });
   }
 };
 
-module.exports = { getTasks, getCalendarTasks, getTask, createTask, updateTask, deleteTask, getTaskPipeline };
+const archiveTask = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { user, workspaceId } = req;
+    const ws = workspaceId ? { workspaceId } : {};
+    const task = await ContentTask.findOne({ where: { id, organizationId: user.organizationId, ...ws } });
+    if (!task) return res.status(404).json({ success: false, message: 'Task not found' });
+    await task.update({ isArchived: true });
+    res.json({ success: true, message: 'Task archived' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to archive task' });
+  }
+};
+
+const unarchiveTask = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { user, workspaceId } = req;
+    const ws = workspaceId ? { workspaceId } : {};
+    const task = await ContentTask.findOne({ where: { id, organizationId: user.organizationId, ...ws } });
+    if (!task) return res.status(404).json({ success: false, message: 'Task not found' });
+    await task.update({ isArchived: false });
+    res.json({ success: true, message: 'Task restored' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to restore task' });
+  }
+};
+
+const archiveBulk = async (req, res) => {
+  try {
+    const { user, workspaceId } = req;
+    const ws = workspaceId ? { workspaceId } : {};
+    const [count] = await ContentTask.update(
+      { isArchived: true },
+      {
+        where: {
+          organizationId: user.organizationId, ...ws,
+          status: { [Op.in]: COMPLETED_STATUSES },
+          isArchived: false,
+        },
+      }
+    );
+    res.json({ success: true, message: `Archived ${count} completed tasks`, count });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to archive tasks' });
+  }
+};
+
+const getArchivedTasks = async (req, res) => {
+  try {
+    const { user, workspaceId } = req;
+    const { page = 1, limit = 20 } = req.query;
+    const { limit: lim, offset } = paginate(page, limit);
+    const ws = workspaceId ? { workspaceId } : {};
+    const where = { organizationId: user.organizationId, ...ws, isArchived: true };
+    if (user.role === 'employee') where.assignedTo = user.id;
+
+    const { count, rows } = await ContentTask.findAndCountAll({
+      where,
+      include: [
+        { model: User, as: 'assignee', attributes: ['id', 'name'], required: false },
+        { model: Lead, as: 'lead', attributes: ['id', 'name'], required: false },
+      ],
+      order: [['updatedAt', 'DESC']],
+      limit: lim, offset,
+    });
+    res.json({ success: true, ...paginateResponse(rows, count, page, lim) });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to fetch archived tasks' });
+  }
+};
+
+module.exports = {
+  getTasks, getCalendarTasks, getTask, createTask, updateTask, deleteTask,
+  getTaskPipeline, archiveTask, unarchiveTask, archiveBulk, getArchivedTasks,
+};

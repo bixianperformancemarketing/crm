@@ -169,10 +169,14 @@ export const contentAPI = {
   getAll: (params) => api.get('/content', { params }),
   getCalendar: (params) => api.get('/content/calendar', { params }),
   getPipeline: () => api.get('/content/pipeline'),
+  getArchived: (params) => api.get('/content/archived', { params }),
   get: (id) => api.get(`/content/${id}`),
   create: (data) => api.post('/content', data),
   update: (id, data) => api.put(`/content/${id}`, data),
   delete: (id) => api.delete(`/content/${id}`),
+  archive: (id) => api.post(`/content/${id}/archive`),
+  unarchive: (id) => api.post(`/content/${id}/unarchive`),
+  archiveBulk: () => api.post('/content/archive-bulk'),
 };
 
 // ─── REPORTS ──────────────────────────────────────────────────────────────

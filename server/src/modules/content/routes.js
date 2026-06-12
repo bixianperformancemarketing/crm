@@ -9,9 +9,13 @@ router.use(authenticate, scopeTenant, requireWorkspace, checkFeature('canUseCont
 router.get('/', ctrl.getTasks);
 router.get('/calendar', ctrl.getCalendarTasks);
 router.get('/pipeline', ctrl.getTaskPipeline);
+router.get('/archived', ctrl.getArchivedTasks);
+router.post('/archive-bulk', requireRole('admin', 'owner'), ctrl.archiveBulk);
 router.get('/:id', ctrl.getTask);
 router.post('/', requireRole('admin', 'employee', 'owner'), ctrl.createTask);
 router.put('/:id', ctrl.updateTask);
 router.delete('/:id', requireRole('admin', 'owner'), ctrl.deleteTask);
+router.post('/:id/archive', requireRole('admin', 'owner'), ctrl.archiveTask);
+router.post('/:id/unarchive', requireRole('admin', 'owner'), ctrl.unarchiveTask);
 
 module.exports = router;

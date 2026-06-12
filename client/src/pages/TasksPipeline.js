@@ -6,15 +6,18 @@ import { contentAPI } from '../services/api';
 import { getPriorityColor, getInitials } from '../utils/helpers';
 import './Pipeline.css';
 
-const COLUMNS = ['Overdue', 'To Do Today', 'In Progress', 'Review', 'Approved', 'Not Approved'];
+const COLUMNS = ['Overdue', 'To Do Today', 'In Progress', 'Done', 'Review', 'Approved', 'Not Approved'];
 const COL_COLORS = {
   Overdue: '#ef4444',
   'To Do Today': '#0ea5e9',
   'In Progress': '#a78bfa',
+  Done: '#22c55e',
   Review: '#f59e0b',
-  Approved: '#22c55e',
+  Approved: '#10b981',
   'Not Approved': '#ef4444',
 };
+
+const ARCHIVABLE = new Set(['Done', 'Approved', 'Not Approved']);
 
 const fmtDate = (d) => {
   if (!d) return null;
@@ -24,6 +27,8 @@ const fmtDate = (d) => {
 const TasksPipeline = () => {
   const [pipeline, setPipeline] = useState({});
   const [loading, setLoading] = useState(true);
+  const [archiving, setArchiving] = useState(null);
+  const [clearing, setClearing] = useState(false);
 
   const loadPipeline = async () => {
     try {
@@ -57,13 +62,51 @@ const TasksPipeline = () => {
     }
   };
 
+  const handleArchive = async (e, taskId) => {
+    e.stopPropagation();
+    setArchiving(taskId);
+    try {
+      await contentAPI.archive(taskId);
+      toast.success('Task archived');
+      loadPipeline();
+    } catch { toast.error('Failed to archive task'); }
+    finally { setArchiving(null); }
+  };
+
+  const handleClearCompleted = async () => {
+    const completedCount = ['Done', 'Approved', 'Not Approved'].reduce((n, col) => n + (pipeline[col]?.length || 0), 0);
+    if (completedCount === 0) return toast('No completed tasks to clear');
+    if (!window.confirm(`Archive ${completedCount} completed task(s)? They can be viewed in the Archived tab.`)) return;
+    setClearing(true);
+    try {
+      const { data } = await contentAPI.archiveBulk();
+      toast.success(data.message || 'Completed tasks archived');
+      loadPipeline();
+    } catch { toast.error('Failed to clear completed tasks'); }
+    finally { setClearing(false); }
+  };
+
+  const completedCount = ['Done', 'Approved', 'Not Approved'].reduce((n, col) => n + (pipeline[col]?.length || 0), 0);
+
   if (loading) return <Layout title="Tasks Pipeline"><div className="loading-spinner"><div className="spinner" /></div></Layout>;
 
   return (
     <Layout title="Tasks Pipeline">
       <div className="page-header">
         <div className="page-title">Tasks Pipeline</div>
-        <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Drag cards to update status</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Drag cards to update status</div>
+          {completedCount > 0 && (
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={handleClearCompleted}
+              disabled={clearing}
+              style={{ fontSize: 12, color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+            >
+              {clearing ? 'Clearing...' : `Clear Completed (${completedCount})`}
+            </button>
+          )}
+        </div>
       </div>
 
       <DragDropContext onDragEnd={onDragEnd}>
@@ -95,11 +138,26 @@ const TasksPipeline = () => {
                               className={`kanban-card${snapshot.isDragging ? ' dragging' : ''}`}
                               style={{ ...provided.draggableProps.style, borderLeft: `3px solid ${color}` }}
                             >
-                              <div className="kc-name">{task.title}</div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 4 }}>
+                                <div className="kc-name" style={{ flex: 1 }}>{task.title}</div>
+                                {ARCHIVABLE.has(col) && (
+                                  <button
+                                    onClick={(e) => handleArchive(e, task.id)}
+                                    disabled={archiving === task.id}
+                                    title="Archive task"
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 13, padding: '0 2px', lineHeight: 1, flexShrink: 0 }}
+                                  >
+                                    {archiving === task.id ? '…' : '📦'}
+                                  </button>
+                                )}
+                              </div>
                               {task.lead && (
                                 <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>
                                   🔗 {task.lead.name}
                                 </div>
+                              )}
+                              {!task.requiresApproval && (
+                                <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 4 }}>No approval needed</div>
                               )}
                               <div className="kc-meta">
                                 {task.dueDate && (
