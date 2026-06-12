@@ -129,7 +129,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 .form-control:focus { border-color: var(--accent); }
 .form-control::placeholder { color: #3a3a5c; }
 select.form-control { cursor: pointer; }
-textarea.form-control { resize: vertical; min-height: 80px; }
+textarea.form-control { resize: vertical; min-height: 80px; font-family: inherit; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 input[type="date"]::-webkit-calendar-picker-indicator,
 input[type="datetime-local"]::-webkit-calendar-picker-indicator,
