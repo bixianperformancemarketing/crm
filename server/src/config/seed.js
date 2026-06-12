@@ -62,7 +62,7 @@ const seed = async () => {
       },
       {
         name: 'agency',
-        displayName: 'Company',
+        displayName: 'Enterprise',
         price: 11999,
         maxWorkspaces: 999,
         maxUsersPerWorkspace: 999,

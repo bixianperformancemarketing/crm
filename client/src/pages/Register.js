@@ -154,7 +154,7 @@ const Register = () => {
                 <input
                   style={s.input}
                   type="email"
-                  placeholder="you@company.com"
+                  placeholder="yourname@gmail.com"
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                   required

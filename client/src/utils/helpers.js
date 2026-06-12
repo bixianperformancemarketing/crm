@@ -1,4 +1,4 @@
-export const PLAN_LABELS = { trial: 'Trial', starter: 'Starter', growth: 'Growth', agency: 'Company', custom: 'Custom' };
+export const PLAN_LABELS = { trial: 'Trial', starter: 'Starter', growth: 'Growth', agency: 'Enterprise', custom: 'Custom' };
 
 export const ENUMS = {
   LEAD_SOURCES: ['Meta Ads', 'Google Ads', 'Website', 'WhatsApp', 'Reference', 'Telecalling', 'Social Media', 'CSV Import', 'Instagram DM', 'Justdial', 'Walk-in', 'Cold visit', 'Other'],
