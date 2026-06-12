@@ -6,10 +6,11 @@ const { paginate, paginateResponse } = require('../../utils/helpers');
 const getUsers = async (req, res) => {
   try {
     const { user, workspaceId } = req;
-    const { page = 1, limit = 50, role, search } = req.query;
+    const { page = 1, limit = 50, role, search, includeInactive } = req.query;
     const { limit: lim, offset } = paginate(page, limit);
 
     const where = { organizationId: user.organizationId };
+    if (!includeInactive) where.isActive = true;
     if (workspaceId) where.workspaceId = workspaceId;
     if (role) where.role = role;
     if (search) {

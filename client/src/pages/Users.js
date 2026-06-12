@@ -23,7 +23,7 @@ const Users = () => {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await usersAPI.getAll();
+      const res = await usersAPI.getAll({ includeInactive: true });
       setUsers(res.data.data || []);
     } catch { toast.error('Failed to load users'); }
     finally { setLoading(false); }

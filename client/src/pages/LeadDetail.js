@@ -257,7 +257,7 @@ const LeadDetail = () => {
                   </select>
                 </div>
               )}
-              {(user?.role === 'admin' || user?.role === 'owner') && agents.length > 0 && <div className="form-group"><label className="form-label">Assign To</label><select className="form-control" value={editForm.assignedTo} onChange={(e) => setEditForm({ ...editForm, assignedTo: e.target.value })}><option value="">Unassigned</option>{agents.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></div>}
+              {user?.role === 'admin' && agents.length > 0 && <div className="form-group"><label className="form-label">Assign To</label><select className="form-control" value={editForm.assignedTo} onChange={(e) => setEditForm({ ...editForm, assignedTo: e.target.value })}><option value="">Unassigned</option>{agents.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></div>}
               <div className="form-row">
                 <div className="form-group"><label className="form-label">City</label><input className="form-control" value={editForm.city} onChange={(e) => setEditForm({ ...editForm, city: e.target.value })} placeholder="e.g. Mumbai" /></div>
                 <div className="form-group"><label className="form-label">GST Number</label><input className="form-control" value={editForm.clientGST} onChange={(e) => setEditForm({ ...editForm, clientGST: e.target.value })} /></div>

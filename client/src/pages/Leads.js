@@ -261,7 +261,7 @@ const Leads = () => {
         )}
       </div>
 
-      {/* bulk action bar — only visible for admins with selection */}
+      {/* bulk action bar */}
       {(user?.role === 'admin' || user?.role === 'owner') && someSelected && (
         <div style={{
           display: 'flex', alignItems: 'center', gap: 12,
@@ -271,22 +271,26 @@ const Leads = () => {
           <span style={{ fontSize: 13, color: 'var(--text-muted)', minWidth: 120 }}>
             {selected.size} lead{selected.size !== 1 ? 's' : ''} selected
           </span>
-          <select
-            className="filter-select"
-            value={bulkAssignTo}
-            onChange={(e) => setBulkAssignTo(e.target.value)}
-            style={{ minWidth: 180 }}
-          >
-            <option value="">Assign to employee...</option>
-            {agents.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-          </select>
-          <button
-            className="btn btn-primary btn-sm"
-            onClick={handleBulkAssign}
-            disabled={!bulkAssignTo || bulkAssigning}
-          >
-            {bulkAssigning ? 'Assigning...' : 'Assign'}
-          </button>
+          {user?.role === 'admin' && (
+            <>
+              <select
+                className="filter-select"
+                value={bulkAssignTo}
+                onChange={(e) => setBulkAssignTo(e.target.value)}
+                style={{ minWidth: 180 }}
+              >
+                <option value="">Assign to employee...</option>
+                {agents.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+              </select>
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={handleBulkAssign}
+                disabled={!bulkAssignTo || bulkAssigning}
+              >
+                {bulkAssigning ? 'Assigning...' : 'Assign'}
+              </button>
+            </>
+          )}
           <button
             className="btn btn-sm"
             style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444', border: 'none' }}
@@ -425,7 +429,7 @@ const Leads = () => {
                   </select>
                 </div>
               )}
-              {(user?.role === 'admin' || user?.role === 'owner') && agents.length > 0 && (
+              {user?.role === 'admin' && agents.length > 0 && (
                 <div className="form-group"><label className="form-label">Assign To</label><select className="form-control" value={form.assignedTo} onChange={(e) => setForm({ ...form, assignedTo: e.target.value })}><option value="">Unassigned</option>{agents.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></div>
               )}
               <div className="form-row">

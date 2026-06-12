@@ -38,7 +38,7 @@ const OwnerUsers = () => {
     if (!selectedWs) return;
     setLoadingUsers(true);
     try {
-      const { data } = await api.get('/users', { params: { workspaceId: selectedWs.id } });
+      const { data } = await api.get('/users', { params: { workspaceId: selectedWs.id, includeInactive: true } });
       setUsers(data.data || []);
     } catch { toast.error('Failed to load users'); }
     finally { setLoadingUsers(false); }
