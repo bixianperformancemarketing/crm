@@ -35,6 +35,46 @@ const fmtDueTime = (t) => {
   return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${ampm}`;
 };
 
+const TaskFormFields = ({ f, setF, isOwner, users, workspaces }) => (
+  <>
+    <div className="form-group"><label className="form-label">Title *</label><input className="form-control" value={f.title} onChange={e => setF({ ...f, title: e.target.value })} placeholder="Task title" /></div>
+    <div className="form-group"><label className="form-label">Description</label><textarea className="form-control" rows={2} value={f.description} onChange={e => setF({ ...f, description: e.target.value })} placeholder="What needs to be done..." /></div>
+    <div className="form-row">
+      <div className="form-group"><label className="form-label">Due Date *</label><input className="form-control" type="date" value={f.dueDate} onChange={e => setF({ ...f, dueDate: e.target.value })} /></div>
+      <div className="form-group"><label className="form-label">Due Time</label><input className="form-control" type="time" value={f.dueTime} onChange={e => setF({ ...f, dueTime: e.target.value })} /></div>
+    </div>
+    <div className="form-row">
+      <div className="form-group">
+        <label className="form-label">Priority</label>
+        <select className="form-control" value={f.priority} onChange={e => setF({ ...f, priority: e.target.value })}>
+          {['Low', 'Medium', 'High'].map(p => <option key={p}>{p}</option>)}
+        </select>
+      </div>
+    </div>
+    {isOwner && (
+      <div className="form-group">
+        <label className="form-label">Workspace *</label>
+        <select className="form-control" value={f.workspaceId} onChange={e => setF({ ...f, workspaceId: e.target.value, assignedTo: '' })}>
+          <option value="">— Select Workspace —</option>
+          {workspaces.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+        </select>
+      </div>
+    )}
+    <div className="form-group">
+      <label className="form-label">Assign To</label>
+      <select className="form-control" value={f.assignedTo} onChange={e => {
+        const selected = users.find(u => String(u.id) === e.target.value);
+        setF({ ...f, assignedTo: e.target.value, workspaceId: selected?.workspaceId ? String(selected.workspaceId) : f.workspaceId });
+      }}>
+        <option value="">— Unassigned —</option>
+        {users.filter(u => u.canUseContentCalendar !== false && (!isOwner || !f.workspaceId || String(u.workspaceId) === String(f.workspaceId))).map(u => <option key={u.id} value={u.id}>{u.name} ({u.label || u.role})</option>)}
+      </select>
+    </div>
+    <ApprovalToggle value={f.requiresApproval} onChange={v => setF({ ...f, requiresApproval: v })} />
+    <div className="form-group"><label className="form-label">Notes</label><textarea className="form-control" rows={2} value={f.notes} onChange={e => setF({ ...f, notes: e.target.value })} placeholder="Additional notes..." /></div>
+  </>
+);
+
 const ApprovalToggle = ({ value, onChange }) => (
   <div className="form-group">
     <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none' }}>
@@ -256,46 +296,6 @@ const Content = () => {
     return all.filter(s => s !== task?.status && (!restricted.includes(s) || canManage));
   };
 
-  const TaskFormFields = ({ f, setF, isOwner }) => (
-    <>
-      <div className="form-group"><label className="form-label">Title *</label><input className="form-control" value={f.title} onChange={e => setF({ ...f, title: e.target.value })} placeholder="Task title" /></div>
-      <div className="form-group"><label className="form-label">Description</label><textarea className="form-control" rows={2} value={f.description} onChange={e => setF({ ...f, description: e.target.value })} placeholder="What needs to be done..." /></div>
-      <div className="form-row">
-        <div className="form-group"><label className="form-label">Due Date *</label><input className="form-control" type="date" value={f.dueDate} onChange={e => setF({ ...f, dueDate: e.target.value })} /></div>
-        <div className="form-group"><label className="form-label">Due Time</label><input className="form-control" type="time" value={f.dueTime} onChange={e => setF({ ...f, dueTime: e.target.value })} /></div>
-      </div>
-      <div className="form-row">
-        <div className="form-group">
-          <label className="form-label">Priority</label>
-          <select className="form-control" value={f.priority} onChange={e => setF({ ...f, priority: e.target.value })}>
-            {['Low', 'Medium', 'High'].map(p => <option key={p}>{p}</option>)}
-          </select>
-        </div>
-      </div>
-      {isOwner && (
-        <div className="form-group">
-          <label className="form-label">Workspace *</label>
-          <select className="form-control" value={f.workspaceId} onChange={e => setF({ ...f, workspaceId: e.target.value, assignedTo: '' })}>
-            <option value="">— Select Workspace —</option>
-            {workspaces.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-          </select>
-        </div>
-      )}
-      <div className="form-group">
-        <label className="form-label">Assign To</label>
-        <select className="form-control" value={f.assignedTo} onChange={e => {
-          const selected = users.find(u => String(u.id) === e.target.value);
-          setF({ ...f, assignedTo: e.target.value, workspaceId: selected?.workspaceId ? String(selected.workspaceId) : f.workspaceId });
-        }}>
-          <option value="">— Unassigned —</option>
-          {users.filter(u => u.canUseContentCalendar !== false && (!isOwner || !f.workspaceId || String(u.workspaceId) === String(f.workspaceId))).map(u => <option key={u.id} value={u.id}>{u.name} ({u.label || u.role})</option>)}
-        </select>
-      </div>
-      <ApprovalToggle value={f.requiresApproval} onChange={v => setF({ ...f, requiresApproval: v })} />
-      <div className="form-group"><label className="form-label">Notes</label><textarea className="form-control" rows={2} value={f.notes} onChange={e => setF({ ...f, notes: e.target.value })} placeholder="Additional notes..." /></div>
-    </>
-  );
-
   return (
     <Layout title="Tasks">
       <div className="page-header">
@@ -470,7 +470,7 @@ const Content = () => {
             <h3>New Task</h3>
             <button className="modal-close" onClick={() => setShowCreate(false)}>×</button>
             <form onSubmit={handleCreate}>
-              <TaskFormFields f={form} setF={setForm} isOwner={isRole('owner')} />
+              <TaskFormFields f={form} setF={setForm} isOwner={isRole('owner')} users={users} workspaces={workspaces} />
               <div className="modal-actions">
                 <button type="button" className="btn btn-ghost" onClick={() => setShowCreate(false)}>Cancel</button>
                 <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Creating...' : 'Create Task'}</button>
