@@ -98,6 +98,7 @@ export const leadsAPI = {
   getPipeline: () => api.get('/leads/pipeline'),
   addNote: (id, note) => api.post(`/leads/${id}/note`, { note }),
   bulkAssign: (leadIds, assignedTo) => api.put('/leads/bulk-assign', { leadIds, assignedTo }),
+  bulkAssignWorkspace: (leadIds, workspaceId) => api.put('/leads/bulk-assign-workspace', { leadIds, workspaceId }),
   bulkDelete: (leadIds) => api.delete('/leads/bulk-delete', { data: { leadIds } }),
   importCSV: (file, onProgress) => {
     const formData = new FormData();

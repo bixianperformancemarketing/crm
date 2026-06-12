@@ -422,6 +422,45 @@ const bulkAssign = async (req, res) => {
   }
 };
 
+const bulkAssignWorkspace = async (req, res) => {
+  try {
+    const { user } = req;
+    const { leadIds, workspaceId } = req.body;
+
+    if (!Array.isArray(leadIds) || leadIds.length === 0) {
+      return res.status(400).json({ success: false, message: 'leadIds must be a non-empty array' });
+    }
+    if (!workspaceId) {
+      return res.status(400).json({ success: false, message: 'workspaceId is required' });
+    }
+
+    const ws = await Workspace.findOne({ where: { id: workspaceId, organizationId: user.organizationId } });
+    if (!ws) return res.status(404).json({ success: false, message: 'Workspace not found' });
+
+    const [count] = await Lead.update(
+      { workspaceId, assignedTo: null },
+      { where: { id: { [Op.in]: leadIds }, organizationId: user.organizationId } }
+    );
+
+    await LeadActivity.bulkCreate(
+      leadIds.map((leadId) => ({
+        leadId,
+        organizationId: user.organizationId,
+        workspaceId,
+        userId: user.id,
+        type: 'assigned',
+        description: `Lead moved to workspace: ${ws.name}`,
+        metadata: {},
+      }))
+    );
+
+    res.json({ success: true, message: `${count} lead(s) moved to ${ws.name}`, count });
+  } catch (err) {
+    console.error('bulkAssignWorkspace error:', err);
+    res.status(500).json({ success: false, message: 'Bulk workspace assign failed' });
+  }
+};
+
 const bulkDelete = async (req, res) => {
   try {
     const { user, workspaceId } = req;
@@ -443,4 +482,4 @@ const bulkDelete = async (req, res) => {
   }
 };
 
-module.exports = { getLeads, getLead, createLead, updateLead, deleteLead, getPipeline, addNote, importCSV, bulkAssign, bulkDelete };
+module.exports = { getLeads, getLead, createLead, updateLead, deleteLead, getPipeline, addNote, importCSV, bulkAssign, bulkAssignWorkspace, bulkDelete };

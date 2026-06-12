@@ -45,6 +45,8 @@ const Leads = () => {
   const [selected, setSelected] = useState(new Set());
   const [bulkAssignTo, setBulkAssignTo] = useState('');
   const [bulkAssigning, setBulkAssigning] = useState(false);
+  const [bulkWorkspaceId, setBulkWorkspaceId] = useState('');
+  const [bulkWorkspaceAssigning, setBulkWorkspaceAssigning] = useState(false);
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const lastClickedIndex = useRef(null);
@@ -207,6 +209,23 @@ const Leads = () => {
     }
   };
 
+  const handleBulkWorkspaceAssign = async () => {
+    if (!bulkWorkspaceId) { toast.error('Please select a workspace'); return; }
+    if (selected.size === 0) return;
+    setBulkWorkspaceAssigning(true);
+    try {
+      const { data } = await leadsAPI.bulkAssignWorkspace([...selected], Number(bulkWorkspaceId));
+      toast.success(data.message);
+      setSelected(new Set());
+      setBulkWorkspaceId('');
+      loadLeads();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Bulk workspace assign failed');
+    } finally {
+      setBulkWorkspaceAssigning(false);
+    }
+  };
+
   return (
     <Layout title="Leads">
       <div className="page-header">
@@ -288,6 +307,26 @@ const Leads = () => {
                 disabled={!bulkAssignTo || bulkAssigning}
               >
                 {bulkAssigning ? 'Assigning...' : 'Assign'}
+              </button>
+            </>
+          )}
+          {user?.role === 'owner' && workspaces.length > 0 && (
+            <>
+              <select
+                className="filter-select"
+                value={bulkWorkspaceId}
+                onChange={(e) => setBulkWorkspaceId(e.target.value)}
+                style={{ minWidth: 180 }}
+              >
+                <option value="">Move to workspace...</option>
+                {workspaces.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
+              </select>
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={handleBulkWorkspaceAssign}
+                disabled={!bulkWorkspaceId || bulkWorkspaceAssigning}
+              >
+                {bulkWorkspaceAssigning ? 'Moving...' : 'Move'}
               </button>
             </>
           )}

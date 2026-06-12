@@ -21,6 +21,7 @@ router.get('/pipeline', ctrl.getPipeline);
 router.get('/:id', ctrl.getLead);
 router.post('/', checkLeadLimit, ctrl.createLead);
 router.put('/bulk-assign', requireRole('admin', 'owner'), ctrl.bulkAssign);
+router.put('/bulk-assign-workspace', requireRole('owner'), ctrl.bulkAssignWorkspace);
 router.delete('/bulk-delete', requireRole('admin', 'owner'), ctrl.bulkDelete);
 router.put('/:id', ctrl.updateLead);
 router.delete('/:id', requireRole('admin', 'owner'), ctrl.deleteLead);
