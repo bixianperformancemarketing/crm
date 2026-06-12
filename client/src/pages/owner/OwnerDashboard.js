@@ -161,9 +161,11 @@ const OwnerDashboard = () => {
                 <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>— {periodLabel}</span>
                 {refreshing && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Updating...</span>}
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12, marginBottom: 28 }}>
-                <MetricCard label="Active Leads" value={metrics.stats?.activeLeads ?? 0} color="#6366f1" />
+
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Leads & Revenue</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12, marginBottom: 24 }}>
                 <MetricCard label="Total Leads" value={metrics.stats?.totalLeads ?? 0} color="#10b981" />
+                <MetricCard label="Active Leads" value={metrics.stats?.activeLeads ?? 0} color="#6366f1" />
                 <MetricCard label="Won Leads" value={metrics.stats?.wonLeads ?? 0} color="#22c55e" />
                 <MetricCard label="Hot Leads" value={metrics.stats?.hotLeads ?? 0} color="#ef4444" />
                 <MetricCard label="Total Revenue" value={formatCurrency(metrics.stats?.totalRevenue ?? 0)} color="#22c55e" />
@@ -174,6 +176,17 @@ const OwnerDashboard = () => {
                 <MetricCard label="Today's Appointments" value={metrics.stats?.todayAppts ?? 0} color="#6366f1" />
                 <MetricCard label="Conversion Rate" value={`${metrics.stats?.conversionRate ?? 0}%`} color="#10b981" />
                 <MetricCard label="Avg Deal Size" value={formatCurrency(metrics.stats?.avgDealSize ?? 0)} color="#a78bfa" />
+              </div>
+
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Tasks</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12, marginBottom: 28 }}>
+                <MetricCard label="Total Tasks" value={metrics.stats?.totalTasks ?? 0} color="#a78bfa" />
+                <MetricCard label="Overdue" value={metrics.stats?.overviewTasks ?? 0} color="#ef4444" />
+                <MetricCard label="To Do Today" value={metrics.stats?.todoTodayTasks ?? 0} color="#0ea5e9" />
+                <MetricCard label="In Progress" value={metrics.stats?.inProgressTasks ?? 0} color="#a78bfa" />
+                <MetricCard label="In Review" value={metrics.stats?.reviewTasks ?? 0} color="#f59e0b" />
+                <MetricCard label="Approved" value={metrics.stats?.approvedTasks ?? 0} color="#22c55e" />
+                <MetricCard label="Not Approved" value={metrics.stats?.notApprovedTasks ?? 0} color="#ef4444" />
               </div>
             </>
           )}
