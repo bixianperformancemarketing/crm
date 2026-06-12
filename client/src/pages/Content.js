@@ -87,7 +87,7 @@ const TaskFormFields = ({ f, setF, isOwner, users, workspaces }) => (
         setF({ ...f, assignedTo: e.target.value, workspaceId: selected?.workspaceId ? String(selected.workspaceId) : f.workspaceId });
       }}>
         <option value="">— Unassigned —</option>
-        {users.filter(u => (u.role !== 'employee' || u.canUseContentCalendar !== false) && (!isOwner || !f.workspaceId || String(u.workspaceId) === String(f.workspaceId))).map(u => <option key={u.id} value={u.id}>{u.name} ({u.label || u.role})</option>)}
+        {users.filter(u => (u.role !== 'employee' || u.canUseContentCalendar !== false) && (!isOwner || (f.workspaceId && String(u.workspaceId) === String(f.workspaceId)))).map(u => <option key={u.id} value={u.id}>{u.name} ({u.label || u.role})</option>)}
       </select>
     </div>
     <ApprovalToggle value={f.requiresApproval} onChange={v => setF({ ...f, requiresApproval: v })} />
