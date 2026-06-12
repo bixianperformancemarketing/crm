@@ -45,10 +45,32 @@ const TasksPipeline = () => {
 
   useEffect(() => { loadPipeline(); }, []);
 
+  const findTask = (id) => {
+    for (const col of COLUMNS) {
+      const found = (pipeline[col] || []).find(t => String(t.id) === String(id));
+      if (found) return found;
+    }
+    return null;
+  };
+
   const onDragEnd = async (result) => {
     const { source, destination, draggableId } = result;
     if (!destination || source.droppableId === destination.droppableId) return;
-    if (APPROVAL_RESTRICTED.has(destination.droppableId) && !canApprove) {
+
+    const dest = destination.droppableId;
+    const task = findTask(draggableId);
+
+    if (task) {
+      const needsApproval = task.requiresApproval !== false;
+      if (needsApproval && dest === 'Done') {
+        return toast.error('This task requires approval — move it to Review first');
+      }
+      if (!needsApproval && APPROVAL_RESTRICTED.has(dest)) {
+        return toast.error('This task has no approval flow — mark it as Done instead');
+      }
+    }
+
+    if (APPROVAL_RESTRICTED.has(dest) && !canApprove) {
       return toast.error('Only admins and owners can approve or reject tasks');
     }
 
