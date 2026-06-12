@@ -125,6 +125,11 @@ const updateTask = async (req, res) => {
     const task = await ContentTask.findOne({ where });
     if (!task) return res.status(404).json({ success: false, message: 'Task not found' });
 
+    const APPROVAL_RESTRICTED = ['Approved', 'Not Approved'];
+    if (req.body.status && APPROVAL_RESTRICTED.includes(req.body.status) && user.role === 'employee') {
+      return res.status(403).json({ success: false, message: 'Only admins and owners can approve or reject tasks' });
+    }
+
     const allowed = ['title', 'description', 'priority', 'status', 'assignedTo', 'dueDate', 'dueTime', 'notes', 'requiresApproval'];
     const updates = {};
     for (const k of allowed) { if (req.body[k] !== undefined) updates[k] = req.body[k]; }

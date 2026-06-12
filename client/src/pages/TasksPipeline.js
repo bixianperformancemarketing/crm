@@ -4,7 +4,10 @@ import toast from 'react-hot-toast';
 import Layout from '../components/layout/Layout';
 import { contentAPI } from '../services/api';
 import { getPriorityColor, getInitials } from '../utils/helpers';
+import { useAuth } from '../context/AuthContext';
 import './Pipeline.css';
+
+const APPROVAL_RESTRICTED = new Set(['Approved', 'Not Approved']);
 
 const COLUMNS = ['Overdue', 'To Do Today', 'In Progress', 'Done', 'Review', 'Approved', 'Not Approved'];
 const COL_COLORS = {
@@ -25,6 +28,8 @@ const fmtDate = (d) => {
 };
 
 const TasksPipeline = () => {
+  const { isRole } = useAuth();
+  const canApprove = isRole('owner') || isRole('admin');
   const [pipeline, setPipeline] = useState({});
   const [loading, setLoading] = useState(true);
   const [archiving, setArchiving] = useState(null);
@@ -43,6 +48,9 @@ const TasksPipeline = () => {
   const onDragEnd = async (result) => {
     const { source, destination, draggableId } = result;
     if (!destination || source.droppableId === destination.droppableId) return;
+    if (APPROVAL_RESTRICTED.has(destination.droppableId) && !canApprove) {
+      return toast.error('Only admins and owners can approve or reject tasks');
+    }
 
     const newPipeline = { ...pipeline };
     const src = [...(newPipeline[source.droppableId] || [])];
