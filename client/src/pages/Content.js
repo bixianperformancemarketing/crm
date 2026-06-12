@@ -326,18 +326,22 @@ const Content = () => {
             <>
               <div className="table-wrap">
                 <table>
-                  <thead><tr><th>Title</th><th>Assigned To</th><th>Due Date</th><th>Priority</th><th>Status</th><th>Actions</th></tr></thead>
+                  <thead><tr><th>Title</th><th>Assigned To</th><th>Due Date</th><th>Priority</th><th>Approval</th><th>Status</th><th>Actions</th></tr></thead>
                   <tbody>
                     {tasks.map((t) => (
                       <tr key={t.id} style={{ cursor: 'pointer' }} onClick={() => setShowTask(t)}>
                         <td style={{ fontWeight: 500 }}>
                           {t.title}
                           {t.description && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{t.description}</div>}
-                          {!t.requiresApproval && <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 1 }}>No approval</div>}
                         </td>
                         <td style={{ fontSize: 12 }}>{t.assignee?.name || '—'}</td>
                         <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t.dueDate ? `${formatDate(t.dueDate)}${t.dueTime ? ` ${fmtDueTime(t.dueTime)}` : ''}` : '—'}</td>
                         <td><span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: t.priority === 'High' ? 'rgba(239,68,68,0.15)' : t.priority === 'Medium' ? 'rgba(245,158,11,0.15)' : 'rgba(107,114,128,0.15)', color: t.priority === 'High' ? '#ef4444' : t.priority === 'Medium' ? '#f59e0b' : '#6b7280' }}>{t.priority}</span></td>
+                        <td>
+                          {t.requiresApproval !== false
+                            ? <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: 'rgba(167,139,250,0.15)', color: '#a78bfa' }}>Required</span>
+                            : <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: 'rgba(107,114,128,0.12)', color: '#6b7280' }}>Not Required</span>}
+                        </td>
                         <td><span className="task-status-badge" style={{ background: `${STATUS_COLORS[t.status] || '#6b7280'}22`, color: STATUS_COLORS[t.status] || '#6b7280' }}>{t.status}</span></td>
                         <td onClick={e => e.stopPropagation()}>
                           {canManage && (
