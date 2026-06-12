@@ -253,7 +253,7 @@ const Leads = () => {
           {ENUMS.LEAD_SOURCES.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
         <input className="search-input" placeholder="🏙 Filter by city..." value={filters.city} onChange={(e) => updateFilter('city', e.target.value)} style={{ maxWidth: 160 }} />
-        {(user?.role === 'admin' || user?.role === 'owner') && agents.length > 0 && (
+        {user?.role === 'admin' && agents.length > 0 && (
           <select className="filter-select" value={filters.assignedTo} onChange={(e) => updateFilter('assignedTo', e.target.value)}>
             <option value="">All Agents</option>
             {agents.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
