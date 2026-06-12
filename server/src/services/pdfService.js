@@ -315,11 +315,16 @@ const addFooter = (doc, data, orgSettings, logoBuffer, signatureBuffer, type, cu
 
   const footerY = doc.page.height - FOOTER_HEIGHT;
 
-  // Clean line separator — no background color
-  doc.strokeColor('#cccccc').lineWidth(1).moveTo(50, footerY).lineTo(545, footerY).stroke();
+  // Yellow background — mirrors the header
+  doc.rect(0, footerY, doc.page.width, doc.page.height - footerY).fill(PRIMARY);
 
-  const TEXT_DARK = PRIMARY_DARK;  // #1a1a2e on white
-  const TEXT_MID  = '#666666';     // gray on white
+  const TEXT_DARK = PRIMARY_DARK;  // #1a1a2e on yellow
+  const TEXT_MID  = '#5a4a00';     // dark amber on yellow
+
+  // Thin separator line at top of footer
+  doc.strokeColor(TEXT_DARK).lineWidth(0.5).opacity(0.3)
+    .moveTo(50, footerY + 1).lineTo(545, footerY + 1).stroke();
+  doc.opacity(1);
 
   // Left column: Logo + company info
   let leftY = footerY + 14;
@@ -369,12 +374,14 @@ const addFooter = (doc, data, orgSettings, logoBuffer, signatureBuffer, type, cu
 
   // Bottom strip: thank-you message
   const stripY = doc.page.height - 22;
-  drawLine(doc, stripY - 5, '#eeeeee');
+  doc.strokeColor(TEXT_DARK).lineWidth(0.5).opacity(0.15)
+    .moveTo(50, stripY - 5).lineTo(545, stripY - 5).stroke();
+  doc.opacity(1);
   const defaultMsg = type === 'Invoice'
     ? 'Thank you for accepting us to achieve your missions.'
     : 'We will be happy to help you to achieve your missions.';
   const footerMsg = customMessage || defaultMsg;
-  doc.fontSize(8).fillColor(GRAY).font('Helvetica').text(footerMsg, 50, stripY, { align: 'center', width: 495 });
+  doc.fontSize(8).fillColor(TEXT_DARK).font('Helvetica-Bold').text(footerMsg, 50, stripY, { align: 'center', width: 495 });
 };
 
 const generateQuotationPDF = async (quotation, items, orgSettings) => {
