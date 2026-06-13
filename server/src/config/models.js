@@ -347,6 +347,8 @@ const Invoice = sequelize.define('Invoice', {
   lastReminderSentAt: { type: DataTypes.DATE, allowNull: true },
   notes: { type: DataTypes.TEXT },
   terms: { type: DataTypes.TEXT },
+  carryoverInvoices: { type: DataTypes.JSON, defaultValue: [] },
+  carryoverTotal: { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
 }, { tableName: 'invoices' });
 
 // ─── INVOICE ITEM ─────────────────────────────────────────────────────────
@@ -738,6 +740,17 @@ const syncDatabase = async () => {
       const invCols = await qi.describeTable('invoices');
       if (!invCols.lastReminderSentAt) {
         await qi.addColumn('invoices', 'lastReminderSentAt', { type: DataTypes.DATE, allowNull: true });
+      }
+    } catch (e) { /* ignore */ }
+
+    // Add carryover columns to invoices if missing
+    try {
+      const invCols2 = await qi.describeTable('invoices');
+      if (!invCols2.carryoverInvoices) {
+        await qi.addColumn('invoices', 'carryoverInvoices', { type: DataTypes.JSON, allowNull: true });
+      }
+      if (!invCols2.carryoverTotal) {
+        await qi.addColumn('invoices', 'carryoverTotal', { type: DataTypes.DECIMAL(12, 2), defaultValue: 0, allowNull: true });
       }
     } catch (e) { /* ignore */ }
 

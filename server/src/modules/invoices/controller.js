@@ -54,11 +54,36 @@ const getInvoice = async (req, res) => {
   }
 };
 
+const getPendingByClient = async (req, res) => {
+  try {
+    const { user, workspaceId } = req;
+    const { phone, email } = req.query;
+    if (!phone?.trim() && !email?.trim()) return res.json({ success: true, invoices: [] });
+
+    const orClauses = [];
+    if (phone?.trim()) orClauses.push({ phone: phone.trim() });
+    if (email?.trim()) orClauses.push({ email: email.trim() });
+
+    const ws = workspaceId ? { workspaceId } : {};
+    const lead = await Lead.findOne({ where: { organizationId: user.organizationId, ...ws, [Op.or]: orClauses } });
+    if (!lead) return res.json({ success: true, invoices: [] });
+
+    const invoices = await Invoice.findAll({
+      where: { organizationId: user.organizationId, ...ws, leadId: lead.id, status: { [Op.in]: ['Unpaid', 'Partial', 'Overdue'] } },
+      attributes: ['id', 'invoiceNumber', 'totalAmount', 'paidAmount', 'dueAmount', 'status', 'createdAt'],
+      order: [['createdAt', 'ASC']],
+    });
+    res.json({ success: true, invoices });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to fetch pending invoices' });
+  }
+};
+
 const createInvoice = async (req, res) => {
   try {
     const { user, workspaceId } = req;
     if (!workspaceId) return res.status(400).json({ success: false, message: 'Workspace context required for this action' });
-    const { leadId, clientName, clientEmail, clientPhone, clientAddress, clientGST, items = [], gstPercent = 18, notes, terms, dueDate } = req.body;
+    const { leadId, clientName, clientEmail, clientPhone, clientAddress, clientGST, items = [], gstPercent = 18, notes, terms, dueDate, includePendingCarryover = false, carryoverInvoices: carryoverData = [] } = req.body;
 
     if (!clientName?.trim()) return res.status(400).json({ success: false, message: 'Client name is required' });
     if (!clientPhone?.trim()) return res.status(400).json({ success: false, message: 'Phone number is required' });
@@ -89,7 +114,11 @@ const createInvoice = async (req, res) => {
 
     const subtotal = items.reduce((sum, i) => sum + parseFloat(i.totalPrice || 0), 0);
     const gstAmount = (subtotal * parseFloat(gstPercent)) / 100;
-    const totalAmount = subtotal + gstAmount;
+    const currentTotal = subtotal + gstAmount;
+    const carryoverTotal = includePendingCarryover
+      ? carryoverData.reduce((sum, c) => sum + parseFloat(c.dueAmount || 0), 0)
+      : 0;
+    const totalAmount = currentTotal + carryoverTotal;
     const invNumber = await getNextNumber(Invoice, 'invoiceNumber', 'INV-', workspaceId, user.organizationId);
 
     const inv = await Invoice.create({
@@ -97,7 +126,10 @@ const createInvoice = async (req, res) => {
       leadId: lead?.id || null, createdBy: user.id,
       clientName: clientName.trim(), clientEmail: clientEmail?.trim() || null,
       clientPhone: clientPhone.trim(), clientAddress: clientAddress?.trim() || null, clientGST,
-      subtotal, gstPercent, gstAmount, totalAmount,
+      subtotal, gstPercent, gstAmount,
+      carryoverInvoices: includePendingCarryover ? carryoverData : [],
+      carryoverTotal: includePendingCarryover ? carryoverTotal : 0,
+      totalAmount,
       paidAmount: 0, dueAmount: totalAmount, status: 'Unpaid', notes, terms,
       dueDate: dueDate || null,
     });
@@ -116,7 +148,7 @@ const createInvoice = async (req, res) => {
     if (lead?.id) {
       await LeadActivity.create({
         leadId: lead.id, organizationId: user.organizationId, workspaceId, userId: user.id,
-        type: 'invoice_generated', description: `Invoice ${invNumber} created (₹${totalAmount.toLocaleString('en-IN')})`,
+        type: 'invoice_generated', description: `Invoice ${invNumber} created (₹${currentTotal.toLocaleString('en-IN')}${carryoverTotal > 0 ? ` + ₹${carryoverTotal.toLocaleString('en-IN')} carryover` : ''})`,
         metadata: { invoiceId: inv.id },
       });
     }
@@ -284,4 +316,4 @@ const deleteInvoice = async (req, res) => {
   }
 };
 
-module.exports = { getInvoices, getInvoice, createInvoice, updateInvoice, downloadPDF, sendEmail, whatsappShare, deleteInvoice };
+module.exports = { getInvoices, getInvoice, getPendingByClient, createInvoice, updateInvoice, downloadPDF, sendEmail, whatsappShare, deleteInvoice };

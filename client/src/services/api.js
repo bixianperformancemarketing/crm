@@ -150,6 +150,7 @@ export const quotationsAPI = {
 export const invoicesAPI = {
   getAll: (params) => api.get('/invoices', { params }),
   get: (id) => api.get(`/invoices/${id}`),
+  getPendingByClient: (params) => api.get('/invoices/pending-by-client', { params }),
   create: (data) => api.post('/invoices', data),
   update: (id, data) => api.put(`/invoices/${id}`, data),
   downloadPDF: (id) => api.get(`/invoices/${id}/pdf`, { responseType: 'blob' }),

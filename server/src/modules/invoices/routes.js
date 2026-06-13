@@ -7,6 +7,7 @@ const ctrl = require('./controller');
 router.use(authenticate, scopeTenant, requireWorkspace, checkFeature('canUseInvoices'));
 
 router.get('/', ctrl.getInvoices);
+router.get('/pending-by-client', ctrl.getPendingByClient);
 router.get('/:id', ctrl.getInvoice);
 router.post('/', ctrl.createInvoice);
 router.put('/:id', ctrl.updateInvoice);
