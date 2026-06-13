@@ -153,7 +153,8 @@ const TasksPipeline = () => {
     if (!window.confirm(`Archive ${completedCount} completed task(s)? They can be viewed in the Archived tab.`)) return;
     setClearing(true);
     try {
-      const { data } = await contentAPI.archiveBulk();
+      const params = (isOwner && workspaceFilter) ? { workspaceId: workspaceFilter } : {};
+      const { data } = await contentAPI.archiveBulk(params);
       toast.success(data.message || 'Completed tasks archived');
       loadPipeline();
     } catch { toast.error('Failed to clear completed tasks'); }

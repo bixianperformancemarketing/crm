@@ -177,7 +177,7 @@ export const contentAPI = {
   delete: (id) => api.delete(`/content/${id}`),
   archive: (id) => api.post(`/content/${id}/archive`),
   unarchive: (id) => api.post(`/content/${id}/unarchive`),
-  archiveBulk: () => api.post('/content/archive-bulk'),
+  archiveBulk: (params) => api.post('/content/archive-bulk', null, { params }),
 };
 
 // ─── REPORTS ──────────────────────────────────────────────────────────────

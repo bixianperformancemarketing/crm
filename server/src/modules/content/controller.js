@@ -3,7 +3,7 @@ const { ContentTask, User, Lead } = require('../../config/models');
 const { paginate, paginateResponse } = require('../../utils/helpers');
 
 const PIPELINE_COLUMNS = ['Overdue', 'To Do Today', 'In Progress', 'Done', 'Review', 'Approved', 'Not Approved'];
-const COMPLETED_STATUSES = ['Done', 'Approved', 'Cancelled'];
+const COMPLETED_STATUSES = ['Done', 'Approved', 'Not Approved', 'Cancelled'];
 
 const getTasks = async (req, res) => {
   try {
