@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import toast from 'react-hot-toast';
 import Layout from '../components/layout/Layout';
-import { contentAPI } from '../services/api';
+import { contentAPI, usersAPI } from '../services/api';
 import { getPriorityColor, getInitials } from '../utils/helpers';
 import { useAuth } from '../context/AuthContext';
 import './Pipeline.css';
@@ -30,20 +30,30 @@ const fmtDate = (d) => {
 const TasksPipeline = () => {
   const { isRole } = useAuth();
   const canApprove = isRole('owner') || isRole('admin');
+  const canFilter = isRole('owner') || isRole('admin');
   const [pipeline, setPipeline] = useState({});
   const [loading, setLoading] = useState(true);
   const [archiving, setArchiving] = useState(null);
   const [clearing, setClearing] = useState(false);
+  const [users, setUsers] = useState([]);
+  const [filterUser, setFilterUser] = useState('');
 
-  const loadPipeline = async () => {
+  useEffect(() => {
+    if (canFilter) {
+      usersAPI.getAll({ limit: 200 }).then(r => setUsers(r.data?.data || [])).catch(() => {});
+    }
+  }, [canFilter]);
+
+  const loadPipeline = useCallback(async () => {
     try {
-      const { data } = await contentAPI.getPipeline();
+      const params = filterUser ? { assignedTo: filterUser } : {};
+      const { data } = await contentAPI.getPipeline(params);
       setPipeline(data.pipeline || {});
     } catch { toast.error('Failed to load tasks pipeline'); }
     finally { setLoading(false); }
-  };
+  }, [filterUser]);
 
-  useEffect(() => { loadPipeline(); }, []);
+  useEffect(() => { loadPipeline(); }, [loadPipeline]);
 
   const findTask = (id) => {
     for (const col of COLUMNS) {
@@ -124,7 +134,17 @@ const TasksPipeline = () => {
     <Layout title="Tasks Pipeline">
       <div className="page-header">
         <div className="page-title">Tasks Pipeline</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          {canFilter && users.length > 0 && (
+            <select
+              value={filterUser}
+              onChange={(e) => setFilterUser(e.target.value)}
+              style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface-2)', color: 'var(--text)', fontSize: 13, cursor: 'pointer' }}
+            >
+              <option value="">All Users</option>
+              {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+            </select>
+          )}
           <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Drag cards to update status</div>
           {completedCount > 0 && (
             <button

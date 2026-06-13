@@ -166,9 +166,11 @@ const deleteTask = async (req, res) => {
 const getTaskPipeline = async (req, res) => {
   try {
     const { user, workspaceId } = req;
+    const { assignedTo } = req.query;
     const ws = workspaceId ? { workspaceId } : {};
     const where = { organizationId: user.organizationId, ...ws, isArchived: false };
     if (user.role === 'employee') where.assignedTo = user.id;
+    else if (assignedTo) where.assignedTo = assignedTo;
 
     const tasks = await ContentTask.findAll({
       where,
