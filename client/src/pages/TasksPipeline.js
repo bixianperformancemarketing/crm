@@ -168,7 +168,7 @@ const TasksPipeline = () => {
     if (!quickTitle.trim()) return;
     setQuickSaving(true);
     try {
-      await contentAPI.create({ title: quickTitle.trim(), assignedTo: user?.id, requiresApproval: true });
+      await contentAPI.create({ title: quickTitle.trim(), assignedTo: user?.id, requiresApproval: isEmployee });
       setQuickAdd(false);
       setQuickTitle('');
       loadPipeline();
