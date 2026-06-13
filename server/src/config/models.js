@@ -145,7 +145,7 @@ const Lead = sequelize.define('Lead', {
     defaultValue: 'Warm',
   },
   status: {
-    type: DataTypes.ENUM('New', 'Discussion', 'Meeting', 'Quotation', 'Review', 'Won', 'Lost'),
+    type: DataTypes.ENUM('New', 'Discussion', 'Meeting', 'Quotation', 'Review', 'Won', 'Lost', 'Repeated'),
     defaultValue: 'New',
   },
   assignedTo: { type: DataTypes.INTEGER, allowNull: true },
@@ -665,7 +665,7 @@ const syncDatabase = async () => {
 
     // Add Review to leads status ENUM
     try {
-      await sequelize.query(`ALTER TABLE leads MODIFY status ENUM('New','Discussion','Meeting','Quotation','Review','Won','Lost') DEFAULT 'New'`);
+      await sequelize.query(`ALTER TABLE leads MODIFY status ENUM('New','Discussion','Meeting','Quotation','Review','Won','Lost','Repeated') DEFAULT 'New'`);
     } catch (e) { /* ignore */ }
 
     // Migrate old lead priorities to new Hot/Warm/Cold system

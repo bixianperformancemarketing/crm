@@ -8,9 +8,9 @@ import { getPriorityColor, getInitials } from '../utils/helpers';
 import { useAuth } from '../context/AuthContext';
 import './Pipeline.css';
 
-const COLUMNS = ['New', 'Discussion', 'Meeting', 'Quotation', 'Review', 'Won', 'Lost'];
-const COL_DISPLAY = { New: 'New', Discussion: 'Discussion', Meeting: 'Meeting Done', Quotation: 'Quotation', Review: 'Review', Won: 'Won', Lost: 'Lost' };
-const COL_COLORS = { New: '#0ea5e9', Discussion: '#f59e0b', Meeting: '#7c3aed', Quotation: '#e94560', Review: '#f97316', Won: '#22c55e', Lost: '#6b7280' };
+const COLUMNS = ['New', 'Discussion', 'Meeting', 'Quotation', 'Review', 'Won', 'Lost', 'Repeated'];
+const COL_DISPLAY = { New: 'New', Discussion: 'Discussion', Meeting: 'Meeting Done', Quotation: 'Quotation', Review: 'Review', Won: 'Won', Lost: 'Lost', Repeated: 'Repeated' };
+const COL_COLORS = { New: '#0ea5e9', Discussion: '#f59e0b', Meeting: '#7c3aed', Quotation: '#e94560', Review: '#f97316', Won: '#22c55e', Lost: '#6b7280', Repeated: '#06b6d4' };
 
 const Pipeline = () => {
   const { user } = useAuth();
@@ -35,8 +35,8 @@ const Pipeline = () => {
 
     const dest = destination.droppableId;
 
-    if (isEmployee && (dest === 'Won' || dest === 'Lost')) {
-      toast.error('Only admin can move leads to Won or Lost');
+    if (isEmployee && (dest === 'Won' || dest === 'Lost' || dest === 'Repeated')) {
+      toast.error('Only admin can move leads to Won, Lost or Repeated');
       return;
     }
 

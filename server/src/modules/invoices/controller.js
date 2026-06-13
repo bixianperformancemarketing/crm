@@ -91,8 +91,10 @@ const createInvoice = async (req, res) => {
 
     // Find or create lead
     let lead = null;
+    let isExistingLead = false;
     if (leadId) {
       lead = await Lead.findOne({ where: { id: leadId, organizationId: user.organizationId } });
+      isExistingLead = !!lead;
     } else {
       const orClauses = [{ phone: clientPhone.trim() }];
       if (clientEmail?.trim()) orClauses.push({ email: clientEmail.trim() });
@@ -101,6 +103,7 @@ const createInvoice = async (req, res) => {
       });
       if (existing) {
         lead = existing;
+        isExistingLead = true;
       } else {
         lead = await Lead.create({
           organizationId: user.organizationId, workspaceId,
@@ -110,6 +113,11 @@ const createInvoice = async (req, res) => {
           assignedTo: user.role === 'employee' ? user.id : null,
         });
       }
+    }
+
+    // Mark repeat clients: if lead already existed, set their status to Repeated
+    if (isExistingLead && lead) {
+      await lead.update({ status: 'Repeated' });
     }
 
     const subtotal = items.reduce((sum, i) => sum + parseFloat(i.totalPrice || 0), 0);
