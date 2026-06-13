@@ -225,15 +225,11 @@ const archiveBulk = async (req, res) => {
   try {
     const { user, workspaceId } = req;
     const ws = workspaceId ? { workspaceId } : {};
+    const where = { organizationId: user.organizationId, ...ws, status: { [Op.in]: COMPLETED_STATUSES }, isArchived: false };
+    if (user.role === 'employee') where.assignedTo = user.id;
     const [count] = await ContentTask.update(
       { isArchived: true },
-      {
-        where: {
-          organizationId: user.organizationId, ...ws,
-          status: { [Op.in]: COMPLETED_STATUSES },
-          isArchived: false,
-        },
-      }
+      { where }
     );
     res.json({ success: true, message: `Archived ${count} completed tasks`, count });
   } catch (err) {
