@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import PasswordInput from '../components/ui/PasswordInput';
+import BixianLogo from '../assets/logo/BixianLogo.png';
 
 const Login = () => {
   const { login } = useAuth();
@@ -33,7 +34,7 @@ const Login = () => {
       {/* Top Nav */}
       <div style={styles.topNav}>
         <div style={styles.topNavBrand}>
-          <div style={styles.logoIcon}>CRM</div>
+          <div style={styles.logoIcon}><img src={BixianLogo} alt="Bixian" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /></div>
           <span style={styles.logoText}>Bixian CRM</span>
         </div>
         <div style={styles.topNavActions}>
@@ -44,7 +45,7 @@ const Login = () => {
 
       <div style={styles.box}>
         <div style={styles.logo}>
-          <div style={styles.logoIcon}>CRM</div>
+          <div style={styles.logoIcon}><img src={BixianLogo} alt="Bixian" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /></div>
           <h1 style={styles.logoText}>Bixian CRM</h1>
           <p style={styles.logoSub}>Digital Marketing Management Platform</p>
         </div>
@@ -84,7 +85,7 @@ const styles = {
   navRegisterBtn: { background: 'linear-gradient(135deg, #e94560, #7c3aed)', color: '#fff', fontSize: 14, fontWeight: 600, textDecoration: 'none', padding: '8px 18px', borderRadius: 8 },
   box: { width: '100%', maxWidth: 400, background: '#12121f', border: '1px solid #1e1e3a', borderRadius: 16, padding: 40, margin: 'auto' },
   logo: { textAlign: 'center', marginBottom: 32 },
-  logoIcon: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 56, height: 56, background: 'linear-gradient(135deg, #e94560, #7c3aed)', borderRadius: 14, fontSize: 18, fontWeight: 700, color: '#fff', marginBottom: 12 },
+  logoIcon: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 56, height: 56, borderRadius: 14, overflow: 'hidden', marginBottom: 12 },
   logoText: { fontSize: 22, fontWeight: 700, color: '#e2e2f0', marginBottom: 6 },
   logoSub: { fontSize: 13, color: '#6b7280' },
 };

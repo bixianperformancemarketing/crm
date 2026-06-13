@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import BixianLogo from '../assets/logo/BixianLogo.png';
 
 const API_URL = process.env.REACT_APP_API_URL || '';
 
@@ -64,7 +65,7 @@ const Pricing = () => {
       {/* Top Nav */}
       <div style={s.nav} className="pricing-nav">
         <div style={s.navBrand}>
-          <div style={s.logoIcon}>CRM</div>
+          <div style={s.logoIcon}><img src={BixianLogo} alt="Bixian" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /></div>
           <span style={s.logoText}>Bixian CRM</span>
         </div>
         <div style={s.navActions}>
@@ -180,7 +181,7 @@ const s = {
   page: { minHeight: '100vh', background: '#0d0d1a', color: '#e2e2f0', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', paddingBottom: 60 },
   nav: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 32px', borderBottom: '1px solid #1e1e3a', position: 'sticky', top: 0, background: '#0d0d1a', zIndex: 10 },
   navBrand: { display: 'flex', alignItems: 'center', gap: 10 },
-  logoIcon: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, background: 'linear-gradient(135deg, #e94560, #7c3aed)', borderRadius: 9, fontSize: 12, fontWeight: 700, color: '#fff' },
+  logoIcon: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, borderRadius: 9, overflow: 'hidden' },
   logoText: { fontSize: 16, fontWeight: 700, color: '#e2e2f0' },
   navActions: { display: 'flex', alignItems: 'center', gap: 12 },
   navLink: { background: 'none', border: 'none', color: '#9ca3af', fontSize: 14, cursor: 'pointer', padding: '8px 14px', borderRadius: 8 },

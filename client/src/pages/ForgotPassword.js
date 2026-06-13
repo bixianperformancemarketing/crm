@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { authAPI } from '../services/api';
+import BixianLogo from '../assets/logo/BixianLogo.png';
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
@@ -25,7 +26,7 @@ const ForgotPassword = () => {
     <div style={styles.container}>
       <div style={styles.box}>
         <div style={styles.logo}>
-          <div style={styles.logoIcon}>CRM</div>
+          <div style={styles.logoIcon}><img src={BixianLogo} alt="Bixian" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /></div>
           <h1 style={styles.logoText}>Reset Password</h1>
           <p style={styles.logoSub}>Enter your email to receive a reset link</p>
         </div>
@@ -78,7 +79,7 @@ const styles = {
   container: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0d0d1a' },
   box: { width: '100%', maxWidth: 400, background: '#12121f', border: '1px solid #1e1e3a', borderRadius: 16, padding: 40 },
   logo: { textAlign: 'center', marginBottom: 32 },
-  logoIcon: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 56, height: 56, background: 'linear-gradient(135deg, #e94560, #7c3aed)', borderRadius: 14, fontSize: 18, fontWeight: 700, color: '#fff', marginBottom: 12 },
+  logoIcon: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 56, height: 56, borderRadius: 14, overflow: 'hidden', marginBottom: 12 },
   logoText: { fontSize: 22, fontWeight: 700, color: '#e2e2f0', marginBottom: 6 },
   logoSub: { fontSize: 13, color: '#6b7280' },
 };
