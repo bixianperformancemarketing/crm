@@ -143,7 +143,7 @@ const Dashboard = () => {
           <select
             value={period}
             onChange={(e) => handlePeriodChange(e.target.value)}
-            style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface-2)', color: 'var(--text)', fontSize: 13, cursor: 'pointer' }}
+            className="filter-select"
           >
             {PERIODS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
           </select>
@@ -154,7 +154,8 @@ const Dashboard = () => {
                 value={customFrom}
                 max={customTo || undefined}
                 onChange={(e) => setCustomFrom(e.target.value)}
-                style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface-2)', color: 'var(--text)', fontSize: 13 }}
+                className="form-control"
+                style={{ width: 'auto' }}
               />
               <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>to</span>
               <input
@@ -162,7 +163,8 @@ const Dashboard = () => {
                 value={customTo}
                 min={customFrom || undefined}
                 onChange={(e) => setCustomTo(e.target.value)}
-                style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface-2)', color: 'var(--text)', fontSize: 13 }}
+                className="form-control"
+                style={{ width: 'auto' }}
               />
               <button
                 className="btn btn-primary btn-sm"
