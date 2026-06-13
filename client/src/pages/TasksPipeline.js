@@ -45,9 +45,7 @@ const TasksPipeline = () => {
   const [apiUsers, setApiUsers] = useState([]);
   const [workspaces, setWorkspaces] = useState([]);
   const [workspaceFilter, setWorkspaceFilter] = useState('');
-  const [filterUser, setFilterUser] = useState(() =>
-    isAdmin && user?.id ? String(user.id) : ''
-  );
+  const [filterUser, setFilterUser] = useState('');
 
   useEffect(() => {
     if (isAdmin || isOwner) {
