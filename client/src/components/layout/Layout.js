@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
 import { notificationsAPI } from '../../services/api';
 import { timeAgo } from '../../utils/helpers';
+import BixianLogo from '../../assets/logo/BixianLogo.png';
 import './Layout.css';
 
 const NAV_ITEMS = {
@@ -130,7 +131,7 @@ const Layout = ({ children, title }) => {
       <aside className={`sidebar${collapsed ? ' collapsed' : ''}${mobileOpen ? ' mobile-open' : ''}`}>
         <div className="sidebar-logo">
           <div className="logo-icon">
-            <img src="/favicon-32x32.png" alt="logo" style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: 6 }} />
+            <img src={BixianLogo} alt="Bixian" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           </div>
           {(!collapsed || mobileOpen) && (
             <div className="logo-text-wrap">
