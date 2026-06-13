@@ -9,7 +9,7 @@ const getUsers = async (req, res) => {
     const { page = 1, limit = 50, role, search, includeInactive } = req.query;
     const { limit: lim, offset } = paginate(page, limit);
 
-    const where = { organizationId: user.organizationId };
+    const where = { organizationId: user.organizationId, workspaceId: { [Op.ne]: null } };
     if (!includeInactive) where.isActive = true;
     if (workspaceId) where.workspaceId = workspaceId;
     if (role) where.role = role;
@@ -136,8 +136,8 @@ const deleteUser = async (req, res) => {
     if (parseInt(id) === user.id) return res.status(400).json({ success: false, message: 'Cannot delete your own account' });
     const target = await User.findOne({ where: { id, organizationId: user.organizationId } });
     if (!target) return res.status(404).json({ success: false, message: 'User not found' });
-    await target.update({ isActive: false });
-    res.json({ success: true, message: 'User deactivated' });
+    await target.destroy();
+    res.json({ success: true, message: 'User deleted' });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Failed to delete user' });
   }
