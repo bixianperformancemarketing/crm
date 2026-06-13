@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import toast from 'react-hot-toast';
 import Layout from '../components/layout/Layout';
@@ -35,14 +35,30 @@ const TasksPipeline = () => {
   const [loading, setLoading] = useState(true);
   const [archiving, setArchiving] = useState(null);
   const [clearing, setClearing] = useState(false);
-  const [users, setUsers] = useState([]);
+  const [apiUsers, setApiUsers] = useState([]);
   const [filterUser, setFilterUser] = useState('');
 
   useEffect(() => {
     if (canFilter) {
-      usersAPI.getAll({ limit: 200 }).then(r => setUsers(r.data?.data || [])).catch(() => {});
+      usersAPI.getAll({ limit: 200 }).then(({ data }) => setApiUsers(data.data || [])).catch(() => {});
     }
   }, [canFilter]);
+
+  // fall back to assignees already in the pipeline if the API call fails
+  const users = useMemo(() => {
+    if (apiUsers.length > 0) return apiUsers;
+    const seen = new Set();
+    const result = [];
+    COLUMNS.forEach(col => {
+      (pipeline[col] || []).forEach(task => {
+        if (task.assignee && !seen.has(task.assignee.id)) {
+          seen.add(task.assignee.id);
+          result.push(task.assignee);
+        }
+      });
+    });
+    return result.sort((a, b) => a.name.localeCompare(b.name));
+  }, [apiUsers, pipeline]);
 
   const loadPipeline = useCallback(async () => {
     try {
@@ -135,7 +151,7 @@ const TasksPipeline = () => {
       <div className="page-header">
         <div className="page-title">Tasks Pipeline</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          {canFilter && users.length > 0 && (
+          {canFilter && (
             <select
               value={filterUser}
               onChange={(e) => setFilterUser(e.target.value)}
