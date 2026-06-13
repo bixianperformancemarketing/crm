@@ -15,7 +15,7 @@ router.get('/:id', ctrl.getTask);
 router.post('/', requireRole('admin', 'employee', 'owner'), ctrl.createTask);
 router.put('/:id', ctrl.updateTask);
 router.delete('/:id', requireRole('admin', 'owner'), ctrl.deleteTask);
-router.post('/:id/archive', requireRole('admin', 'owner'), ctrl.archiveTask);
-router.post('/:id/unarchive', requireRole('admin', 'owner'), ctrl.unarchiveTask);
+router.post('/:id/archive', requireRole('admin', 'owner', 'employee'), ctrl.archiveTask);
+router.post('/:id/unarchive', requireRole('admin', 'owner', 'employee'), ctrl.unarchiveTask);
 
 module.exports = router;

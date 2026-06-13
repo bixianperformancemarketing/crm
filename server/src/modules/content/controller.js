@@ -198,7 +198,9 @@ const archiveTask = async (req, res) => {
     const { id } = req.params;
     const { user, workspaceId } = req;
     const ws = workspaceId ? { workspaceId } : {};
-    const task = await ContentTask.findOne({ where: { id, organizationId: user.organizationId, ...ws } });
+    const where = { id, organizationId: user.organizationId, ...ws };
+    if (user.role === 'employee') where.assignedTo = user.id;
+    const task = await ContentTask.findOne({ where });
     if (!task) return res.status(404).json({ success: false, message: 'Task not found' });
     await task.update({ isArchived: true });
     res.json({ success: true, message: 'Task archived' });
