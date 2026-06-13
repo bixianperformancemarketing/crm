@@ -139,7 +139,7 @@ const TasksPipeline = () => {
             <select
               value={filterUser}
               onChange={(e) => setFilterUser(e.target.value)}
-              style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface-2)', color: 'var(--text)', fontSize: 13, cursor: 'pointer' }}
+              className="filter-select"
             >
               <option value="">All Users</option>
               {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
