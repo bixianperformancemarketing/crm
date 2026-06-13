@@ -1,4 +1,5 @@
 :root {
+  color-scheme: dark;
   --bg: #0d0d1a;
   --sidebar-bg: #090912;
   --card-bg: #12121f;
@@ -286,6 +287,7 @@ tr:hover td { background: rgba(255,255,255,0.015); }
 
 /* ─── LIGHT YELLOW THEME ─────────────────────────────────────────────── */
 [data-theme="light"] {
+  color-scheme: light;
   --bg: #fffef5;
   --sidebar-bg: #E7C51C;
   --card-bg: #ffffff;
