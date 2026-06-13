@@ -224,12 +224,25 @@ const TasksPipeline = () => {
           <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Drag cards to update status</div>
           {completedCount > 0 && (
             <button
-              className="btn btn-ghost btn-sm"
               onClick={handleClearCompleted}
               disabled={clearing}
-              style={{ fontSize: 12, color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                color: '#e94560',
+                background: 'rgba(233,69,96,0.1)',
+                border: '1px solid rgba(233,69,96,0.35)',
+                borderRadius: 8,
+                padding: '6px 14px',
+                cursor: clearing ? 'not-allowed' : 'pointer',
+                opacity: clearing ? 0.6 : 1,
+                transition: 'all 0.15s',
+                whiteSpace: 'nowrap',
+              }}
+              onMouseEnter={e => { if (!clearing) { e.currentTarget.style.background = 'rgba(233,69,96,0.18)'; e.currentTarget.style.borderColor = 'rgba(233,69,96,0.6)'; }}}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(233,69,96,0.1)'; e.currentTarget.style.borderColor = 'rgba(233,69,96,0.35)'; }}
             >
-              {clearing ? 'Clearing...' : `Clear Completed (${completedCount})`}
+              {clearing ? 'Clearing...' : `🗂 Clear Completed (${completedCount})`}
             </button>
           )}
         </div>
