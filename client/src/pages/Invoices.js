@@ -126,7 +126,7 @@ const Invoices = () => {
   const carryoverTotal = (form.includePending && pendingInvoices.length > 0)
     ? pendingInvoices.reduce((s, inv) => s + parseFloat(inv.dueAmount || 0), 0)
     : 0;
-  const grandTotal = total + carryoverTotal;
+  const grandTotal = total + carryoverTotal; // display only — totalAmount stored is current invoice only
 
   const editSubtotal = editForm ? editForm.items.reduce((s, i) => s + parseFloat(i.totalPrice || 0), 0) : 0;
   const editGstAmount = editForm ? (editSubtotal * parseFloat(editForm.gstPercent || 0)) / 100 : 0;
