@@ -8,7 +8,7 @@ const COMPLETED_STATUSES = ['Done', 'Approved', 'Cancelled'];
 const getTasks = async (req, res) => {
   try {
     const { user, workspaceId } = req;
-    const { page = 1, limit = 20, status, assignedTo, dateFrom, dateTo } = req.query;
+    const { page = 1, limit = 20, status, assignedTo, dateFrom, dateTo, search } = req.query;
     const { limit: lim, offset } = paginate(page, limit);
 
     const ws = workspaceId ? { workspaceId } : {};
@@ -16,6 +16,7 @@ const getTasks = async (req, res) => {
     if (user.role === 'employee') where.assignedTo = user.id;
     if (status) where.status = status;
     if (assignedTo && user.role !== 'employee') where.assignedTo = assignedTo;
+    if (search) where.title = { [Op.like]: `%${search}%` };
     if (dateFrom || dateTo) {
       where.dueDate = {};
       if (dateFrom) where.dueDate[Op.gte] = dateFrom;

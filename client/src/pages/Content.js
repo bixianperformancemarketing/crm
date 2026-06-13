@@ -96,7 +96,7 @@ const TaskFormFields = ({ f, setF, isOwner, users, workspaces }) => (
 );
 
 const Content = () => {
-  const { org, isRole } = useAuth();
+  const { org, user, isRole } = useAuth();
   const [tasks, setTasks] = useState([]);
   const [archivedTasks, setArchivedTasks] = useState([]);
   const [calTasks, setCalTasks] = useState([]);
@@ -107,7 +107,12 @@ const Content = () => {
   const [archivedPage, setArchivedPage] = useState(1);
   const [view, setView] = useState('list');
   const [statusFilter, setStatusFilter] = useState('');
-  const [userFilter, setUserFilter] = useState('');
+  const [userFilter, setUserFilter] = useState(() =>
+    isRole('admin') && user?.id ? String(user.id) : ''
+  );
+  const [workspaceFilter, setWorkspaceFilter] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [calYear, setCalYear] = useState(new Date().getFullYear());
   const [calMonth, setCalMonth] = useState(new Date().getMonth() + 1);
   const [showCreate, setShowCreate] = useState(false);
@@ -123,18 +128,29 @@ const Content = () => {
   const [archivingId, setArchivingId] = useState(null);
   const [unarchivingId, setUnarchivingId] = useState(null);
 
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchQuery), 400);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    if (isRole('owner')) setUserFilter('');
+  }, [workspaceFilter, isRole]);
+
   const loadList = useCallback(async () => {
     setLoading(true);
     try {
       const params = { page };
       if (statusFilter) params.status = statusFilter;
       if (userFilter && (isRole('admin') || isRole('owner'))) params.assignedTo = userFilter;
+      if (isRole('owner') && workspaceFilter) params.workspaceId = workspaceFilter;
+      if (debouncedSearch) params.search = debouncedSearch;
       const { data } = await contentAPI.getAll(params);
       setTasks(data.data || []);
       setPagination(data.pagination);
     } catch { toast.error('Failed to load tasks'); }
     finally { setLoading(false); }
-  }, [page, statusFilter, userFilter, isRole]);
+  }, [page, statusFilter, userFilter, workspaceFilter, debouncedSearch, isRole]);
 
   const loadCal = useCallback(async () => {
     setLoading(true);
@@ -321,15 +337,38 @@ const Content = () => {
                 {s || 'All'}
               </button>
             ))}
-            {canManage && users.length > 0 && (
+            {isRole('owner') && workspaces.length > 0 && (
+              <select
+                className="filter-select"
+                value={workspaceFilter}
+                onChange={(e) => { setWorkspaceFilter(e.target.value); setPage(1); }}
+              >
+                <option value="">All Workspaces</option>
+                {workspaces.map(ws => <option key={ws.id} value={ws.id}>{ws.name}</option>)}
+              </select>
+            )}
+            {canManage && (
               <select
                 className="filter-select"
                 value={userFilter}
                 onChange={(e) => { setUserFilter(e.target.value); setPage(1); }}
               >
                 <option value="">All Users</option>
-                {users.map(u => <option key={u.id} value={u.id}>{u.name} ({u.role})</option>)}
+                {(isRole('owner') && workspaceFilter
+                  ? users.filter(u => String(u.workspaceId) === String(workspaceFilter))
+                  : users
+                ).map(u => <option key={u.id} value={u.id}>{u.name} ({u.role})</option>)}
               </select>
+            )}
+            {canManage && (
+              <input
+                type="text"
+                className="search-input"
+                placeholder="Search tasks..."
+                value={searchQuery}
+                onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+                style={{ minWidth: 180 }}
+              />
             )}
           </div>
           {loading ? <div className="loading-spinner"><div className="spinner" /></div> : tasks.length === 0 ? (

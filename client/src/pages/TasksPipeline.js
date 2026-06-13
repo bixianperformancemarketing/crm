@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import toast from 'react-hot-toast';
 import Layout from '../components/layout/Layout';
-import { contentAPI, usersAPI } from '../services/api';
+import { contentAPI, usersAPI, orgAPI } from '../services/api';
 import { getPriorityColor, getInitials } from '../utils/helpers';
 import { useAuth } from '../context/AuthContext';
 import './Pipeline.css';
@@ -28,25 +28,41 @@ const fmtDate = (d) => {
 };
 
 const TasksPipeline = () => {
-  const { isRole } = useAuth();
-  const canApprove = isRole('owner') || isRole('admin');
-  const canFilter = isRole('owner') || isRole('admin');
+  const { user, isRole } = useAuth();
+  const isAdmin = isRole('admin');
+  const isOwner = isRole('owner');
+  const canApprove = isOwner || isAdmin;
+
   const [pipeline, setPipeline] = useState({});
   const [loading, setLoading] = useState(true);
   const [archiving, setArchiving] = useState(null);
   const [clearing, setClearing] = useState(false);
   const [apiUsers, setApiUsers] = useState([]);
-  const [filterUser, setFilterUser] = useState('');
+  const [workspaces, setWorkspaces] = useState([]);
+  const [workspaceFilter, setWorkspaceFilter] = useState('');
+  const [filterUser, setFilterUser] = useState(() =>
+    isAdmin && user?.id ? String(user.id) : ''
+  );
 
   useEffect(() => {
-    if (canFilter) {
+    if (isAdmin || isOwner) {
       usersAPI.getAll({ limit: 200 }).then(({ data }) => setApiUsers(data.data || [])).catch(() => {});
     }
-  }, [canFilter]);
+    if (isOwner) {
+      orgAPI.getWorkspaces().then(({ data }) => setWorkspaces(data.workspaces || [])).catch(() => {});
+    }
+  }, [isAdmin, isOwner]);
 
-  // fall back to assignees already in the pipeline if the API call fails
+  useEffect(() => {
+    if (isOwner) setFilterUser('');
+  }, [workspaceFilter, isOwner]);
+
   const users = useMemo(() => {
-    if (apiUsers.length > 0) return apiUsers;
+    let list = apiUsers;
+    if (isOwner && workspaceFilter) {
+      list = list.filter(u => String(u.workspaceId) === String(workspaceFilter));
+    }
+    if (list.length > 0) return list;
     const seen = new Set();
     const result = [];
     COLUMNS.forEach(col => {
@@ -58,16 +74,18 @@ const TasksPipeline = () => {
       });
     });
     return result.sort((a, b) => a.name.localeCompare(b.name));
-  }, [apiUsers, pipeline]);
+  }, [apiUsers, pipeline, workspaceFilter, isOwner]);
 
   const loadPipeline = useCallback(async () => {
     try {
-      const params = filterUser ? { assignedTo: filterUser } : {};
+      const params = {};
+      if (filterUser) params.assignedTo = filterUser;
+      if (isOwner && workspaceFilter) params.workspaceId = workspaceFilter;
       const { data } = await contentAPI.getPipeline(params);
       setPipeline(data.pipeline || {});
     } catch { toast.error('Failed to load tasks pipeline'); }
     finally { setLoading(false); }
-  }, [filterUser]);
+  }, [filterUser, workspaceFilter, isOwner]);
 
   useEffect(() => { loadPipeline(); }, [loadPipeline]);
 
@@ -150,17 +168,58 @@ const TasksPipeline = () => {
     <Layout title="Tasks Pipeline">
       <div className="page-header">
         <div className="page-title">Tasks Pipeline</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          {canFilter && (
-            <select
-              value={filterUser}
-              onChange={(e) => setFilterUser(e.target.value)}
-              className="filter-select"
-            >
-              <option value="">All Users</option>
-              {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-            </select>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+
+          {/* Admin: My Tasks / All Tasks pill toggle */}
+          {isAdmin && (
+            <div style={{ display: 'flex', background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 8, padding: 3, gap: 2 }}>
+              <button
+                onClick={() => setFilterUser(String(user.id))}
+                style={{
+                  padding: '5px 16px', borderRadius: 6, border: 'none', fontSize: 12, fontWeight: 600,
+                  cursor: 'pointer', transition: 'all 0.15s',
+                  background: filterUser === String(user.id) ? 'var(--accent)' : 'transparent',
+                  color: filterUser === String(user.id) ? '#fff' : 'var(--text-muted)',
+                }}
+              >
+                My Tasks
+              </button>
+              <button
+                onClick={() => setFilterUser('')}
+                style={{
+                  padding: '5px 16px', borderRadius: 6, border: 'none', fontSize: 12, fontWeight: 600,
+                  cursor: 'pointer', transition: 'all 0.15s',
+                  background: filterUser === '' ? 'var(--accent)' : 'transparent',
+                  color: filterUser === '' ? '#fff' : 'var(--text-muted)',
+                }}
+              >
+                All Tasks
+              </button>
+            </div>
           )}
+
+          {/* Owner: Workspace + User dropdowns */}
+          {isOwner && (
+            <>
+              <select
+                className="filter-select"
+                value={workspaceFilter}
+                onChange={(e) => setWorkspaceFilter(e.target.value)}
+              >
+                <option value="">All Workspaces</option>
+                {workspaces.map(ws => <option key={ws.id} value={ws.id}>{ws.name}</option>)}
+              </select>
+              <select
+                className="filter-select"
+                value={filterUser}
+                onChange={(e) => setFilterUser(e.target.value)}
+              >
+                <option value="">All Users</option>
+                {users.map(u => <option key={u.id} value={u.id}>{u.name} ({u.role})</option>)}
+              </select>
+            </>
+          )}
+
           <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Drag cards to update status</div>
           {completedCount > 0 && (
             <button
