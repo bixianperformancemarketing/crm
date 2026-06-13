@@ -233,6 +233,7 @@ const archiveBulk = async (req, res) => {
     );
     res.json({ success: true, message: `Archived ${count} completed tasks`, count });
   } catch (err) {
+    console.error('[archiveBulk] error:', err);
     res.status(500).json({ success: false, message: 'Failed to archive tasks' });
   }
 };
