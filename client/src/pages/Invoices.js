@@ -10,7 +10,7 @@ import { ENUMS } from '../utils/helpers';
 import './Invoices.css';
 
 const emptyItem = () => ({ description: '', subDescription: '', subItems: [], totalPrice: '' });
-const emptyForm = () => ({ clientName: '', clientEmail: '', clientPhone: '', clientAddress: '', clientGST: '', gstPercent: 18, terms: [], notes: '', dueDate: '', workspaceId: '', items: [emptyItem()], includePending: true });
+const emptyForm = () => ({ clientName: '', clientEmail: '', clientPhone: '', clientAddress: '', clientGST: '', gstPercent: 18, terms: [], notes: '', dueDate: '', workspaceId: '', items: [emptyItem()], includePending: false });
 const parseTermsArray = (raw) => {
   if (!raw) return [];
   try { const p = JSON.parse(raw); return Array.isArray(p) ? p : (raw ? [raw] : []); }
@@ -369,7 +369,7 @@ const Invoices = () => {
                 <div className="form-group"><label className="form-label">Phone *</label><input className="form-control" value={form.clientPhone} onChange={(e) => setForm({ ...form, clientPhone: e.target.value })} onBlur={(e) => { if (form.includePending) fetchPendingInvoices(e.target.value, form.clientEmail); }} placeholder="+91..." /></div>
               </div>
               <div className="form-row">
-                <div className="form-group"><label className="form-label">Email</label><input className="form-control" type="email" value={form.clientEmail} onChange={(e) => setForm({ ...form, clientEmail: e.target.value })} onBlur={(e) => { if (form.includePending && !form.clientPhone) fetchPendingInvoices(form.clientPhone, e.target.value); }} placeholder="client@email.com" /></div>
+                <div className="form-group"><label className="form-label">Email</label><input className="form-control" type="email" value={form.clientEmail} onChange={(e) => setForm({ ...form, clientEmail: e.target.value })} onBlur={(e) => { if (form.includePending) fetchPendingInvoices(form.clientPhone, e.target.value); }} placeholder="client@email.com" /></div>
                 <div className="form-group"><label className="form-label">GST Number</label><input className="form-control" value={form.clientGST} onChange={(e) => setForm({ ...form, clientGST: e.target.value })} placeholder="GSTIN..." /></div>
               </div>
               <div className="form-group"><label className="form-label">Address</label><input className="form-control" value={form.clientAddress} onChange={(e) => setForm({ ...form, clientAddress: e.target.value })} placeholder="Client address..." /></div>
