@@ -107,6 +107,7 @@ const Content = () => {
   const [archivedPage, setArchivedPage] = useState(1);
   const [view, setView] = useState('list');
   const [statusFilter, setStatusFilter] = useState('');
+  const [userFilter, setUserFilter] = useState('');
   const [calYear, setCalYear] = useState(new Date().getFullYear());
   const [calMonth, setCalMonth] = useState(new Date().getMonth() + 1);
   const [showCreate, setShowCreate] = useState(false);
@@ -127,12 +128,13 @@ const Content = () => {
     try {
       const params = { page };
       if (statusFilter) params.status = statusFilter;
+      if (userFilter && (isRole('admin') || isRole('owner'))) params.assignedTo = userFilter;
       const { data } = await contentAPI.getAll(params);
       setTasks(data.data || []);
       setPagination(data.pagination);
     } catch { toast.error('Failed to load tasks'); }
     finally { setLoading(false); }
-  }, [page, statusFilter]);
+  }, [page, statusFilter, userFilter, isRole]);
 
   const loadCal = useCallback(async () => {
     setLoading(true);
@@ -319,6 +321,16 @@ const Content = () => {
                 {s || 'All'}
               </button>
             ))}
+            {canManage && users.length > 0 && (
+              <select
+                className="filter-select"
+                value={userFilter}
+                onChange={(e) => { setUserFilter(e.target.value); setPage(1); }}
+              >
+                <option value="">All Users</option>
+                {users.map(u => <option key={u.id} value={u.id}>{u.name} ({u.role})</option>)}
+              </select>
+            )}
           </div>
           {loading ? <div className="loading-spinner"><div className="spinner" /></div> : tasks.length === 0 ? (
             <div className="empty-state"><div className="empty-icon">✅</div><div className="empty-title">No tasks yet</div></div>
