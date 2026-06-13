@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 import Layout from '../components/layout/Layout';
 import Pagination from '../components/common/Pagination';
 import UpgradeModal from '../components/common/UpgradeModal';
-import { quotationsAPI } from '../services/api';
+import { quotationsAPI, orgAPI } from '../services/api';
 import { formatCurrency, formatDate, getStatusColor, downloadBlob } from '../utils/helpers';
 import { useAuth } from '../context/AuthContext';
 import './Quotations.css';
@@ -26,7 +26,8 @@ const Quotations = () => {
   const [saving, setSaving] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(null);
   const [sendingWhatsapp, setSendingWhatsapp] = useState(null);
-  const [form, setForm] = useState({ clientName: '', clientEmail: '', clientPhone: '', clientAddress: '', clientGST: '', gstPercent: 18, terms: [], notes: '', validUntil: '', items: [emptyItem()] });
+  const [form, setForm] = useState({ clientName: '', clientEmail: '', clientPhone: '', clientAddress: '', clientGST: '', gstPercent: 18, terms: [], notes: '', validUntil: '', workspaceId: '', items: [emptyItem()] });
+  const [workspaces, setWorkspaces] = useState([]);
   const [editQuotation, setEditQuotation] = useState(null);
   const [editForm, setEditForm] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
@@ -42,6 +43,12 @@ const Quotations = () => {
   }, [page]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (user?.role === 'owner') {
+      orgAPI.getWorkspaces().then(r => setWorkspaces(r.data?.workspaces || r.data || [])).catch(() => {});
+    }
+  }, [user?.role]);
 
   const updateItem = (i, field, val) => {
     const items = [...form.items];
@@ -105,13 +112,14 @@ const Quotations = () => {
     if (!form.clientPhone.trim()) return toast.error('Phone number is required');
     if (!form.clientEmail.trim()) return toast.error('Email is required');
     if (!form.clientAddress.trim()) return toast.error('Address is required');
+    if (user?.role === 'owner' && !form.workspaceId) return toast.error('Please select a workspace');
     setSaving(true);
     try {
       const { data } = await quotationsAPI.create({ ...form, terms: JSON.stringify(form.terms.filter(t => t.trim())), items: form.items.filter((i) => i.description) });
       if (data.upgradeRequired) { setUpgradeModal(data); return; }
       toast.success('Quotation created');
       setShowCreate(false);
-      setForm({ clientName: '', clientEmail: '', clientPhone: '', clientAddress: '', clientGST: '', gstPercent: 18, terms: [], notes: '', validUntil: '', items: [emptyItem()] });
+      setForm({ clientName: '', clientEmail: '', clientPhone: '', clientAddress: '', clientGST: '', gstPercent: 18, terms: [], notes: '', validUntil: '', workspaceId: '', items: [emptyItem()] });
       load();
     } catch (err) {
       const d = err.response?.data;
@@ -312,6 +320,16 @@ const Quotations = () => {
                 <div className="form-group"><label className="form-label">GST Number</label><input className="form-control" value={form.clientGST} onChange={(e) => setForm({ ...form, clientGST: e.target.value })} /></div>
               </div>
               <div className="form-group"><label className="form-label">Address *</label><textarea className="form-control" rows={2} value={form.clientAddress} onChange={(e) => setForm({ ...form, clientAddress: e.target.value })} /></div>
+
+              {user?.role === 'owner' && (
+                <div className="form-group">
+                  <label className="form-label">Workspace *</label>
+                  <select className="form-control" value={form.workspaceId} onChange={(e) => setForm({ ...form, workspaceId: e.target.value })} required>
+                    <option value="">— Select Workspace —</option>
+                    {workspaces.map(ws => <option key={ws.id} value={ws.id}>{ws.name}</option>)}
+                  </select>
+                </div>
+              )}
 
               <div className="q-section">
                 <p className="q-section-title">Line Items</p>

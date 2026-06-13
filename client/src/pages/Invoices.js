@@ -3,14 +3,14 @@ import toast from 'react-hot-toast';
 import Layout from '../components/layout/Layout';
 import Pagination from '../components/common/Pagination';
 import UpgradeModal from '../components/common/UpgradeModal';
-import { invoicesAPI, paymentsAPI } from '../services/api';
+import { invoicesAPI, paymentsAPI, orgAPI } from '../services/api';
 import { formatCurrency, formatDate, getStatusColor, downloadBlob } from '../utils/helpers';
 import { useAuth } from '../context/AuthContext';
 import { ENUMS } from '../utils/helpers';
 import './Invoices.css';
 
 const emptyItem = () => ({ description: '', subDescription: '', subItems: [], totalPrice: '' });
-const emptyForm = () => ({ clientName: '', clientEmail: '', clientPhone: '', clientAddress: '', clientGST: '', gstPercent: 18, terms: [], notes: '', dueDate: '', items: [emptyItem()] });
+const emptyForm = () => ({ clientName: '', clientEmail: '', clientPhone: '', clientAddress: '', clientGST: '', gstPercent: 18, terms: [], notes: '', dueDate: '', workspaceId: '', items: [emptyItem()] });
 const parseTermsArray = (raw) => {
   if (!raw) return [];
   try { const p = JSON.parse(raw); return Array.isArray(p) ? p : (raw ? [raw] : []); }
@@ -18,7 +18,7 @@ const parseTermsArray = (raw) => {
 };
 
 const Invoices = () => {
-  const { hasFeature, org } = useAuth();
+  const { user, hasFeature, org } = useAuth();
   const [invoices, setInvoices] = useState([]);
   const [pagination, setPagination] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -35,6 +35,13 @@ const Invoices = () => {
   const [editInvoice, setEditInvoice] = useState(null);
   const [editForm, setEditForm] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [workspaces, setWorkspaces] = useState([]);
+
+  useEffect(() => {
+    if (user?.role === 'owner') {
+      orgAPI.getWorkspaces().then(r => setWorkspaces(r.data?.workspaces || r.data || [])).catch(() => {});
+    }
+  }, [user?.role]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -110,6 +117,7 @@ const Invoices = () => {
     e.preventDefault();
     if (!form.clientName.trim()) return toast.error('Client name is required');
     if (!form.clientPhone.trim()) return toast.error('Phone number is required');
+    if (user?.role === 'owner' && !form.workspaceId) return toast.error('Please select a workspace');
     const validItems = form.items.filter((i) => i.description?.trim());
     if (!validItems.length) return toast.error('At least one item with a description is required');
     setSaving(true);
@@ -336,6 +344,16 @@ const Invoices = () => {
                 <div className="form-group"><label className="form-label">GST Number</label><input className="form-control" value={form.clientGST} onChange={(e) => setForm({ ...form, clientGST: e.target.value })} placeholder="GSTIN..." /></div>
               </div>
               <div className="form-group"><label className="form-label">Address</label><input className="form-control" value={form.clientAddress} onChange={(e) => setForm({ ...form, clientAddress: e.target.value })} placeholder="Client address..." /></div>
+
+              {user?.role === 'owner' && (
+                <div className="form-group">
+                  <label className="form-label">Workspace *</label>
+                  <select className="form-control" value={form.workspaceId} onChange={(e) => setForm({ ...form, workspaceId: e.target.value })} required>
+                    <option value="">— Select Workspace —</option>
+                    {workspaces.map(ws => <option key={ws.id} value={ws.id}>{ws.name}</option>)}
+                  </select>
+                </div>
+              )}
 
               <div style={{ margin: '16px 0 8px', fontWeight: 600, fontSize: 13 }}>Line Items</div>
               <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 8 }}>
