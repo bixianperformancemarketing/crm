@@ -47,7 +47,7 @@ const Login = () => {
         <div style={styles.logo}>
           <div style={styles.logoIcon}><img src={BixianLogo} alt="Bixian" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /></div>
           <h1 style={styles.logoText}>Bixian CRM</h1>
-          <p style={styles.logoSub}>Digital Marketing Management Platform</p>
+          <p style={styles.logoSub}>Maximize your leads, elevate your team, and scale your business to new heights.</p>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="form-group">
