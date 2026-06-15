@@ -152,7 +152,9 @@ const updateTask = async (req, res) => {
       }
     }
 
-    const allowed = ['title', 'description', 'priority', 'status', 'assignedTo', 'dueDate', 'dueTime', 'notes', 'requiresApproval'];
+    const allowed = user.role === 'employee'
+      ? ['title', 'description', 'priority', 'status', 'dueDate', 'dueTime', 'notes']
+      : ['title', 'description', 'priority', 'status', 'assignedTo', 'dueDate', 'dueTime', 'notes', 'requiresApproval'];
     const updates = {};
     for (const k of allowed) { if (req.body[k] !== undefined) updates[k] = req.body[k]; }
     if (updates.dueDate === '') updates.dueDate = null;

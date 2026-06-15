@@ -55,7 +55,7 @@ const ApprovalToggle = ({ value, onChange }) => (
   </div>
 );
 
-const TaskFormFields = ({ f, setF, isOwner, users, workspaces }) => (
+const TaskFormFields = ({ f, setF, isOwner, users, workspaces, showAssignTo = true, showApprovalToggle = true }) => (
   <>
     <div className="form-group"><label className="form-label">Title *</label><input className="form-control" value={f.title} onChange={e => setF({ ...f, title: e.target.value })} placeholder="Task title" /></div>
     <div className="form-group"><label className="form-label">Description</label><textarea className="form-control" rows={2} value={f.description} onChange={e => setF({ ...f, description: e.target.value })} placeholder="What needs to be done..." /></div>
@@ -80,17 +80,19 @@ const TaskFormFields = ({ f, setF, isOwner, users, workspaces }) => (
         </select>
       </div>
     )}
-    <div className="form-group">
-      <label className="form-label">Assign To</label>
-      <select className="form-control" value={f.assignedTo} onChange={e => {
-        const selected = users.find(u => String(u.id) === e.target.value);
-        setF({ ...f, assignedTo: e.target.value, workspaceId: selected?.workspaceId ? String(selected.workspaceId) : f.workspaceId });
-      }}>
-        <option value="">— Unassigned —</option>
-        {users.filter(u => (u.role !== 'employee' || u.canUseContentCalendar !== false) && (!isOwner || (f.workspaceId && String(u.workspaceId) === String(f.workspaceId)))).map(u => <option key={u.id} value={u.id}>{u.name} ({u.label || u.role})</option>)}
-      </select>
-    </div>
-    <ApprovalToggle value={f.requiresApproval} onChange={v => setF({ ...f, requiresApproval: v })} />
+    {showAssignTo && (
+      <div className="form-group">
+        <label className="form-label">Assign To</label>
+        <select className="form-control" value={f.assignedTo} onChange={e => {
+          const selected = users.find(u => String(u.id) === e.target.value);
+          setF({ ...f, assignedTo: e.target.value, workspaceId: selected?.workspaceId ? String(selected.workspaceId) : f.workspaceId });
+        }}>
+          <option value="">— Unassigned —</option>
+          {users.filter(u => (u.role !== 'employee' || u.canUseContentCalendar !== false) && (!isOwner || (f.workspaceId && String(u.workspaceId) === String(f.workspaceId)))).map(u => <option key={u.id} value={u.id}>{u.name} ({u.label || u.role})</option>)}
+        </select>
+      </div>
+    )}
+    {showApprovalToggle && <ApprovalToggle value={f.requiresApproval} onChange={v => setF({ ...f, requiresApproval: v })} />}
     <div className="form-group"><label className="form-label">Notes</label><textarea className="form-control" rows={2} value={f.notes} onChange={e => setF({ ...f, notes: e.target.value })} placeholder="Additional notes..." /></div>
   </>
 );
@@ -188,7 +190,9 @@ const Content = () => {
     if (isRole('owner') && !form.workspaceId) return toast.error('Workspace is required');
     setSaving(true);
     try {
-      const { data } = await contentAPI.create(form);
+      const payload = { ...form };
+      if (isRole('employee')) { payload.assignedTo = user.id; payload.requiresApproval = true; }
+      const { data } = await contentAPI.create(payload);
       if (data.upgradeRequired) { setUpgradeModal(data); return; }
       toast.success('Task created');
       setShowCreate(false);
@@ -324,7 +328,7 @@ const Content = () => {
             <button className={view === 'cal' ? 'active' : ''} onClick={() => setView('cal')}>Calendar</button>
             <button className={view === 'archived' ? 'active' : ''} onClick={() => setView('archived')}>Archived</button>
           </div>
-          {canManage && view !== 'archived' && <button className="btn btn-primary" onClick={() => setShowCreate(true)}>+ New Task</button>}
+          {view !== 'archived' && <button className="btn btn-primary" onClick={() => setShowCreate(true)}>+ New Task</button>}
         </div>
       </div>
 
@@ -530,7 +534,7 @@ const Content = () => {
             <h3>New Task</h3>
             <button className="modal-close" onClick={() => setShowCreate(false)}>×</button>
             <form onSubmit={handleCreate}>
-              <TaskFormFields f={form} setF={setForm} isOwner={isRole('owner')} users={users} workspaces={workspaces} />
+              <TaskFormFields f={form} setF={setForm} isOwner={isRole('owner')} users={users} workspaces={workspaces} showAssignTo={canManage} showApprovalToggle={canManage} />
               <div className="modal-actions">
                 <button type="button" className="btn btn-ghost" onClick={() => setShowCreate(false)}>Cancel</button>
                 <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Creating...' : 'Create Task'}</button>
@@ -546,7 +550,7 @@ const Content = () => {
             <h3>Edit Task</h3>
             <button className="modal-close" onClick={() => setEditTask(null)}>×</button>
             <form onSubmit={handleUpdate}>
-              <TaskFormFields f={editForm} setF={setEditForm} isOwner={isRole('owner')} users={users} workspaces={workspaces} />
+              <TaskFormFields f={editForm} setF={setEditForm} isOwner={isRole('owner')} users={users} workspaces={workspaces} showAssignTo={canManage} showApprovalToggle={canManage} />
               <div className="modal-actions">
                 <button type="button" className="btn btn-ghost" onClick={() => setEditTask(null)}>Cancel</button>
                 <button type="submit" className="btn btn-primary" disabled={editSaving}>{editSaving ? 'Saving...' : 'Save Changes'}</button>
