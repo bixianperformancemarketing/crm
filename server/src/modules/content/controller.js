@@ -194,7 +194,7 @@ const getTaskPipeline = async (req, res) => {
         { model: User, as: 'assignee', attributes: ['id', 'name', 'avatar'], required: false },
         { model: Lead, as: 'lead', attributes: ['id', 'name'], required: false },
       ],
-      order: [['dueDate', 'ASC'], ['createdAt', 'DESC']],
+      order: [['dueDate', 'ASC'], ['createdAt', 'ASC']],
     });
 
     const pipeline = {};
