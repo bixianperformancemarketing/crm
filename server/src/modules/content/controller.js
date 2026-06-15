@@ -155,9 +155,12 @@ const updateTask = async (req, res) => {
     const allowed = ['title', 'description', 'priority', 'status', 'assignedTo', 'dueDate', 'dueTime', 'notes', 'requiresApproval'];
     const updates = {};
     for (const k of allowed) { if (req.body[k] !== undefined) updates[k] = req.body[k]; }
+    if (updates.dueDate === '') updates.dueDate = null;
+    if (updates.dueTime === '') updates.dueTime = null;
     await task.update(updates);
     res.json({ success: true, message: 'Task updated', task });
   } catch (err) {
+    console.error('updateTask error:', err);
     res.status(500).json({ success: false, message: 'Failed to update task' });
   }
 };
