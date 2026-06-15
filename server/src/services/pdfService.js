@@ -177,12 +177,8 @@ const addTotals = (doc, data, startY, orgSettings, type) => {
   const safeBottom = doc.page.height - FOOTER_HEIGHT;
 
   const paidAmt = parseFloat(data.paidAmount || 0);
-  const carryoverItems = Array.isArray(data.carryoverInvoices) ? data.carryoverInvoices : [];
-  const carryoverTotal = parseFloat(data.carryoverTotal || 0);
-  const hasCarryover = carryoverItems.length > 0 && carryoverTotal > 0;
-  const grandTotal = parseFloat(data.totalAmount || 0) + carryoverTotal;
 
-  const rowCount = 2 + (hasCarryover ? carryoverItems.length + 3 : 0) + (paidAmt > 0 ? 2 : 0) + (data.status ? 1 : 0);
+  const rowCount = 2 + (paidAmt > 0 ? 2 : 0) + (data.status ? 1 : 0);
   const estimatedH = rowCount * 18 + 60;
 
   let y = startY + 10;
@@ -206,34 +202,9 @@ const addTotals = (doc, data, startY, orgSettings, type) => {
   addTotalRow('Subtotal:', data.subtotal);
   addTotalRow(`GST (${data.gstPercent || 18}%):`, data.gstAmount);
 
-  if (hasCarryover) {
-    // Current invoice subtotal
-    drawLine(doc, y);
-    y += 8;
-    addTotalRow('Current Invoice:', data.totalAmount, true, PRIMARY_DARK);
-
-    // Pending previous invoices section
-    y += 4;
-    doc.fontSize(8).fillColor(GRAY).font('Helvetica-Bold')
-      .text('PREVIOUS PENDING BALANCE', labelX, y, { width: 185, align: 'right' });
-    y += 14;
-
-    carryoverItems.forEach(ci => {
-      doc.fontSize(9).fillColor(GRAY).font('Helvetica')
-        .text(`${ci.invoiceNumber}:`, labelX, y, { width: 90, align: 'right' });
-      doc.fillColor('#ef4444').font('Helvetica')
-        .text(`Rs. ${parseFloat(ci.dueAmount || 0).toLocaleString('en-IN')}`, valueX, y, { width: 95, align: 'right' });
-      y += 16;
-    });
-
-    drawLine(doc, y);
-    y += 8;
-    addTotalRow('GRAND TOTAL DUE:', grandTotal, true, '#ef4444');
-  } else {
-    drawLine(doc, y);
-    y += 8;
-    addTotalRow('TOTAL:', data.totalAmount, true, PRIMARY_DARK);
-  }
+  drawLine(doc, y);
+  y += 8;
+  addTotalRow('TOTAL:', data.totalAmount, true, PRIMARY_DARK);
 
   if (paidAmt > 0) {
     y += 4;

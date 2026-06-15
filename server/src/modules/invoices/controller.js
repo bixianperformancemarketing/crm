@@ -83,7 +83,7 @@ const createInvoice = async (req, res) => {
   try {
     const { user, workspaceId } = req;
     if (!workspaceId) return res.status(400).json({ success: false, message: 'Workspace context required for this action' });
-    const { leadId, clientName, clientEmail, clientPhone, clientAddress, clientGST, items = [], gstPercent = 18, notes, terms, dueDate, includePendingCarryover = false, carryoverInvoices: carryoverData = [] } = req.body;
+    const { leadId, clientName, clientEmail, clientPhone, clientAddress, clientGST, items = [], gstPercent = 18, notes, terms, dueDate } = req.body;
 
     if (!clientName?.trim()) return res.status(400).json({ success: false, message: 'Client name is required' });
     if (!clientPhone?.trim()) return res.status(400).json({ success: false, message: 'Phone number is required' });
@@ -123,9 +123,6 @@ const createInvoice = async (req, res) => {
     const subtotal = items.reduce((sum, i) => sum + parseFloat(i.totalPrice || 0), 0);
     const gstAmount = (subtotal * parseFloat(gstPercent)) / 100;
     const totalAmount = subtotal + gstAmount;
-    const carryoverTotal = includePendingCarryover
-      ? carryoverData.reduce((sum, c) => sum + parseFloat(c.dueAmount || 0), 0)
-      : 0;
     const invNumber = await getNextNumber(Invoice, 'invoiceNumber', 'INV-', workspaceId, user.organizationId);
 
     const inv = await Invoice.create({
@@ -134,8 +131,6 @@ const createInvoice = async (req, res) => {
       clientName: clientName.trim(), clientEmail: clientEmail?.trim() || null,
       clientPhone: clientPhone.trim(), clientAddress: clientAddress?.trim() || null, clientGST,
       subtotal, gstPercent, gstAmount, totalAmount,
-      carryoverInvoices: includePendingCarryover ? carryoverData : [],
-      carryoverTotal: includePendingCarryover ? carryoverTotal : 0,
       paidAmount: 0, dueAmount: totalAmount, status: 'Unpaid', notes, terms,
       dueDate: dueDate || null,
     });
@@ -154,7 +149,7 @@ const createInvoice = async (req, res) => {
     if (lead?.id) {
       await LeadActivity.create({
         leadId: lead.id, organizationId: user.organizationId, workspaceId, userId: user.id,
-        type: 'invoice_generated', description: `Invoice ${invNumber} created (₹${totalAmount.toLocaleString('en-IN')}${carryoverTotal > 0 ? ` + ₹${carryoverTotal.toLocaleString('en-IN')} previous balance` : ''})`,
+        type: 'invoice_generated', description: `Invoice ${invNumber} created (₹${totalAmount.toLocaleString('en-IN')})`,
         metadata: { invoiceId: inv.id },
       });
     }

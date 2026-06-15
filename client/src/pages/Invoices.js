@@ -10,7 +10,7 @@ import { ENUMS } from '../utils/helpers';
 import './Invoices.css';
 
 const emptyItem = () => ({ description: '', subDescription: '', subItems: [], totalPrice: '' });
-const emptyForm = () => ({ clientName: '', clientEmail: '', clientPhone: '', clientAddress: '', clientGST: '', gstPercent: 18, terms: [], notes: '', dueDate: '', workspaceId: '', items: [emptyItem()], includePending: false });
+const emptyForm = () => ({ clientName: '', clientEmail: '', clientPhone: '', clientAddress: '', clientGST: '', gstPercent: 18, terms: [], notes: '', dueDate: '', workspaceId: '', items: [emptyItem()] });
 const parseTermsArray = (raw) => {
   if (!raw) return [];
   try { const p = JSON.parse(raw); return Array.isArray(p) ? p : (raw ? [raw] : []); }
@@ -36,8 +36,6 @@ const Invoices = () => {
   const [editForm, setEditForm] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [workspaces, setWorkspaces] = useState([]);
-  const [pendingInvoices, setPendingInvoices] = useState([]);
-  const [loadingPending, setLoadingPending] = useState(false);
 
   useEffect(() => {
     if (user?.role === 'owner') {
@@ -58,19 +56,6 @@ const Invoices = () => {
   }, [page, statusFilter]);
 
   useEffect(() => { load(); }, [load]);
-
-  const fetchPendingInvoices = useCallback(async (phone, email) => {
-    if (!phone?.trim() && !email?.trim()) { setPendingInvoices([]); return; }
-    setLoadingPending(true);
-    try {
-      const params = {};
-      if (phone?.trim()) params.phone = phone.trim();
-      if (email?.trim()) params.email = email.trim();
-      const { data } = await invoicesAPI.getPendingByClient(params);
-      setPendingInvoices(data.invoices || []);
-    } catch { setPendingInvoices([]); }
-    finally { setLoadingPending(false); }
-  }, []);
 
   const updateItem = (i, field, val) => {
     const items = [...form.items];
@@ -123,10 +108,6 @@ const Invoices = () => {
   const subtotal = form.items.reduce((s, i) => s + parseFloat(i.totalPrice || 0), 0);
   const gstAmount = (subtotal * parseFloat(form.gstPercent || 0)) / 100;
   const total = subtotal + gstAmount;
-  const carryoverTotal = (form.includePending && pendingInvoices.length > 0)
-    ? pendingInvoices.reduce((s, inv) => s + parseFloat(inv.dueAmount || 0), 0)
-    : 0;
-  const grandTotal = total + carryoverTotal; // display only — totalAmount stored is current invoice only
 
   const editSubtotal = editForm ? editForm.items.reduce((s, i) => s + parseFloat(i.totalPrice || 0), 0) : 0;
   const editGstAmount = editForm ? (editSubtotal * parseFloat(editForm.gstPercent || 0)) / 100 : 0;
@@ -141,21 +122,15 @@ const Invoices = () => {
     if (!validItems.length) return toast.error('At least one item with a description is required');
     setSaving(true);
     try {
-      const hasCarryover = form.includePending && pendingInvoices.length > 0;
       const { data } = await invoicesAPI.create({
         ...form,
         terms: JSON.stringify(form.terms.filter(t => t.trim())),
         items: validItems,
-        includePendingCarryover: hasCarryover,
-        carryoverInvoices: hasCarryover
-          ? pendingInvoices.map(inv => ({ invoiceId: inv.id, invoiceNumber: inv.invoiceNumber, dueAmount: parseFloat(inv.dueAmount) }))
-          : [],
       });
       if (data.upgradeRequired) { setUpgradeModal(data); return; }
       toast.success('Invoice created');
       setShowCreate(false);
       setForm(emptyForm());
-      setPendingInvoices([]);
       load();
     } catch (err) {
       const d = err.response?.data;
@@ -362,14 +337,14 @@ const Invoices = () => {
         <div className="modal-overlay" onClick={() => setShowCreate(false)}>
           <div className="modal" style={{ maxWidth: 720 }} onClick={(e) => e.stopPropagation()}>
             <h3>New Invoice</h3>
-            <button className="modal-close" onClick={() => { setShowCreate(false); setPendingInvoices([]); }}>×</button>
+            <button className="modal-close" onClick={() => setShowCreate(false)}>×</button>
             <form onSubmit={handleCreate}>
               <div className="form-row">
                 <div className="form-group"><label className="form-label">Client Name *</label><input className="form-control" value={form.clientName} onChange={(e) => setForm({ ...form, clientName: e.target.value })} placeholder="Client name..." /></div>
-                <div className="form-group"><label className="form-label">Phone *</label><input className="form-control" value={form.clientPhone} onChange={(e) => setForm({ ...form, clientPhone: e.target.value })} onBlur={(e) => { if (form.includePending) fetchPendingInvoices(e.target.value, form.clientEmail); }} placeholder="+91..." /></div>
+                <div className="form-group"><label className="form-label">Phone *</label><input className="form-control" value={form.clientPhone} onChange={(e) => setForm({ ...form, clientPhone: e.target.value })} placeholder="+91..." /></div>
               </div>
               <div className="form-row">
-                <div className="form-group"><label className="form-label">Email</label><input className="form-control" type="email" value={form.clientEmail} onChange={(e) => setForm({ ...form, clientEmail: e.target.value })} onBlur={(e) => { if (form.includePending) fetchPendingInvoices(form.clientPhone, e.target.value); }} placeholder="client@email.com" /></div>
+                <div className="form-group"><label className="form-label">Email</label><input className="form-control" type="email" value={form.clientEmail} onChange={(e) => setForm({ ...form, clientEmail: e.target.value })} placeholder="client@email.com" /></div>
                 <div className="form-group"><label className="form-label">GST Number</label><input className="form-control" value={form.clientGST} onChange={(e) => setForm({ ...form, clientGST: e.target.value })} placeholder="GSTIN..." /></div>
               </div>
               <div className="form-group"><label className="form-label">Address</label><input className="form-control" value={form.clientAddress} onChange={(e) => setForm({ ...form, clientAddress: e.target.value })} placeholder="Client address..." /></div>
@@ -382,44 +357,6 @@ const Invoices = () => {
                     {workspaces.map(ws => <option key={ws.id} value={ws.id}>{ws.name}</option>)}
                   </select>
                 </div>
-              )}
-
-              {/* Pending Balance Toggle */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 8, marginBottom: 12 }}>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text)' }}>Include Previous Pending Balances</div>
-                  <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Auto-adds unpaid invoices for this client to the grand total</div>
-                </div>
-                <label style={{ position: 'relative', display: 'inline-block', width: 44, height: 24, flexShrink: 0, cursor: 'pointer' }}>
-                  <input type="checkbox" checked={form.includePending} onChange={(e) => {
-                    const on = e.target.checked;
-                    setForm({ ...form, includePending: on });
-                    if (!on) setPendingInvoices([]);
-                    else if (form.clientPhone || form.clientEmail) fetchPendingInvoices(form.clientPhone, form.clientEmail);
-                  }} style={{ opacity: 0, width: 0, height: 0, position: 'absolute' }} />
-                  <span style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: form.includePending ? '#f59e0b' : 'var(--border)', borderRadius: 24, transition: 'background 0.2s' }} />
-                  <span style={{ position: 'absolute', height: 18, width: 18, left: form.includePending ? 23 : 3, bottom: 3, background: '#fff', borderRadius: '50%', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.3)' }} />
-                </label>
-              </div>
-
-              {/* Pending invoices list */}
-              {form.includePending && (
-                loadingPending ? (
-                  <div style={{ textAlign: 'center', padding: '8px 0', fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>Checking for pending balances...</div>
-                ) : pendingInvoices.length > 0 ? (
-                  <div style={{ marginBottom: 12, padding: '10px 14px', background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 8 }}>
-                    <div style={{ fontWeight: 600, fontSize: 12, color: '#ef4444', marginBottom: 8 }}>⚠️ {pendingInvoices.length} Pending Invoice{pendingInvoices.length > 1 ? 's' : ''} Found — Will Be Added to Grand Total</div>
-                    {pendingInvoices.map(inv => (
-                      <div key={inv.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, padding: '4px 0', borderBottom: '1px solid rgba(239,68,68,0.1)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span style={{ fontWeight: 600, color: 'var(--text)' }}>{inv.invoiceNumber}</span>
-                          <span style={{ fontSize: 11, background: 'rgba(239,68,68,0.12)', padding: '2px 7px', borderRadius: 4, color: '#ef4444', fontWeight: 500 }}>{inv.status}</span>
-                        </div>
-                        <span style={{ fontWeight: 700, color: '#ef4444' }}>+{formatCurrency(inv.dueAmount)}</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : null
               )}
 
               <div style={{ margin: '16px 0 8px', fontWeight: 600, fontSize: 13 }}>Line Items</div>
@@ -470,21 +407,7 @@ const Invoices = () => {
                       <strong>{formatCurrency(gstAmount)}</strong>
                     </div>
                   </div>
-                  {carryoverTotal > 0 ? (
-                    <>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, color: 'var(--text-muted)' }}><span>Current Invoice</span><span>{formatCurrency(total)}</span></div>
-                      <div style={{ borderTop: '1px dashed var(--border)', margin: '8px 0' }} />
-                      {pendingInvoices.map(inv => (
-                        <div key={inv.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 12 }}>
-                          <span style={{ color: 'var(--text-muted)' }}>{inv.invoiceNumber} <span style={{ color: '#ef4444' }}>({inv.status})</span></span>
-                          <span style={{ color: '#ef4444', fontWeight: 600 }}>+{formatCurrency(inv.dueAmount)}</span>
-                        </div>
-                      ))}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: 15, borderTop: '1px solid var(--border)', paddingTop: 8 }}><span>Grand Total Due</span><span style={{ color: '#f59e0b' }}>{formatCurrency(grandTotal)}</span></div>
-                    </>
-                  ) : (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: 15, borderTop: '1px solid var(--border)', paddingTop: 8 }}><span>Total</span><span style={{ color: '#f59e0b' }}>{formatCurrency(total)}</span></div>
-                  )}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: 15, borderTop: '1px solid var(--border)', paddingTop: 8 }}><span>Total</span><span style={{ color: '#f59e0b' }}>{formatCurrency(total)}</span></div>
                 </div>
               </div>
 
@@ -501,7 +424,7 @@ const Invoices = () => {
               </div>
 
               <div className="modal-actions">
-                <button type="button" className="btn btn-ghost" onClick={() => { setShowCreate(false); setForm(emptyForm()); setPendingInvoices([]); }}>Cancel</button>
+                <button type="button" className="btn btn-ghost" onClick={() => { setShowCreate(false); setForm(emptyForm()); }}>Cancel</button>
                 <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Creating...' : 'Create Invoice'}</button>
               </div>
             </form>
