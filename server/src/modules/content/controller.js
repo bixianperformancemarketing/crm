@@ -170,8 +170,10 @@ const deleteTask = async (req, res) => {
     const { id } = req.params;
     const { user, workspaceId } = req;
     const ws = workspaceId ? { workspaceId } : {};
-    const task = await ContentTask.findOne({ where: { id, organizationId: user.organizationId, ...ws } });
-    if (!task) return res.status(404).json({ success: false, message: 'Task not found' });
+    const where = { id, organizationId: user.organizationId, ...ws };
+    if (user.role === 'employee') where.createdBy = user.id;
+    const task = await ContentTask.findOne({ where });
+    if (!task) return res.status(403).json({ success: false, message: 'Only the creator can delete this task' });
     await task.destroy();
     res.json({ success: true, message: 'Task deleted' });
   } catch (err) {

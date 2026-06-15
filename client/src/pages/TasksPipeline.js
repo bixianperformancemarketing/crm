@@ -180,6 +180,16 @@ const TasksPipeline = () => {
     finally { setQuickSaving(false); }
   };
 
+  const handleDeleteTask = async (e, taskId) => {
+    e.stopPropagation();
+    if (!window.confirm('Delete this task? This cannot be undone.')) return;
+    try {
+      await contentAPI.delete(taskId);
+      toast.success('Task deleted');
+      loadPipeline();
+    } catch (err) { toast.error(err.response?.data?.message || 'Failed to delete task'); }
+  };
+
   const openEdit = (e, task) => {
     e.stopPropagation();
     setEditTask(task);
@@ -319,13 +329,22 @@ const TasksPipeline = () => {
                                 <div className="kc-name" style={{ flex: 1 }}>{task.title}</div>
                                 <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
                                   {String(task.createdBy) === String(user?.id) && (
-                                    <button
-                                      onClick={(e) => openEdit(e, task)}
-                                      title="Edit task"
-                                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 13, padding: '0 2px', lineHeight: 1 }}
-                                    >
-                                      ✏️
-                                    </button>
+                                    <>
+                                      <button
+                                        onClick={(e) => openEdit(e, task)}
+                                        title="Edit task"
+                                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 13, padding: '0 2px', lineHeight: 1 }}
+                                      >
+                                        ✏️
+                                      </button>
+                                      <button
+                                        onClick={(e) => handleDeleteTask(e, task.id)}
+                                        title="Delete task"
+                                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', fontSize: 13, padding: '0 2px', lineHeight: 1 }}
+                                      >
+                                        🗑️
+                                      </button>
+                                    </>
                                   )}
                                   {ARCHIVABLE.has(col) && (
                                     <button

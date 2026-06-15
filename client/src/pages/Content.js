@@ -395,10 +395,10 @@ const Content = () => {
                         </td>
                         <td><span className="task-status-badge" style={{ background: `${STATUS_COLORS[t.status] || '#6b7280'}22`, color: STATUS_COLORS[t.status] || '#6b7280' }}>{t.status}</span></td>
                         <td onClick={e => e.stopPropagation()}>
-                          {canManage && (
+                          {(canManage || String(t.createdBy) === String(user?.id)) && (
                             <div style={{ display: 'flex', gap: 6 }}>
                               <button className="btn btn-ghost btn-sm" onClick={(e) => openEdit(e, t)}>Edit</button>
-                              {isArchivable(t.status) && (
+                              {canManage && isArchivable(t.status) && (
                                 <button className="btn btn-ghost btn-sm" onClick={(e) => { e.stopPropagation(); handleArchive(t.id); }} disabled={archivingId === t.id} style={{ color: 'var(--text-muted)' }}>Archive</button>
                               )}
                               <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={(e) => { e.stopPropagation(); handleDelete(t.id); }}>Delete</button>
@@ -466,9 +466,9 @@ const Content = () => {
                         <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t.dueDate ? formatDate(t.dueDate) : '—'}</td>
                         <td><span className="task-status-badge" style={{ background: `${STATUS_COLORS[t.status] || '#6b7280'}22`, color: STATUS_COLORS[t.status] || '#6b7280' }}>{t.status}</span></td>
                         <td>
-                          {canManage && (
+                          {(canManage || String(t.createdBy) === String(user?.id)) && (
                             <div style={{ display: 'flex', gap: 6 }}>
-                              <button className="btn btn-ghost btn-sm" onClick={() => handleUnarchive(t.id)} disabled={unarchivingId === t.id}>{unarchivingId === t.id ? 'Restoring...' : 'Restore'}</button>
+                              {canManage && <button className="btn btn-ghost btn-sm" onClick={() => handleUnarchive(t.id)} disabled={unarchivingId === t.id}>{unarchivingId === t.id ? 'Restoring...' : 'Restore'}</button>}
                               <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={() => handleDelete(t.id)}>Delete</button>
                             </div>
                           )}
@@ -512,7 +512,12 @@ const Content = () => {
                   {archivingId === showTask.id ? 'Archiving...' : 'Archive'}
                 </button>
               )}
-              {canManage && <button className="btn btn-ghost" style={{ color: 'var(--danger)' }} onClick={() => handleDelete(showTask.id)}>Delete</button>}
+              {(canManage || String(showTask.createdBy) === String(user?.id)) && (
+                <button className="btn btn-ghost btn-sm" onClick={(e) => { openEdit(e, showTask); setShowTask(null); }}>Edit</button>
+              )}
+              {(canManage || String(showTask.createdBy) === String(user?.id)) && (
+                <button className="btn btn-ghost" style={{ color: 'var(--danger)' }} onClick={() => handleDelete(showTask.id)}>Delete</button>
+              )}
               <button className="btn btn-ghost" onClick={() => setShowTask(null)}>Close</button>
             </div>
           </div>
