@@ -374,55 +374,53 @@ const TasksPipeline = () => {
                       {tasks.length === 0 && !snapshot.isDraggingOver && (
                         <div style={{ textAlign: 'center', padding: '20px 10px', color: 'var(--text-muted)', fontSize: 12 }}>No tasks</div>
                       )}
+                      {col === 'To Do Today' && canSelfCreate && (
+                        <div style={{ padding: '4px 4px 4px' }}>
+                          {quickAdd ? (
+                            <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 8, padding: 8 }}>
+                              <textarea
+                                autoFocus
+                                rows={2}
+                                placeholder="Enter task title..."
+                                value={quickTitle}
+                                onChange={e => setQuickTitle(e.target.value)}
+                                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleQuickAdd(); } if (e.key === 'Escape') { setQuickAdd(false); setQuickTitle(''); } }}
+                                style={{ width: '100%', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '6px 8px', color: 'var(--text)', fontSize: 13, resize: 'none', outline: 'none', boxSizing: 'border-box' }}
+                              />
+                              <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                                <button
+                                  onClick={handleQuickAdd}
+                                  disabled={quickSaving || !quickTitle.trim()}
+                                  style={{ flex: 1, padding: '5px 0', background: '#0ea5e9', border: 'none', borderRadius: 6, color: '#fff', fontSize: 12, fontWeight: 600, cursor: quickSaving ? 'not-allowed' : 'pointer', opacity: quickSaving ? 0.7 : 1 }}
+                                >
+                                  {quickSaving ? 'Adding...' : 'Add Task'}
+                                </button>
+                                <button
+                                  onClick={() => { setQuickAdd(false); setQuickTitle(''); }}
+                                  style={{ padding: '5px 10px', background: 'none', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text-muted)', fontSize: 12, cursor: 'pointer' }}
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
+                                Approval required · Assigned to you · Press Enter to add
+                              </div>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setQuickAdd(true)}
+                              style={{ width: '100%', padding: '8px 12px', background: 'rgba(14,165,233,0.12)', border: '1px solid rgba(14,165,233,0.4)', borderRadius: 8, color: '#0ea5e9', fontSize: 13, fontWeight: 600, cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: 6 }}
+                              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(14,165,233,0.22)'; e.currentTarget.style.borderColor = '#0ea5e9'; }}
+                              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(14,165,233,0.12)'; e.currentTarget.style.borderColor = 'rgba(14,165,233,0.4)'; }}
+                            >
+                              <span style={{ fontSize: 16, lineHeight: 1 }}>+</span> Add Task
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
                 </Droppable>
-
-                {/* Trello-style quick-add — To Do Today column only, for employee & admin */}
-                {col === 'To Do Today' && canSelfCreate && (
-                  <div style={{ padding: '6px 8px 8px' }}>
-                    {quickAdd ? (
-                      <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 8, padding: 8 }}>
-                        <textarea
-                          autoFocus
-                          rows={2}
-                          placeholder="Enter task title..."
-                          value={quickTitle}
-                          onChange={e => setQuickTitle(e.target.value)}
-                          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleQuickAdd(); } if (e.key === 'Escape') { setQuickAdd(false); setQuickTitle(''); } }}
-                          style={{ width: '100%', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '6px 8px', color: 'var(--text)', fontSize: 13, resize: 'none', outline: 'none', boxSizing: 'border-box' }}
-                        />
-                        <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
-                          <button
-                            onClick={handleQuickAdd}
-                            disabled={quickSaving || !quickTitle.trim()}
-                            style={{ flex: 1, padding: '5px 0', background: '#0ea5e9', border: 'none', borderRadius: 6, color: '#fff', fontSize: 12, fontWeight: 600, cursor: quickSaving ? 'not-allowed' : 'pointer', opacity: quickSaving ? 0.7 : 1 }}
-                          >
-                            {quickSaving ? 'Adding...' : 'Add Task'}
-                          </button>
-                          <button
-                            onClick={() => { setQuickAdd(false); setQuickTitle(''); }}
-                            style={{ padding: '5px 10px', background: 'none', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text-muted)', fontSize: 12, cursor: 'pointer' }}
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
-                          Approval required · Assigned to you · Press Enter to add
-                        </div>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => setQuickAdd(true)}
-                        style={{ width: '100%', padding: '8px 12px', background: 'rgba(14,165,233,0.12)', border: '1px solid rgba(14,165,233,0.4)', borderRadius: 8, color: '#0ea5e9', fontSize: 13, fontWeight: 600, cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: 6 }}
-                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(14,165,233,0.22)'; e.currentTarget.style.borderColor = '#0ea5e9'; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(14,165,233,0.12)'; e.currentTarget.style.borderColor = 'rgba(14,165,233,0.4)'; }}
-                      >
-                        <span style={{ fontSize: 16, lineHeight: 1 }}>+</span> Add Task
-                      </button>
-                    )}
-                  </div>
-                )}
               </div>
             );
           })}
