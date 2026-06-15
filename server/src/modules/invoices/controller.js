@@ -11,12 +11,20 @@ const { logUsage } = require('../../middleware/entitlement');
 const getInvoices = async (req, res) => {
   try {
     const { user, workspaceId } = req;
-    const { page = 1, limit = 20, status, leadId } = req.query;
+    const { page = 1, limit = 20, status, leadId, search } = req.query;
     const { limit: lim, offset } = paginate(page, limit);
     const ws = workspaceId ? { workspaceId } : {};
     const where = { organizationId: user.organizationId, ...ws };
     if (status) where.status = status;
     if (leadId) where.leadId = leadId;
+    if (search?.trim()) {
+      where[Op.or] = [
+        { invoiceNumber: { [Op.like]: `%${search.trim()}%` } },
+        { clientName: { [Op.like]: `%${search.trim()}%` } },
+        { clientPhone: { [Op.like]: `%${search.trim()}%` } },
+        { clientEmail: { [Op.like]: `%${search.trim()}%` } },
+      ];
+    }
 
     const { count, rows } = await Invoice.findAndCountAll({
       where,

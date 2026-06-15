@@ -12,13 +12,21 @@ const { logUsage } = require('../../middleware/entitlement');
 const getQuotations = async (req, res) => {
   try {
     const { user, workspaceId } = req;
-    const { page = 1, limit = 20, status, leadId } = req.query;
+    const { page = 1, limit = 20, status, leadId, search } = req.query;
     const { limit: lim, offset } = paginate(page, limit);
     const ws = workspaceId ? { workspaceId } : {};
     const where = { organizationId: user.organizationId, ...ws };
     if (user.role === 'employee') where.createdBy = user.id;
     if (status) where.status = status;
     if (leadId) where.leadId = leadId;
+    if (search?.trim()) {
+      where[Op.or] = [
+        { quotationNumber: { [Op.like]: `%${search.trim()}%` } },
+        { clientName: { [Op.like]: `%${search.trim()}%` } },
+        { clientPhone: { [Op.like]: `%${search.trim()}%` } },
+        { clientEmail: { [Op.like]: `%${search.trim()}%` } },
+      ];
+    }
 
     const { count, rows } = await Quotation.findAndCountAll({
       where,

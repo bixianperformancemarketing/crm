@@ -31,16 +31,19 @@ const Quotations = () => {
   const [editQuotation, setEditQuotation] = useState(null);
   const [editForm, setEditForm] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [search, setSearch] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await quotationsAPI.getAll({ page });
+      const params = { page };
+      if (search.trim()) params.search = search.trim();
+      const { data } = await quotationsAPI.getAll(params);
       setQuotations(data.data || []);
       setPagination(data.pagination);
     } catch { toast.error('Failed to load quotations'); }
     finally { setLoading(false); }
-  }, [page]);
+  }, [page, search]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -243,7 +246,14 @@ const Quotations = () => {
     <Layout title="Quotations">
       <div className="page-header">
         <div className="page-title">Quotations</div>
-        <button className="btn btn-primary" onClick={() => setShowCreate(true)}>+ New Quotation</button>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <input
+            type="text" placeholder="Search by number, client, phone, email..." value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            style={{ padding: '7px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: 13, width: 270, outline: 'none' }}
+          />
+          <button className="btn btn-primary" onClick={() => setShowCreate(true)}>+ New Quotation</button>
+        </div>
       </div>
 
       {loading ? <div className="loading-spinner"><div className="spinner" /></div> : quotations.length === 0 ? (
@@ -252,7 +262,7 @@ const Quotations = () => {
         <>
           <div className="table-wrap">
             <table>
-              <thead><tr><th>Number</th><th>Client</th><th>Amount</th><th>Status</th><th>Valid Until</th><th>Actions</th></tr></thead>
+              <thead><tr><th>Number</th><th>Client</th><th>Amount</th><th>Status</th><th>Valid Until</th><th>Quoted By</th><th>Actions</th></tr></thead>
               <tbody>
                 {quotations.map((q) => (
                   <tr key={q.id}>
@@ -261,6 +271,7 @@ const Quotations = () => {
                     <td style={{ fontWeight: 700, color: '#f59e0b' }}>{formatCurrency(q.totalAmount)}</td>
                     <td><span className={`quotation-badge q-status-${q.status?.toLowerCase().replace(/\s+/g, '-')}`}>{q.status}</span></td>
                     <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>{q.validUntil ? formatDate(q.validUntil) : '—'}</td>
+                    <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>{q.creator?.name || '—'}</td>
                     <td>
                       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                         {q.status !== 'Approved' && (

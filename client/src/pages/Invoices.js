@@ -24,6 +24,7 @@ const Invoices = () => {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('');
+  const [search, setSearch] = useState('');
   const [upgradeModal, setUpgradeModal] = useState(null);
   const [showPayment, setShowPayment] = useState(null);
   const [payForm, setPayForm] = useState({ amount: '', mode: 'UPI', reference: '', note: '' });
@@ -48,12 +49,13 @@ const Invoices = () => {
     try {
       const params = { page };
       if (statusFilter) params.status = statusFilter;
+      if (search.trim()) params.search = search.trim();
       const { data } = await invoicesAPI.getAll(params);
       setInvoices(data.data || []);
       setPagination(data.pagination);
     } catch { toast.error('Failed to load invoices'); }
     finally { setLoading(false); }
-  }, [page, statusFilter]);
+  }, [page, statusFilter, search]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -263,7 +265,12 @@ const Invoices = () => {
     <Layout title="Invoices">
       <div className="page-header">
         <div className="page-title">Invoices</div>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <input
+            type="text" placeholder="Search by number, client, phone, email..." value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            style={{ padding: '7px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: 13, width: 270, outline: 'none' }}
+          />
           <div className="invoice-status-bar">
             {STATUSES.map((s) => (
               <button key={s || 'all'} onClick={() => { setStatusFilter(s); setPage(1); }}
@@ -282,7 +289,7 @@ const Invoices = () => {
         <>
           <div className="table-wrap">
             <table>
-              <thead><tr><th>Invoice #</th><th>Client</th><th>Total</th><th>Paid</th><th>Due</th><th>Status</th><th>Due Date</th><th>Actions</th></tr></thead>
+              <thead><tr><th>Invoice #</th><th>Client</th><th>Total</th><th>Paid</th><th>Due</th><th>Status</th><th>Due Date</th><th>Created By</th><th>Actions</th></tr></thead>
               <tbody>
                 {invoices.map((inv) => (
                   <tr key={inv.id}>
@@ -296,6 +303,7 @@ const Invoices = () => {
                     </td>
                     <td><span className={`quotation-badge inv-status-${inv.status?.toLowerCase()}`}>{inv.status}</span></td>
                     <td style={{ fontSize: 12, color: inv.status === 'Overdue' ? '#ef4444' : 'var(--text-muted)' }}>{inv.dueDate ? formatDate(inv.dueDate) : '—'}</td>
+                    <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>{inv.creator?.name || '—'}</td>
                     <td>
                       <div style={{ display: 'flex', gap: 6 }}>
                         <button className="btn btn-ghost btn-sm" onClick={() => openEdit(inv)}>✏️ Edit</button>
