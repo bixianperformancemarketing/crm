@@ -234,7 +234,7 @@ const markOverdueTasks = async () => {
     const [withTime] = await sequelize.query(`
       UPDATE content_tasks
       SET status = 'Overdue'
-      WHERE status NOT IN ('Approved', 'Done', 'Cancelled', 'Overdue')
+      WHERE status NOT IN ('Approved', 'Done', 'Cancelled', 'Overdue', 'Review')
         AND dueDate IS NOT NULL
         AND dueTime IS NOT NULL
         AND STR_TO_DATE(CONCAT(dueDate, ' ', dueTime), '%Y-%m-%d %H:%i') < NOW()
@@ -244,7 +244,7 @@ const markOverdueTasks = async () => {
     const [withoutTime] = await sequelize.query(`
       UPDATE content_tasks
       SET status = 'Overdue'
-      WHERE status NOT IN ('Approved', 'Done', 'Cancelled', 'Overdue')
+      WHERE status NOT IN ('Approved', 'Done', 'Cancelled', 'Overdue', 'Review')
         AND dueDate IS NOT NULL
         AND (dueTime IS NULL OR dueTime = '')
         AND dueDate < CURDATE()
