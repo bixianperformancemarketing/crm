@@ -121,10 +121,22 @@ const updateTask = async (req, res) => {
     const { id } = req.params;
     const { user, workspaceId } = req;
     const ws = workspaceId ? { workspaceId } : {};
-    const where = { id, organizationId: user.organizationId, ...ws };
-    if (user.role === 'employee') where.assignedTo = user.id;
-    const task = await ContentTask.findOne({ where });
-    if (!task) return res.status(404).json({ success: false, message: 'Task not found' });
+
+    const CONTENT_FIELDS = ['title', 'description', 'priority', 'dueDate', 'dueTime', 'notes', 'requiresApproval', 'assignedTo'];
+    const isContentEdit = Object.keys(req.body).some(k => CONTENT_FIELDS.includes(k));
+
+    let task;
+    if (isContentEdit) {
+      // Only the creator may edit task content
+      task = await ContentTask.findOne({ where: { id, organizationId: user.organizationId, ...ws, createdBy: user.id } });
+      if (!task) return res.status(403).json({ success: false, message: 'Only the creator can edit this task' });
+    } else {
+      // Status-only update (drag-and-drop): assignee restriction for employees
+      const where = { id, organizationId: user.organizationId, ...ws };
+      if (user.role === 'employee') where.assignedTo = user.id;
+      task = await ContentTask.findOne({ where });
+      if (!task) return res.status(404).json({ success: false, message: 'Task not found' });
+    }
 
     const newStatus = req.body.status;
     if (newStatus) {

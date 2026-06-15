@@ -42,6 +42,9 @@ const TasksPipeline = () => {
   const [quickAdd, setQuickAdd] = useState(false);
   const [quickTitle, setQuickTitle] = useState('');
   const [quickSaving, setQuickSaving] = useState(false);
+  const [editTask, setEditTask] = useState(null);
+  const [editForm, setEditForm] = useState({ title: '', description: '', priority: 'Medium', dueDate: '', dueTime: '' });
+  const [editSaving, setEditSaving] = useState(false);
   const [apiUsers, setApiUsers] = useState([]);
   const [workspaces, setWorkspaces] = useState([]);
   const [workspaceFilter, setWorkspaceFilter] = useState('');
@@ -177,6 +180,25 @@ const TasksPipeline = () => {
     finally { setQuickSaving(false); }
   };
 
+  const openEdit = (e, task) => {
+    e.stopPropagation();
+    setEditTask(task);
+    setEditForm({ title: task.title || '', description: task.description || '', priority: task.priority || 'Medium', dueDate: task.dueDate || '', dueTime: task.dueTime || '' });
+  };
+
+  const handleEditSave = async (e) => {
+    e.preventDefault();
+    if (!editForm.title.trim()) return toast.error('Title is required');
+    setEditSaving(true);
+    try {
+      await contentAPI.update(editTask.id, editForm);
+      toast.success('Task updated');
+      setEditTask(null);
+      loadPipeline();
+    } catch (err) { toast.error(err.response?.data?.message || 'Failed to update task'); }
+    finally { setEditSaving(false); }
+  };
+
   const completedCount = ['Done', 'Approved', 'Not Approved'].reduce((n, col) => n + (pipeline[col]?.length || 0), 0);
 
   if (loading) return <Layout title="Tasks Pipeline"><div className="loading-spinner"><div className="spinner" /></div></Layout>;
@@ -295,16 +317,27 @@ const TasksPipeline = () => {
                             >
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 4 }}>
                                 <div className="kc-name" style={{ flex: 1 }}>{task.title}</div>
-                                {ARCHIVABLE.has(col) && (
-                                  <button
-                                    onClick={(e) => handleArchive(e, task.id)}
-                                    disabled={archiving === task.id}
-                                    title="Archive task"
-                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 13, padding: '0 2px', lineHeight: 1, flexShrink: 0 }}
-                                  >
-                                    {archiving === task.id ? '…' : '📦'}
-                                  </button>
-                                )}
+                                <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
+                                  {String(task.createdBy) === String(user?.id) && (
+                                    <button
+                                      onClick={(e) => openEdit(e, task)}
+                                      title="Edit task"
+                                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 13, padding: '0 2px', lineHeight: 1 }}
+                                    >
+                                      ✏️
+                                    </button>
+                                  )}
+                                  {ARCHIVABLE.has(col) && (
+                                    <button
+                                      onClick={(e) => handleArchive(e, task.id)}
+                                      disabled={archiving === task.id}
+                                      title="Archive task"
+                                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 13, padding: '0 2px', lineHeight: 1 }}
+                                    >
+                                      {archiving === task.id ? '…' : '📦'}
+                                    </button>
+                                  )}
+                                </div>
                               </div>
                               {task.lead && (
                                 <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>
@@ -381,11 +414,11 @@ const TasksPipeline = () => {
                     ) : (
                       <button
                         onClick={() => setQuickAdd(true)}
-                        style={{ width: '100%', padding: '7px 10px', background: 'none', border: '1px dashed var(--border)', borderRadius: 8, color: 'var(--text-muted)', fontSize: 12, cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s' }}
-                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(14,165,233,0.06)'; e.currentTarget.style.borderColor = 'rgba(14,165,233,0.4)'; e.currentTarget.style.color = '#0ea5e9'; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+                        style={{ width: '100%', padding: '8px 12px', background: 'rgba(14,165,233,0.12)', border: '1px solid rgba(14,165,233,0.4)', borderRadius: 8, color: '#0ea5e9', fontSize: 13, fontWeight: 600, cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: 6 }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(14,165,233,0.22)'; e.currentTarget.style.borderColor = '#0ea5e9'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(14,165,233,0.12)'; e.currentTarget.style.borderColor = 'rgba(14,165,233,0.4)'; }}
                       >
-                        + Add Task
+                        <span style={{ fontSize: 16, lineHeight: 1 }}>+</span> Add Task
                       </button>
                     )}
                   </div>
@@ -395,6 +428,47 @@ const TasksPipeline = () => {
           })}
         </div>
       </DragDropContext>
+
+      {editTask && (
+        <div className="modal-overlay" onClick={() => setEditTask(null)}>
+          <div className="modal" style={{ maxWidth: 480 }} onClick={e => e.stopPropagation()}>
+            <h3>Edit Task</h3>
+            <button className="modal-close" onClick={() => setEditTask(null)}>×</button>
+            <form onSubmit={handleEditSave}>
+              <div className="form-group">
+                <label className="form-label">Title *</label>
+                <input className="form-control" value={editForm.title} onChange={e => setEditForm({ ...editForm, title: e.target.value })} placeholder="Task title..." required />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Description</label>
+                <textarea className="form-control" rows={3} value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })} placeholder="What needs to be done..." style={{ resize: 'vertical' }} />
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">Priority</label>
+                  <select className="form-control" value={editForm.priority} onChange={e => setEditForm({ ...editForm, priority: e.target.value })}>
+                    <option value="Low">Low</option>
+                    <option value="Medium">Medium</option>
+                    <option value="High">High</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Due Date</label>
+                  <input className="form-control" type="date" value={editForm.dueDate} onChange={e => setEditForm({ ...editForm, dueDate: e.target.value })} />
+                </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Due Time <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: 12 }}>(Optional)</span></label>
+                <input className="form-control" type="time" value={editForm.dueTime} onChange={e => setEditForm({ ...editForm, dueTime: e.target.value })} />
+              </div>
+              <div className="modal-actions">
+                <button type="button" className="btn btn-ghost" onClick={() => setEditTask(null)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={editSaving}>{editSaving ? 'Saving...' : 'Save Changes'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 };
