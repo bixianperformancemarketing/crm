@@ -371,7 +371,7 @@ const TasksPipeline = () => {
                         </Draggable>
                       ))}
                       {provided.placeholder}
-                      {tasks.length === 0 && !snapshot.isDraggingOver && (
+                      {tasks.length === 0 && !snapshot.isDraggingOver && !(col === 'To Do Today' && canSelfCreate) && (
                         <div style={{ textAlign: 'center', padding: '20px 10px', color: 'var(--text-muted)', fontSize: 12 }}>No tasks</div>
                       )}
                       {col === 'To Do Today' && canSelfCreate && (
