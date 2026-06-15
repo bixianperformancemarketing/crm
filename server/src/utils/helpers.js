@@ -42,7 +42,7 @@ const generateWebhookToken = () => {
 const getNextNumber = async (model, field, prefix, workspaceId, organizationId) => {
   const { Op } = require('sequelize');
   const last = await model.findOne({
-    where: { workspaceId, organizationId, [field]: { [Op.like]: `${prefix}%` } },
+    where: { organizationId, [field]: { [Op.like]: `${prefix}%` } },
     order: [[field, 'DESC']],
     attributes: [field],
   });
