@@ -799,6 +799,14 @@ const syncDatabase = async () => {
       await ws.update({ webhookToken: crypto.randomBytes(32).toString('hex') });
     }
 
+    // Add assigneeNotes column to content_tasks if missing
+    try {
+      const ctCols4 = await qi.describeTable('content_tasks');
+      if (!ctCols4.assigneeNotes) {
+        await qi.addColumn('content_tasks', 'assigneeNotes', { type: DataTypes.TEXT, allowNull: true });
+      }
+    } catch (e) { /* ignore */ }
+
     console.log('Database synchronized successfully');
   } catch (err) {
     console.error('Database sync error:', err);
