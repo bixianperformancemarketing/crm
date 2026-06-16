@@ -465,6 +465,11 @@ const TasksPipeline = () => {
               {notesTask.assignee && <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>→ {notesTask.assignee.name}</span>}
             </div>
             <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>{notesTask.title}</div>
+            {notesTask.description && (
+              <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                {notesTask.description}
+              </div>
+            )}
             <TaskNotesSection
               task={notesTask}
               user={user}
