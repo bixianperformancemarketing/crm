@@ -26,7 +26,7 @@ const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 const emptyForm = () => ({
   title: '', description: '', dueDate: '', dueTime: '',
-  assignedTo: '', workspaceId: '', priority: 'Medium', notes: '', requiresApproval: true,
+  assignedTo: '', workspaceId: '', priority: 'Medium', notes: '', requiresApproval: true, scheduledFor: '',
 });
 
 const fmtDueTime = (t) => {
@@ -56,7 +56,7 @@ const ApprovalToggle = ({ value, onChange }) => (
   </div>
 );
 
-const TaskFormFields = ({ f, setF, isOwner, users, workspaces, showAssignTo = true, showApprovalToggle = true }) => (
+const TaskFormFields = ({ f, setF, isOwner, users, workspaces, showAssignTo = true, showApprovalToggle = true, canManage = false }) => (
   <>
     <div className="form-group"><label className="form-label">Title *</label><input className="form-control" value={f.title} onChange={e => setF({ ...f, title: e.target.value })} placeholder="Task title" /></div>
     <div className="form-group"><label className="form-label">Description</label><textarea className="form-control" rows={2} value={f.description} onChange={e => setF({ ...f, description: e.target.value })} placeholder="What needs to be done..." /></div>
@@ -94,6 +94,20 @@ const TaskFormFields = ({ f, setF, isOwner, users, workspaces, showAssignTo = tr
       </div>
     )}
     {showApprovalToggle && <ApprovalToggle value={f.requiresApproval} onChange={v => setF({ ...f, requiresApproval: v })} />}
+    {canManage && (
+      <div className="form-group">
+        <label className="form-label">
+          Schedule For
+          <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400, marginLeft: 6 }}>(assignee won't see this task until this date &amp; time)</span>
+        </label>
+        <input
+          className="form-control"
+          type="datetime-local"
+          value={f.scheduledFor || ''}
+          onChange={e => setF({ ...f, scheduledFor: e.target.value })}
+        />
+      </div>
+    )}
     <div className="form-group"><label className="form-label">Notes</label><textarea className="form-control" rows={2} value={f.notes} onChange={e => setF({ ...f, notes: e.target.value })} placeholder="Additional notes..." /></div>
   </>
 );
@@ -258,6 +272,7 @@ const Content = () => {
       priority: t.priority || 'Medium',
       notes: t.notes || '',
       requiresApproval: t.requiresApproval !== false,
+      scheduledFor: t.scheduledFor ? t.scheduledFor.slice(0, 16) : '',
     });
     setEditTask(t);
   };
@@ -388,6 +403,11 @@ const Content = () => {
                       <tr key={t.id} style={{ cursor: 'pointer' }} onClick={() => setShowTask(t)}>
                         <td style={{ fontWeight: 500 }}>
                           {t.title}
+                          {t.scheduledFor && new Date(t.scheduledFor) > new Date() && (
+                            <div style={{ fontSize: 11, color: '#f59e0b', marginTop: 2 }}>
+                              🕐 Activates {new Date(t.scheduledFor).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                          )}
                           {t.description && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{t.description}</div>}
                         </td>
                         <td style={{ fontSize: 12 }}>{t.assignee?.name || '—'}</td>
@@ -539,7 +559,7 @@ const Content = () => {
             <h3>New Task</h3>
             <button className="modal-close" onClick={() => setShowCreate(false)}>×</button>
             <form onSubmit={handleCreate}>
-              <TaskFormFields f={form} setF={setForm} isOwner={isRole('owner')} users={users} workspaces={workspaces} showAssignTo={canManage} showApprovalToggle={canManage} />
+              <TaskFormFields f={form} setF={setForm} isOwner={isRole('owner')} users={users} workspaces={workspaces} showAssignTo={canManage} showApprovalToggle={canManage} canManage={canManage} />
               <div className="modal-actions">
                 <button type="button" className="btn btn-ghost" onClick={() => setShowCreate(false)}>Cancel</button>
                 <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Creating...' : 'Create Task'}</button>
@@ -555,7 +575,7 @@ const Content = () => {
             <h3>Edit Task</h3>
             <button className="modal-close" onClick={() => setEditTask(null)}>×</button>
             <form onSubmit={handleUpdate}>
-              <TaskFormFields f={editForm} setF={setEditForm} isOwner={isRole('owner')} users={users} workspaces={workspaces} showAssignTo={canManage} showApprovalToggle={canManage} />
+              <TaskFormFields f={editForm} setF={setEditForm} isOwner={isRole('owner')} users={users} workspaces={workspaces} showAssignTo={canManage} showApprovalToggle={canManage} canManage={canManage} />
               <div className="modal-actions">
                 <button type="button" className="btn btn-ghost" onClick={() => setEditTask(null)}>Cancel</button>
                 <button type="submit" className="btn btn-primary" disabled={editSaving}>{editSaving ? 'Saving...' : 'Save Changes'}</button>

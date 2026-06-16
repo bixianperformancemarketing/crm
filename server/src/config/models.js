@@ -404,6 +404,7 @@ const ContentTask = sequelize.define('ContentTask', {
   reminderSentAt: { type: DataTypes.DATE, allowNull: true },
   notes: { type: DataTypes.TEXT },
   assigneeNotes: { type: DataTypes.TEXT },
+  scheduledFor: { type: DataTypes.DATE, allowNull: true },
   isArchived: { type: DataTypes.BOOLEAN, defaultValue: false },
   requiresApproval: { type: DataTypes.BOOLEAN, defaultValue: true },
 }, { tableName: 'content_tasks' });
@@ -799,11 +800,14 @@ const syncDatabase = async () => {
       await ws.update({ webhookToken: crypto.randomBytes(32).toString('hex') });
     }
 
-    // Add assigneeNotes column to content_tasks if missing
+    // Add assigneeNotes and scheduledFor columns to content_tasks if missing
     try {
       const ctCols4 = await qi.describeTable('content_tasks');
       if (!ctCols4.assigneeNotes) {
         await qi.addColumn('content_tasks', 'assigneeNotes', { type: DataTypes.TEXT, allowNull: true });
+      }
+      if (!ctCols4.scheduledFor) {
+        await qi.addColumn('content_tasks', 'scheduledFor', { type: DataTypes.DATE, allowNull: true });
       }
     } catch (e) { /* ignore */ }
 

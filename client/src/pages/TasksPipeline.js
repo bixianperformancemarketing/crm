@@ -44,7 +44,7 @@ const TasksPipeline = () => {
   const [quickTitle, setQuickTitle] = useState('');
   const [quickSaving, setQuickSaving] = useState(false);
   const [editTask, setEditTask] = useState(null);
-  const [editForm, setEditForm] = useState({ title: '', description: '', priority: 'Medium', dueDate: '', dueTime: '' });
+  const [editForm, setEditForm] = useState({ title: '', description: '', priority: 'Medium', dueDate: '', dueTime: '', scheduledFor: '' });
   const [editSaving, setEditSaving] = useState(false);
   const [notesTask, setNotesTask] = useState(null);
   const [apiUsers, setApiUsers] = useState([]);
@@ -195,7 +195,7 @@ const TasksPipeline = () => {
   const openEdit = (e, task) => {
     e.stopPropagation();
     setEditTask(task);
-    setEditForm({ title: task.title || '', description: task.description || '', priority: task.priority || 'Medium', dueDate: task.dueDate || '', dueTime: task.dueTime || '' });
+    setEditForm({ title: task.title || '', description: task.description || '', priority: task.priority || 'Medium', dueDate: task.dueDate || '', dueTime: task.dueTime || '', scheduledFor: task.scheduledFor ? task.scheduledFor.slice(0, 16) : '' });
   };
 
   const handleEditSave = async (e) => {
@@ -368,6 +368,11 @@ const TasksPipeline = () => {
                                   )}
                                 </div>
                               </div>
+                              {task.scheduledFor && new Date(task.scheduledFor) > new Date() && (
+                                <div style={{ fontSize: 11, color: '#f59e0b', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                  🕐 {new Date(task.scheduledFor).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                </div>
+                              )}
                               {task.lead && (
                                 <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>
                                   🔗 {task.lead.name}
@@ -523,6 +528,15 @@ const TasksPipeline = () => {
                 <label className="form-label">Due Time <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: 12 }}>(Optional)</span></label>
                 <input className="form-control" type="time" value={editForm.dueTime} onChange={e => setEditForm({ ...editForm, dueTime: e.target.value })} />
               </div>
+              {(isAdmin || isOwner) && (
+                <div className="form-group">
+                  <label className="form-label">
+                    Schedule For
+                    <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: 12, marginLeft: 6 }}>(assignee won't see until this date &amp; time)</span>
+                  </label>
+                  <input className="form-control" type="datetime-local" value={editForm.scheduledFor} onChange={e => setEditForm({ ...editForm, scheduledFor: e.target.value })} />
+                </div>
+              )}
               <div className="modal-actions">
                 <button type="button" className="btn btn-ghost" onClick={() => setEditTask(null)}>Cancel</button>
                 <button type="submit" className="btn btn-primary" disabled={editSaving}>{editSaving ? 'Saving...' : 'Save Changes'}</button>

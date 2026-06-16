@@ -13,7 +13,10 @@ const getTasks = async (req, res) => {
 
     const ws = workspaceId ? { workspaceId } : {};
     const where = { organizationId: user.organizationId, ...ws, isArchived: false };
-    if (user.role === 'employee') where.assignedTo = user.id;
+    if (user.role === 'employee') {
+      where.assignedTo = user.id;
+      where[Op.or] = [{ scheduledFor: null }, { scheduledFor: { [Op.lte]: new Date() } }];
+    }
     if (status) where.status = status;
     if (assignedTo && user.role !== 'employee') where.assignedTo = assignedTo;
     if (search) where.title = { [Op.like]: `%${search}%` };
@@ -55,7 +58,10 @@ const getCalendarTasks = async (req, res) => {
       dueDate: { [Op.between]: [startDate, endDate] },
       isArchived: false,
     };
-    if (user.role === 'employee') where.assignedTo = user.id;
+    if (user.role === 'employee') {
+      where.assignedTo = user.id;
+      where[Op.or] = [{ scheduledFor: null }, { scheduledFor: { [Op.lte]: new Date() } }];
+    }
 
     const tasks = await ContentTask.findAll({
       where,
@@ -97,7 +103,7 @@ const createTask = async (req, res) => {
   try {
     const { user, workspaceId } = req;
     if (!workspaceId) return res.status(400).json({ success: false, message: 'Workspace context required for this action' });
-    const { leadId, title, description, assignedTo, dueDate, dueTime, priority, notes, requiresApproval } = req.body;
+    const { leadId, title, description, assignedTo, dueDate, dueTime, priority, notes, requiresApproval, scheduledFor } = req.body;
     if (!title) return res.status(400).json({ success: false, message: 'Title is required' });
 
     const task = await ContentTask.create({
@@ -107,6 +113,7 @@ const createTask = async (req, res) => {
       priority: priority || 'Medium', status: 'To Do Today',
       dueDate: dueDate || null, dueTime: dueTime || null, notes: notes || '',
       requiresApproval: requiresApproval !== false,
+      scheduledFor: scheduledFor || null,
       isArchived: false,
     });
     res.status(201).json({ success: true, message: 'Content task created', task });
@@ -154,11 +161,12 @@ const updateTask = async (req, res) => {
 
     const allowed = user.role === 'employee'
       ? ['title', 'description', 'priority', 'status', 'dueDate', 'dueTime', 'notes', 'assigneeNotes']
-      : ['title', 'description', 'priority', 'status', 'assignedTo', 'dueDate', 'dueTime', 'notes', 'requiresApproval', 'assigneeNotes'];
+      : ['title', 'description', 'priority', 'status', 'assignedTo', 'dueDate', 'dueTime', 'notes', 'requiresApproval', 'assigneeNotes', 'scheduledFor'];
     const updates = {};
     for (const k of allowed) { if (req.body[k] !== undefined) updates[k] = req.body[k]; }
     if (updates.dueDate === '') updates.dueDate = null;
     if (updates.dueTime === '') updates.dueTime = null;
+    if (updates.scheduledFor === '') updates.scheduledFor = null;
     await task.update(updates);
     res.json({ success: true, message: 'Task updated', task });
   } catch (err) {
@@ -188,8 +196,10 @@ const getTaskPipeline = async (req, res) => {
     const { assignedTo } = req.query;
     const ws = workspaceId ? { workspaceId } : {};
     const where = { organizationId: user.organizationId, ...ws, isArchived: false };
-    if (user.role === 'employee') where.assignedTo = user.id;
-    else if (assignedTo) where.assignedTo = assignedTo;
+    if (user.role === 'employee') {
+      where.assignedTo = user.id;
+      where[Op.or] = [{ scheduledFor: null }, { scheduledFor: { [Op.lte]: new Date() } }];
+    } else if (assignedTo) where.assignedTo = assignedTo;
 
     const tasks = await ContentTask.findAll({
       where,
