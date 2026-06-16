@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import toast from 'react-hot-toast';
 import Layout from '../components/layout/Layout';
+import TaskNotesSection from '../components/common/TaskNotesSection';
 import { contentAPI, usersAPI, orgAPI } from '../services/api';
 import { getPriorityColor, getInitials } from '../utils/helpers';
 import { useAuth } from '../context/AuthContext';
@@ -45,6 +46,7 @@ const TasksPipeline = () => {
   const [editTask, setEditTask] = useState(null);
   const [editForm, setEditForm] = useState({ title: '', description: '', priority: 'Medium', dueDate: '', dueTime: '' });
   const [editSaving, setEditSaving] = useState(false);
+  const [notesTask, setNotesTask] = useState(null);
   const [apiUsers, setApiUsers] = useState([]);
   const [workspaces, setWorkspaces] = useState([]);
   const [workspaceFilter, setWorkspaceFilter] = useState('');
@@ -324,10 +326,18 @@ const TasksPipeline = () => {
                               {...provided.dragHandleProps}
                               className={`kanban-card${snapshot.isDragging ? ' dragging' : ''}`}
                               style={{ ...provided.draggableProps.style, borderLeft: `3px solid ${color}` }}
+                              onClick={() => !snapshot.isDragging && setNotesTask(task)}
                             >
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 4 }}>
                                 <div className="kc-name" style={{ flex: 1 }}>{task.title}</div>
                                 <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); setNotesTask(task); }}
+                                    title="View notes"
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: (task.notes || task.assigneeNotes) ? 'var(--accent)' : 'var(--text-muted)', fontSize: 13, padding: '0 2px', lineHeight: 1 }}
+                                  >
+                                    📝
+                                  </button>
                                   {String(task.createdBy) === String(user?.id) && (
                                     <>
                                       <button
@@ -445,6 +455,36 @@ const TasksPipeline = () => {
           })}
         </div>
       </DragDropContext>
+
+      {notesTask && (
+        <div className="modal-overlay" onClick={() => setNotesTask(null)}>
+          <div className="modal" style={{ maxWidth: 520 }} onClick={e => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setNotesTask(null)}>×</button>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: `${COL_COLORS[notesTask.status] || '#6b7280'}22`, color: COL_COLORS[notesTask.status] || '#6b7280', fontWeight: 600 }}>{notesTask.status}</span>
+              {notesTask.assignee && <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>→ {notesTask.assignee.name}</span>}
+            </div>
+            <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>{notesTask.title}</div>
+            <TaskNotesSection
+              task={notesTask}
+              user={user}
+              onUpdate={(updates) => {
+                setNotesTask(prev => ({ ...prev, ...updates }));
+                setPipeline(prev => {
+                  const col = notesTask.status;
+                  return {
+                    ...prev,
+                    [col]: (prev[col] || []).map(t => t.id === notesTask.id ? { ...t, ...updates } : t),
+                  };
+                });
+              }}
+            />
+            <div className="modal-actions">
+              <button className="btn btn-ghost" onClick={() => setNotesTask(null)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {editTask && (
         <div className="modal-overlay" onClick={() => setEditTask(null)}>

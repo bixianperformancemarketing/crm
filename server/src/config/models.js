@@ -403,6 +403,7 @@ const ContentTask = sequelize.define('ContentTask', {
   dueTime: { type: DataTypes.STRING(5), allowNull: true },
   reminderSentAt: { type: DataTypes.DATE, allowNull: true },
   notes: { type: DataTypes.TEXT },
+  assigneeNotes: { type: DataTypes.TEXT },
   isArchived: { type: DataTypes.BOOLEAN, defaultValue: false },
   requiresApproval: { type: DataTypes.BOOLEAN, defaultValue: true },
 }, { tableName: 'content_tasks' });

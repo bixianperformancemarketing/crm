@@ -153,8 +153,8 @@ const updateTask = async (req, res) => {
     }
 
     const allowed = user.role === 'employee'
-      ? ['title', 'description', 'priority', 'status', 'dueDate', 'dueTime', 'notes']
-      : ['title', 'description', 'priority', 'status', 'assignedTo', 'dueDate', 'dueTime', 'notes', 'requiresApproval'];
+      ? ['title', 'description', 'priority', 'status', 'dueDate', 'dueTime', 'notes', 'assigneeNotes']
+      : ['title', 'description', 'priority', 'status', 'assignedTo', 'dueDate', 'dueTime', 'notes', 'requiresApproval', 'assigneeNotes'];
     const updates = {};
     for (const k of allowed) { if (req.body[k] !== undefined) updates[k] = req.body[k]; }
     if (updates.dueDate === '') updates.dueDate = null;
@@ -195,6 +195,7 @@ const getTaskPipeline = async (req, res) => {
       where,
       include: [
         { model: User, as: 'assignee', attributes: ['id', 'name', 'avatar'], required: false },
+        { model: User, as: 'creator', attributes: ['id', 'name'], required: false },
         { model: Lead, as: 'lead', attributes: ['id', 'name'], required: false },
       ],
       order: [['dueDate', 'ASC'], ['createdAt', 'ASC']],

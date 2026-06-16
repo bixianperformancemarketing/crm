@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import Layout from '../components/layout/Layout';
 import Pagination from '../components/common/Pagination';
 import UpgradeModal from '../components/common/UpgradeModal';
+import TaskNotesSection from '../components/common/TaskNotesSection';
 import { contentAPI, usersAPI, orgAPI } from '../services/api';
 import { formatDate } from '../utils/helpers';
 import { useAuth } from '../context/AuthContext';
@@ -504,7 +505,11 @@ const Content = () => {
               <div><span style={{ color: 'var(--text-muted)' }}>Assigned To:</span> {showTask.assignee?.name || '—'}</div>
               {showTask.creator && <div><span style={{ color: 'var(--text-muted)' }}>Created By:</span> {showTask.creator.name}</div>}
             </div>
-            {showTask.notes && <div style={{ background: '#0a0a17', borderRadius: 8, padding: 12, fontSize: 13, marginBottom: 16, color: 'var(--text-muted)' }}>{showTask.notes}</div>}
+            <TaskNotesSection
+              task={showTask}
+              user={user}
+              onUpdate={(updates) => setShowTask(prev => prev ? { ...prev, ...updates } : null)}
+            />
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
               {getStatusOptions(showTask).map(s => (
                 <button key={s} className="btn btn-ghost btn-sm" onClick={() => handleStatusChange(showTask.id, s)}>→ {s}</button>
