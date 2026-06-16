@@ -29,7 +29,7 @@ const TaskNotesSection = ({ task, user, onUpdate }) => {
     }
   };
 
-  const label = task.assignee?.name ? `${task.assignee.name}'s Notes` : 'Assignee Notes';
+  const label = 'Notes';
 
   return (
     <div>
