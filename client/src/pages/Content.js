@@ -108,7 +108,6 @@ const TaskFormFields = ({ f, setF, isOwner, users, workspaces, showAssignTo = tr
         />
       </div>
     )}
-    <div className="form-group"><label className="form-label">Notes</label><textarea className="form-control" rows={2} value={f.notes} onChange={e => setF({ ...f, notes: e.target.value })} placeholder="Additional notes..." /></div>
   </>
 );
 
