@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import Pagination from '../components/common/Pagination';
 import { notificationsAPI } from '../services/api';
@@ -14,6 +15,11 @@ const TYPE_ICONS = {
 const TYPES = ['', 'lead_assigned', 'new_lead', 'followup_due', 'appointment_reminder', 'payment_received', 'quotation_approved', 'plan_expiring'];
 const TYPE_LABELS = { '': 'All', lead_assigned: 'Assigned', new_lead: 'New Lead', followup_due: 'Followup', appointment_reminder: 'Appointment', payment_received: 'Payment', quotation_approved: 'Quotation', plan_expiring: 'Plan' };
 
+const NOTIFICATION_LINKS = {
+  plan_expiring: '/pricing',
+  workspace_limit_reached: '/pricing',
+};
+
 const Notifications = () => {
   const [notifications, setNotifications] = useState([]);
   const [pagination, setPagination] = useState(null);
@@ -21,6 +27,7 @@ const Notifications = () => {
   const [page, setPage] = useState(1);
   const [typeFilter, setTypeFilter] = useState('');
   const [unreadOnly, setUnreadOnly] = useState(false);
+  const navigate = useNavigate();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -81,7 +88,7 @@ const Notifications = () => {
         <>
           <div className="notif-list">
             {notifications.map(n => (
-              <div key={n.id} className={`notif-item${!n.isRead ? ' unread' : ''}`} onClick={() => !n.isRead && handleMarkRead(n.id)}>
+              <div key={n.id} className={`notif-item${!n.isRead ? ' unread' : ''}${NOTIFICATION_LINKS[n.type] ? ' clickable' : ''}`} style={NOTIFICATION_LINKS[n.type] ? { cursor: 'pointer' } : {}} onClick={() => { if (!n.isRead) handleMarkRead(n.id); if (NOTIFICATION_LINKS[n.type]) navigate(NOTIFICATION_LINKS[n.type]); }}>
                 <div className="notif-icon">{TYPE_ICONS[n.type] || '🔔'}</div>
                 <div className="notif-body">
                   <div className="notif-title">

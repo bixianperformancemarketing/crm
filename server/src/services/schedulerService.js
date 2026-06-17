@@ -137,6 +137,8 @@ const checkFollowupOnTimeReminders = async () => {
 };
 
 let dailyJobLastRun = null;
+// Tracks which 3 daily slots have fired for plan expiry: { date: 'YYYY-MM-DD', slots: Set }
+let planExpirySlots = { date: null, slots: new Set() };
 
 const runDailyJobs = async () => {
   const now = moment().tz(IST);
@@ -150,11 +152,32 @@ const runDailyJobs = async () => {
 
   await sendDailyFollowupEmails();
   await markOverdueInvoices();
-  await checkPlanExpiry();
   await markOverdueFollowups();
   await markOverdueTasks();
   await checkInvoicePaymentReminders();
   await checkQuotationExpiryEmails();
+};
+
+// Fires plan expiry notifications at 9 AM, 1 PM, and 5 PM IST
+const runPlanExpirySlots = async () => {
+  const now = moment().tz(IST);
+  const todayStr = now.format('YYYY-MM-DD');
+  const hour = now.hour();
+
+  if (planExpirySlots.date !== todayStr) {
+    planExpirySlots = { date: todayStr, slots: new Set() };
+  }
+
+  let slot = null;
+  if (hour >= 9 && hour < 13) slot = 'morning';
+  else if (hour >= 13 && hour < 17) slot = 'afternoon';
+  else if (hour >= 17) slot = 'evening';
+
+  if (slot && !planExpirySlots.slots.has(slot)) {
+    planExpirySlots.slots.add(slot);
+    console.log(`[Scheduler] Running plan expiry check — ${slot} slot`);
+    await checkPlanExpiry();
+  }
 };
 
 const sendDailyFollowupEmails = async () => {
@@ -410,6 +433,7 @@ const startScheduler = () => {
   setInterval(checkTaskReminders, 60 * 1000);
   checkFollowupReminders();
   setInterval(runDailyJobs, 60 * 1000);
+  setInterval(runPlanExpirySlots, 60 * 1000);
   setInterval(metaSyncService.syncAllIntegrations, 60 * 1000);
   console.log('[Scheduler] Background jobs started');
 };
