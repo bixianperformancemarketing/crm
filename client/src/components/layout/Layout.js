@@ -106,11 +106,15 @@ const Layout = ({ children, title }) => {
   }, []);
 
   const openNotifs = async () => {
+    const opening = !showNotifs;
     setShowNotifs((s) => !s);
-    if (!showNotifs) {
+    if (opening) {
       try {
         const { data } = await notificationsAPI.getRecent();
         setNotifications(data.notifications || []);
+        // Mark all as read so the bell count clears immediately
+        await notificationsAPI.markAllRead();
+        resetUnread();
       } catch {}
     }
   };

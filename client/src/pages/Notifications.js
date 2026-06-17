@@ -5,6 +5,7 @@ import Pagination from '../components/common/Pagination';
 import { notificationsAPI } from '../services/api';
 import { timeAgo } from '../utils/helpers';
 import PlansModal from '../components/common/PlansModal';
+import { useSocket } from '../context/SocketContext';
 import './Notifications.css';
 
 const TYPE_ICONS = {
@@ -25,6 +26,7 @@ const Notifications = () => {
   const [typeFilter, setTypeFilter] = useState('');
   const [unreadOnly, setUnreadOnly] = useState(false);
   const [showPlansModal, setShowPlansModal] = useState(false);
+  const { resetUnread, decrementUnread } = useSocket();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -39,11 +41,18 @@ const Notifications = () => {
     finally { setLoading(false); }
   }, [page, typeFilter, unreadOnly]);
 
+  // Mark all as read when the page first loads so the bell count clears
+  useEffect(() => {
+    notificationsAPI.markAllRead().catch(() => {});
+    resetUnread();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => { load(); }, [load]);
 
   const handleMarkAllRead = async () => {
     try {
       await notificationsAPI.markAllRead();
+      resetUnread();
       toast.success('All marked as read');
       load();
     } catch { toast.error('Failed to update'); }
@@ -53,6 +62,7 @@ const Notifications = () => {
     try {
       await notificationsAPI.markRead(id);
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+      decrementUnread();
     } catch {}
   };
 
