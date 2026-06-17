@@ -1,3 +1,4 @@
+const { Op } = require('sequelize');
 const { Notification } = require('../config/models');
 const { emitToUser, emitToWorkspace } = require('../sockets');
 
@@ -100,6 +101,13 @@ const notifyAppointmentReminder = async ({ appointment, userId, organizationId, 
 };
 
 const notifyPlanExpiring = async ({ ownerId, organizationId, daysLeft }) => {
+  // Suppress if a notification was already sent in the last 4 hours (survives restarts)
+  const since = new Date(Date.now() - 4 * 60 * 60 * 1000);
+  const recent = await Notification.findOne({
+    where: { userId: ownerId, type: 'plan_expiring', createdAt: { [Op.gte]: since } },
+  });
+  if (recent) return null;
+
   return create({
     organizationId, workspaceId: null, userId: ownerId,
     type: 'plan_expiring',
