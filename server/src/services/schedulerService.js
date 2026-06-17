@@ -299,7 +299,7 @@ const checkTaskReminders = async () => {
         dueDate: todayIST,
         dueTime: { [Op.between]: [nowTimeIST, in5TimeIST] },
         reminderSentAt: null,
-        status: { [Op.notIn]: ['Approved', 'Done', 'Cancelled'] },
+        status: { [Op.notIn]: ['Review', 'Approved', 'Not Approved', 'Done', 'Cancelled'] },
       },
       include: [{ model: User, as: 'assignee', attributes: ['id', 'name'] }],
     });
