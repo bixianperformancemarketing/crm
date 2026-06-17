@@ -558,6 +558,14 @@ const syncDatabase = async () => {
 
     const qi = sequelize.getQueryInterface();
 
+    // Add ownerPhone to organizations if missing
+    try {
+      const orgColumns = await qi.describeTable('organizations');
+      if (!orgColumns.ownerPhone) {
+        await qi.addColumn('organizations', 'ownerPhone', { type: DataTypes.STRING(20), allowNull: true });
+      }
+    } catch (e) { /* ignore */ }
+
     // Add webhookToken column if missing
     const wsColumns = await qi.describeTable('workspaces');
     if (!wsColumns.webhookToken) {

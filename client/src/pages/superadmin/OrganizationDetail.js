@@ -13,7 +13,7 @@ const OrganizationDetail = () => {
   const [showEdit, setShowEdit] = useState(false);
   const [plans, setPlans] = useState([]);
   const [editForm, setEditForm] = useState({
-    plan: '', planExpiresAt: '', isActive: true, isSuspended: false,
+    plan: '', planExpiresAt: '', ownerPhone: '', isActive: true, isSuspended: false,
     maxWorkspaces: '', maxUsersPerWorkspace: '', maxLeadsTotal: '',
     canUseWebhooks: false, canUsePDF: false, canUseCSVImport: false,
     canUseContentCalendar: false, canUseAdvancedReports: false,
@@ -32,6 +32,7 @@ const OrganizationDetail = () => {
         setEditForm({
           plan: o.plan,
           planExpiresAt: o.planExpiresAt?.split('T')[0] || '',
+          ownerPhone: o.ownerPhone || '',
           isActive: o.isActive,
           isSuspended: o.isSuspended,
           maxWorkspaces: o.maxWorkspaces,
@@ -102,6 +103,8 @@ const OrganizationDetail = () => {
           { label: 'Plan', value: org.plan, color: '#a78bfa' },
           { label: 'Owner', value: org.ownerName || '—', color: 'var(--text)' },
           { label: 'Owner Email', value: org.ownerEmail || '—', color: 'var(--text-muted)' },
+          { label: 'Owner Phone', value: org.ownerPhone || '—', color: 'var(--text)' },
+          { label: 'Company Phone', value: org.settings?.branding?.phone || '—', color: 'var(--text-muted)' },
           { label: 'Max Workspaces', value: org.maxWorkspaces, color: 'var(--text)' },
           { label: 'Max Users per Workspace', value: org.maxUsersPerWorkspace, color: 'var(--text)' },
           { label: 'Max Leads', value: org.maxLeadsTotal, color: 'var(--text)' },
@@ -197,6 +200,11 @@ const OrganizationDetail = () => {
                     ))}
                   </div>
                 </div>
+              </div>
+
+              <div className="form-group" style={{ marginTop: 8 }}>
+                <label className="form-label">Owner Phone</label>
+                <input className="form-control" type="tel" placeholder="+91 98765 43210" value={editForm.ownerPhone} onChange={e => setEditForm({ ...editForm, ownerPhone: e.target.value })} />
               </div>
 
               <div style={{ fontWeight: 600, fontSize: 11, color: 'var(--text-muted)', margin: '4px 0 10px', textTransform: 'uppercase', letterSpacing: 1 }}>Custom Limits (overrides plan defaults)</div>

@@ -10,7 +10,7 @@ const OrganizationNew = () => {
   const [saving, setSaving] = useState(false);
   const [created, setCreated] = useState(null);
   const [form, setForm] = useState({
-    name: '', ownerName: '', ownerEmail: '', plan: 'trial', planExpiresAt: '',
+    name: '', ownerName: '', ownerEmail: '', ownerPhone: '', plan: 'trial', planExpiresAt: '',
   });
 
   useEffect(() => {
@@ -25,7 +25,7 @@ const OrganizationNew = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.name || !form.ownerName || !form.ownerEmail) return toast.error('Name, owner name, and email required');
+    if (!form.name || !form.ownerName || !form.ownerEmail || !form.ownerPhone) return toast.error('Name, owner name, email, and phone are required');
     setSaving(true);
     try {
       const payload = { ...form };
@@ -79,6 +79,7 @@ const OrganizationNew = () => {
             <div className="form-group"><label className="form-label">Owner Name *</label><input className="form-control" value={form.ownerName} onChange={e => setForm({ ...form, ownerName: e.target.value })} placeholder="Ravi Kumar" /></div>
             <div className="form-group"><label className="form-label">Owner Email *</label><input className="form-control" type="email" value={form.ownerEmail} onChange={e => setForm({ ...form, ownerEmail: e.target.value })} placeholder="ravi@company.com" /></div>
           </div>
+          <div className="form-group"><label className="form-label">Owner Phone *</label><input className="form-control" type="tel" value={form.ownerPhone} onChange={e => setForm({ ...form, ownerPhone: e.target.value })} placeholder="+91 98765 43210" /></div>
 
           <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-muted)', margin: '18px 0 10px', textTransform: 'uppercase', letterSpacing: 1 }}>Plan</div>
           <div className="form-row">
