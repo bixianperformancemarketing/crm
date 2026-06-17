@@ -173,7 +173,7 @@ const getDashboard = async (req, res) => {
       pendingFollowups, overdueFollowups, todayAppts,
       recentLeads,
       totalTasks, overviewTasks, todoTodayTasks, inProgressTasks, reviewTasks, approvedTasks, notApprovedTasks,
-      pendingTasks, doneTasks, cancelledTasks,
+      doneTasks, cancelledTasks,
     ] = await Promise.all([
       canAccessLeads ? Lead.count({ where: leadWhere }) : zero,
       canAccessLeads ? Lead.count({ where: { ...leadWhere, status: { [Op.notIn]: ['Won', 'Lost'] } } }) : zero,
