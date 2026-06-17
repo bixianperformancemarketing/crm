@@ -132,7 +132,6 @@ const Dashboard = () => {
     { label: 'In Review', value: stats.reviewTasks ?? 0, icon: '🔍', color: '#f59e0b' },
     { label: 'Approved', value: stats.approvedTasks ?? 0, icon: '✅', color: '#22c55e' },
     { label: 'Not Approved', value: stats.notApprovedTasks ?? 0, icon: '❌', color: '#ef4444' },
-    { label: 'Pending', value: stats.pendingTasks ?? 0, icon: '⏳', color: '#6b7280' },
     { label: 'Done', value: stats.doneTasks ?? 0, icon: '🏁', color: '#22c55e' },
     { label: 'Cancelled', value: stats.cancelledTasks ?? 0, icon: '🚫', color: '#6b7280' },
   ];

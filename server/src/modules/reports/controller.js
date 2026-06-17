@@ -41,7 +41,6 @@ const getLoginSummary = async (req, res) => {
       reviewTasks,
       approvedTasks,
       notApprovedTasks,
-      pendingTasks,
       doneTasks,
       cancelledTasks,
     ] = await Promise.all([
@@ -78,7 +77,6 @@ const getLoginSummary = async (req, res) => {
       canUseTasks ? ContentTask.count({ where: { ...contentWhere, status: 'Review' } }) : zero,
       canUseTasks ? ContentTask.count({ where: { ...contentWhere, status: 'Approved' } }) : zero,
       canUseTasks ? ContentTask.count({ where: { ...contentWhere, status: 'Not Approved' } }) : zero,
-      canUseTasks ? ContentTask.count({ where: { ...contentWhere, status: 'Pending' } }) : zero,
       canUseTasks ? ContentTask.count({ where: { ...contentWhere, status: 'Done' } }) : zero,
       canUseTasks ? ContentTask.count({ where: { ...contentWhere, status: 'Cancelled' } }) : zero,
     ]);
@@ -90,7 +88,7 @@ const getLoginSummary = async (req, res) => {
         activeLeads, newLeads, convertedToday,
         pendingQuotations, todayAppointments,
         totalTasks, overviewTasks, todoTodayTasks, inProgressTasks, reviewTasks, approvedTasks, notApprovedTasks,
-        pendingTasks, doneTasks, cancelledTasks,
+        doneTasks, cancelledTasks,
       },
     });
   } catch (err) {
@@ -195,7 +193,6 @@ const getDashboard = async (req, res) => {
       canUseTasks ? ContentTask.count({ where: { ...taskWhere, status: 'Review' } }) : zero,
       canUseTasks ? ContentTask.count({ where: { ...taskWhere, status: 'Approved' } }) : zero,
       canUseTasks ? ContentTask.count({ where: { ...taskWhere, status: 'Not Approved' } }) : zero,
-      canUseTasks ? ContentTask.count({ where: { ...taskWhere, status: 'Pending' } }) : zero,
       canUseTasks ? ContentTask.count({ where: { ...taskWhere, status: 'Done' } }) : zero,
       canUseTasks ? ContentTask.count({ where: { ...taskWhere, status: 'Cancelled' } }) : zero,
     ]);
@@ -293,7 +290,7 @@ const getDashboard = async (req, res) => {
         overdueInvoices, pendingFollowups, overdueFollowups, todayAppts,
         conversionRate, avgDealSize: Math.round(avgDealSize),
         totalTasks, overviewTasks, todoTodayTasks, inProgressTasks, reviewTasks, approvedTasks, notApprovedTasks,
-        pendingTasks, doneTasks, cancelledTasks,
+        doneTasks, cancelledTasks,
         earnings,
       },
       charts: { monthlyRevenue, leadByStatus, leadBySource, leadVolume },

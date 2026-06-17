@@ -194,7 +194,6 @@ const OwnerDashboard = () => {
                 <MetricCard label="In Review" value={metrics.stats?.reviewTasks ?? 0} color="#f59e0b" />
                 <MetricCard label="Approved" value={metrics.stats?.approvedTasks ?? 0} color="#22c55e" />
                 <MetricCard label="Not Approved" value={metrics.stats?.notApprovedTasks ?? 0} color="#ef4444" />
-                <MetricCard label="Pending" value={metrics.stats?.pendingTasks ?? 0} color="#6b7280" />
                 <MetricCard label="Done" value={metrics.stats?.doneTasks ?? 0} color="#22c55e" />
                 <MetricCard label="Cancelled" value={metrics.stats?.cancelledTasks ?? 0} color="#6b7280" />
               </div>
