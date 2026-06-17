@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import Pagination from '../components/common/Pagination';
 import { notificationsAPI } from '../services/api';
 import { timeAgo } from '../utils/helpers';
+import PlansModal from '../components/common/PlansModal';
 import './Notifications.css';
 
 const TYPE_ICONS = {
@@ -15,10 +15,7 @@ const TYPE_ICONS = {
 const TYPES = ['', 'lead_assigned', 'new_lead', 'followup_due', 'appointment_reminder', 'payment_received', 'quotation_approved', 'plan_expiring'];
 const TYPE_LABELS = { '': 'All', lead_assigned: 'Assigned', new_lead: 'New Lead', followup_due: 'Followup', appointment_reminder: 'Appointment', payment_received: 'Payment', quotation_approved: 'Quotation', plan_expiring: 'Plan' };
 
-const NOTIFICATION_LINKS = {
-  plan_expiring: '/pricing',
-  workspace_limit_reached: '/pricing',
-};
+const PLAN_MODAL_TYPES = new Set(['plan_expiring', 'workspace_limit_reached']);
 
 const Notifications = () => {
   const [notifications, setNotifications] = useState([]);
@@ -27,7 +24,7 @@ const Notifications = () => {
   const [page, setPage] = useState(1);
   const [typeFilter, setTypeFilter] = useState('');
   const [unreadOnly, setUnreadOnly] = useState(false);
-  const navigate = useNavigate();
+  const [showPlansModal, setShowPlansModal] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -63,6 +60,7 @@ const Notifications = () => {
 
   return (
     <Layout title="Notifications">
+      {showPlansModal && <PlansModal onClose={() => setShowPlansModal(false)} />}
       <div className="page-header">
         <div className="page-title">Notifications {unreadCount > 0 && <span style={{ fontSize: 13, background: 'var(--accent)', color: '#fff', padding: '2px 8px', borderRadius: 20, marginLeft: 8 }}>{unreadCount}</span>}</div>
         <div style={{ display: 'flex', gap: 8 }}>
@@ -88,7 +86,7 @@ const Notifications = () => {
         <>
           <div className="notif-list">
             {notifications.map(n => (
-              <div key={n.id} className={`notif-item${!n.isRead ? ' unread' : ''}${NOTIFICATION_LINKS[n.type] ? ' clickable' : ''}`} style={NOTIFICATION_LINKS[n.type] ? { cursor: 'pointer' } : {}} onClick={() => { if (!n.isRead) handleMarkRead(n.id); if (NOTIFICATION_LINKS[n.type]) navigate(NOTIFICATION_LINKS[n.type]); }}>
+              <div key={n.id} className={`notif-item${!n.isRead ? ' unread' : ''}${PLAN_MODAL_TYPES.has(n.type) ? ' clickable' : ''}`} style={PLAN_MODAL_TYPES.has(n.type) ? { cursor: 'pointer' } : {}} onClick={() => { if (!n.isRead) handleMarkRead(n.id); if (PLAN_MODAL_TYPES.has(n.type)) setShowPlansModal(true); }}>
                 <div className="notif-icon">{TYPE_ICONS[n.type] || '🔔'}</div>
                 <div className="notif-body">
                   <div className="notif-title">

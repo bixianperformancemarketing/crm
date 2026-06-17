@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/layout/Layout';
 import { orgAPI, reportsAPI } from '../../services/api';
 import { formatCurrency, PLAN_LABELS } from '../../utils/helpers';
 import { useAuth } from '../../context/AuthContext';
+import PlansModal from '../../components/common/PlansModal';
 
 const PERIODS = [
   { value: 'this_month',   label: 'This Month' },
@@ -27,7 +27,7 @@ const MetricCard = ({ label, value, color, sub }) => (
 
 const OwnerDashboard = () => {
   const { org } = useAuth();
-  const navigate = useNavigate();
+  const [showPlansModal, setShowPlansModal] = useState(false);
   const [data, setData] = useState(null);
   const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -82,6 +82,7 @@ const OwnerDashboard = () => {
 
   return (
     <Layout title="Owner Dashboard">
+      {showPlansModal && <PlansModal onClose={() => setShowPlansModal(false)} />}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>
         <div style={{ fontSize: 20, fontWeight: 700 }}>Organization Overview</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -128,13 +129,13 @@ const OwnerDashboard = () => {
       {org?.plan === 'trial' && daysLeft !== null && daysLeft <= 14 && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: daysLeft <= 3 ? 'rgba(239,68,68,0.09)' : 'rgba(245,158,11,0.08)', border: `1px solid ${daysLeft <= 3 ? 'rgba(239,68,68,0.3)' : 'rgba(245,158,11,0.3)'}`, borderRadius: 8, padding: '11px 18px', marginBottom: 20, fontSize: 13, color: daysLeft <= 3 ? '#ef4444' : '#f59e0b', fontWeight: 600 }}>
           <span>{daysLeft <= 0 ? '⛔ Your free trial has expired.' : `⏳ Free trial expires in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}.`}</span>
-          <button onClick={() => navigate('/pricing')} style={{ marginLeft: 16, padding: '5px 14px', borderRadius: 6, border: 'none', background: daysLeft <= 3 ? '#ef4444' : '#f59e0b', color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap' }}>View Plans</button>
+          <button onClick={() => setShowPlansModal(true)} style={{ marginLeft: 16, padding: '5px 14px', borderRadius: 6, border: 'none', background: daysLeft <= 3 ? '#ef4444' : '#f59e0b', color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap' }}>View Plans</button>
         </div>
       )}
       {org?.plan !== 'trial' && daysLeft !== null && daysLeft <= 7 && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: daysLeft <= 2 ? 'rgba(239,68,68,0.09)' : 'rgba(245,158,11,0.08)', border: `1px solid ${daysLeft <= 2 ? 'rgba(239,68,68,0.3)' : 'rgba(245,158,11,0.3)'}`, borderRadius: 8, padding: '11px 18px', marginBottom: 20, fontSize: 13, color: daysLeft <= 2 ? '#ef4444' : '#f59e0b', fontWeight: 600 }}>
           <span>{daysLeft <= 0 ? '⛔ Your subscription has expired.' : `⚠ Plan expires in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}. Renew to avoid interruption.`}</span>
-          <button onClick={() => navigate('/pricing')} style={{ marginLeft: 16, padding: '5px 14px', borderRadius: 6, border: 'none', background: daysLeft <= 2 ? '#ef4444' : '#f59e0b', color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap' }}>Renew Now</button>
+          <button onClick={() => setShowPlansModal(true)} style={{ marginLeft: 16, padding: '5px 14px', borderRadius: 6, border: 'none', background: daysLeft <= 2 ? '#ef4444' : '#f59e0b', color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap' }}>Renew Now</button>
         </div>
       )}
       {!loading && wsUsed >= wsLimit && (
