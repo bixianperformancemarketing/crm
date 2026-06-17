@@ -16,7 +16,7 @@
   --inv-gold-border: rgba(245, 158, 11, 0.22);
 }
 
-.invoice-status-bar { display: flex; gap: 4px; margin-bottom: 20px; flex-wrap: wrap; }
+.invoice-status-bar { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
 
 .invoice-card {
   background: var(--surface);
