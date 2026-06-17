@@ -19,7 +19,7 @@ const getLoginSummary = async (req, res) => {
     const leadWhere    = { organizationId: orgId, ...ws, ...(isEmployee ? { assignedTo: user.id } : {}) };
     const fupWhere     = { organizationId: orgId, ...ws, ...(isEmployee ? { userId: user.id } : {}) };
     const quotWhere    = { organizationId: orgId, ...ws, ...(isEmployee ? { createdBy: user.id } : {}) };
-    const contentWhere = { organizationId: orgId, ...ws, ...(isEmployee ? { assignedTo: user.id } : {}) };
+    const contentWhere = { organizationId: orgId, ...ws, ...(isEmployee ? { assignedTo: user.id } : {}), isArchived: { [Op.ne]: true } };
     const apptWhere    = { organizationId: orgId, ...ws, ...(isEmployee ? { assignedTo: user.id } : {}), status: 'Scheduled' };
 
     const zero = Promise.resolve(0);
@@ -41,6 +41,9 @@ const getLoginSummary = async (req, res) => {
       reviewTasks,
       approvedTasks,
       notApprovedTasks,
+      pendingTasks,
+      doneTasks,
+      cancelledTasks,
     ] = await Promise.all([
       canAccessLeads ? Followup.findAll({
         where: { ...fupWhere, status: { [Op.in]: ['pending', 'overdue'] }, scheduledAt: { [Op.lt]: now } },
@@ -75,6 +78,9 @@ const getLoginSummary = async (req, res) => {
       canUseTasks ? ContentTask.count({ where: { ...contentWhere, status: 'Review' } }) : zero,
       canUseTasks ? ContentTask.count({ where: { ...contentWhere, status: 'Approved' } }) : zero,
       canUseTasks ? ContentTask.count({ where: { ...contentWhere, status: 'Not Approved' } }) : zero,
+      canUseTasks ? ContentTask.count({ where: { ...contentWhere, status: 'Pending' } }) : zero,
+      canUseTasks ? ContentTask.count({ where: { ...contentWhere, status: 'Done' } }) : zero,
+      canUseTasks ? ContentTask.count({ where: { ...contentWhere, status: 'Cancelled' } }) : zero,
     ]);
 
     res.json({
@@ -84,6 +90,7 @@ const getLoginSummary = async (req, res) => {
         activeLeads, newLeads, convertedToday,
         pendingQuotations, todayAppointments,
         totalTasks, overviewTasks, todoTodayTasks, inProgressTasks, reviewTasks, approvedTasks, notApprovedTasks,
+        pendingTasks, doneTasks, cancelledTasks,
       },
     });
   } catch (err) {
@@ -127,7 +134,7 @@ const getDashboard = async (req, res) => {
     const periodFilter = periodRange ? { [Op.between]: [periodRange.start, periodRange.end] } : undefined;
 
     const baseWhere = { organizationId: orgId, ...ws };
-    const taskWhere = { organizationId: orgId, ...ws, ...(isEmployee ? { assignedTo: user.id } : {}), ...(periodFilter ? { createdAt: periodFilter } : {}) };
+    const taskWhere = { organizationId: orgId, ...ws, ...(isEmployee ? { assignedTo: user.id } : {}), ...(periodFilter ? { createdAt: periodFilter } : {}), isArchived: { [Op.ne]: true } };
 
     // For overdue followups, clamp the period end to now (past periods are entirely overdue; current period only counts the elapsed portion)
     const clampedEnd = periodRange ? new Date(Math.min(periodRange.end.getTime(), now.getTime())) : now;
@@ -168,6 +175,7 @@ const getDashboard = async (req, res) => {
       pendingFollowups, overdueFollowups, todayAppts,
       recentLeads,
       totalTasks, overviewTasks, todoTodayTasks, inProgressTasks, reviewTasks, approvedTasks, notApprovedTasks,
+      pendingTasks, doneTasks, cancelledTasks,
     ] = await Promise.all([
       canAccessLeads ? Lead.count({ where: leadWhere }) : zero,
       canAccessLeads ? Lead.count({ where: { ...leadWhere, status: { [Op.notIn]: ['Won', 'Lost'] } } }) : zero,
@@ -187,6 +195,9 @@ const getDashboard = async (req, res) => {
       canUseTasks ? ContentTask.count({ where: { ...taskWhere, status: 'Review' } }) : zero,
       canUseTasks ? ContentTask.count({ where: { ...taskWhere, status: 'Approved' } }) : zero,
       canUseTasks ? ContentTask.count({ where: { ...taskWhere, status: 'Not Approved' } }) : zero,
+      canUseTasks ? ContentTask.count({ where: { ...taskWhere, status: 'Pending' } }) : zero,
+      canUseTasks ? ContentTask.count({ where: { ...taskWhere, status: 'Done' } }) : zero,
+      canUseTasks ? ContentTask.count({ where: { ...taskWhere, status: 'Cancelled' } }) : zero,
     ]);
 
     const conversionRate = canAccessLeads && totalLeads > 0 ? Math.round((wonLeads / totalLeads) * 100) : 0;
@@ -282,6 +293,7 @@ const getDashboard = async (req, res) => {
         overdueInvoices, pendingFollowups, overdueFollowups, todayAppts,
         conversionRate, avgDealSize: Math.round(avgDealSize),
         totalTasks, overviewTasks, todoTodayTasks, inProgressTasks, reviewTasks, approvedTasks, notApprovedTasks,
+        pendingTasks, doneTasks, cancelledTasks,
         earnings,
       },
       charts: { monthlyRevenue, leadByStatus, leadBySource, leadVolume },
