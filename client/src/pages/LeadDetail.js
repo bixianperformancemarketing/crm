@@ -147,7 +147,7 @@ const LeadDetail = () => {
     if (!validItems.length) return toast.error('At least one item with description is required');
     setSaving(true);
     try {
-      await quotationsAPI.create({ leadId: parseInt(id), ...quotationForm, terms: JSON.stringify(quotationForm.terms.filter(t => t.trim())), items: validItems });
+      await quotationsAPI.create({ leadId: parseInt(id), workspaceId: lead.workspaceId, ...quotationForm, terms: JSON.stringify(quotationForm.terms.filter(t => t.trim())), items: validItems });
       toast.success('Quotation created');
       setShowQuotation(false);
       setQuotationForm({ clientName: '', clientEmail: '', clientPhone: '', clientAddress: '', clientGST: '', gstPercent: 18, terms: [], notes: '', validUntil: '', items: [emptyQItem()] });
