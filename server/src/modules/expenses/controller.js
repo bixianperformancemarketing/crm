@@ -40,8 +40,8 @@ const createExpense = async (req, res) => {
     const { user } = req;
     const { title, category, amount, expenseDate, billReference, paymentMode, notes, workspaceId } = req.body;
 
-    if (!title || !amount || !expenseDate || !paymentMode) {
-      return res.status(400).json({ success: false, message: 'Title, amount, date, and payment mode are required' });
+    if (!title || !amount || !expenseDate || !paymentMode || !billReference?.trim()) {
+      return res.status(400).json({ success: false, message: 'Title, amount, date, payment mode, and bill/cheque/receipt reference are required' });
     }
     if (!PAYMENT_MODES.includes(paymentMode)) {
       return res.status(400).json({ success: false, message: 'Invalid payment mode' });

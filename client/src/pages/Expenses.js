@@ -83,8 +83,8 @@ const Expenses = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.title.trim() || !form.amount || !form.expenseDate || !form.paymentMode) {
-      return toast.error('Title, amount, date, and payment mode are required');
+    if (!form.title.trim() || !form.amount || !form.expenseDate || !form.paymentMode || !form.billReference.trim()) {
+      return toast.error('Title, amount, date, payment mode, and bill/cheque/receipt reference are required');
     }
     setSaving(true);
     try {
@@ -281,8 +281,8 @@ const Expenses = () => {
                 </div>
               </div>
               <div className="form-group">
-                <label className="form-label">BILL / CHEQUE / RECEIPT REFERENCE NO.</label>
-                <input className="form-control" value={form.billReference} onChange={e => setForm({ ...form, billReference: e.target.value })} placeholder="e.g. Bill no., cheque no., receipt no." />
+                <label className="form-label">BILL / CHEQUE / RECEIPT REFERENCE NO. *</label>
+                <input className="form-control" value={form.billReference} onChange={e => setForm({ ...form, billReference: e.target.value })} placeholder="e.g. Bill no., cheque no., receipt no." required />
               </div>
               <div className="form-group">
                 <label className="form-label">Notes</label>
