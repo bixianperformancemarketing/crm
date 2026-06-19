@@ -396,6 +396,44 @@ const checkInvoicePaymentReminders = async () => {
   }
 };
 
+// Tracks which orgs have had auto-archive run today: { orgId: 'YYYY-MM-DD' }
+const autoArchiveLastRun = {};
+
+const autoArchiveTasks = async () => {
+  try {
+    const nowIST = moment().tz(IST);
+    const todayStr = nowIST.format('YYYY-MM-DD');
+    const currentTime = nowIST.format('HH:mm');
+
+    const orgs = await Organization.findAll({
+      where: { isActive: true },
+      attributes: ['id', 'settings'],
+    });
+
+    for (const org of orgs) {
+      const s = org.settings || {};
+      const aa = s.autoArchive;
+      if (!aa?.enabled || !aa?.time) continue;
+      if (aa.time !== currentTime) continue;
+      if (autoArchiveLastRun[org.id] === todayStr) continue;
+
+      autoArchiveLastRun[org.id] = todayStr;
+
+      const [count] = await sequelize.query(`
+        UPDATE content_tasks
+        SET isArchived = 1
+        WHERE organizationId = :orgId
+          AND status IN ('Done', 'Approved')
+          AND isArchived = 0
+      `, { replacements: { orgId: org.id } });
+
+      console.log(`[Scheduler] Auto-archived ${count} tasks for org ${org.id} at ${currentTime}`);
+    }
+  } catch (err) {
+    console.error('Auto-archive tasks error:', err.message);
+  }
+};
+
 const checkQuotationExpiryEmails = async () => {
   try {
     const todayIST = moment().tz(IST).format('YYYY-MM-DD');
@@ -431,6 +469,7 @@ const startScheduler = () => {
   setInterval(checkFollowupReminders, 60 * 1000);
   setInterval(checkFollowupOnTimeReminders, 60 * 1000);
   setInterval(checkTaskReminders, 60 * 1000);
+  setInterval(autoArchiveTasks, 60 * 1000);
   checkFollowupReminders();
   setInterval(runDailyJobs, 60 * 1000);
   setInterval(runPlanExpirySlots, 60 * 1000);

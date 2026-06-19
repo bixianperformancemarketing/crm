@@ -898,6 +898,7 @@ const Settings = () => {
   const [smtpForm, setSmtpForm] = useState({ host: '', port: 587, user: '', pass: '', from: '', secure: false });
   const [testEmail, setTestEmail] = useState('');
   const [messages, setMessages] = useState({ quotationFooter: '', invoiceFooter: '' });
+  const [autoArchive, setAutoArchive] = useState({ enabled: false, time: '18:00' });
 
   useEffect(() => {
     workspaceAPI.get().then(({ data }) => {
@@ -927,6 +928,9 @@ const Settings = () => {
       }
       if (s.messages) {
         setMessages({ quotationFooter: s.messages.quotationFooter || '', invoiceFooter: s.messages.invoiceFooter || '' });
+      }
+      if (s.autoArchive) {
+        setAutoArchive({ enabled: s.autoArchive.enabled || false, time: s.autoArchive.time || '18:00' });
       }
     }
   }, [org]);
@@ -1017,11 +1021,24 @@ const Settings = () => {
     finally { setSaving(false); }
   };
 
+  const saveAutoArchive = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const current = typeof org?.settings === 'string' ? JSON.parse(org.settings || '{}') : (org?.settings || {});
+      await orgAPI.updateSettings({ settings: { ...current, autoArchive } });
+      toast.success(autoArchive.enabled ? `Auto-archive enabled at ${autoArchive.time} IST` : 'Auto-archive disabled');
+      await refreshUser();
+    } catch { toast.error('Failed to save auto-archive settings'); }
+    finally { setSaving(false); }
+  };
+
   const tabs = isRole('owner')
     ? [
         { id: 'org', label: 'Organization' },
         { id: 'smtp', label: 'Email (SMTP)' },
         { id: 'messages', label: 'PDF Messages' },
+        { id: 'tasks', label: 'Tasks' },
         { id: 'webhooks', label: 'Webhooks' },
         { id: 'meta', label: 'Meta Ads' },
         { id: 'google', label: 'Google Ads' },
@@ -1112,6 +1129,49 @@ const Settings = () => {
             <div style={{ marginTop: 28 }}>
               <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Saving...' : 'Save Organization Info'}</button>
             </div>
+          </form>
+        </div>
+      )}
+
+      {tab === 'tasks' && (
+        <div style={{ maxWidth: 480 }}>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 24, lineHeight: 1.6 }}>
+            Set a daily time to automatically archive tasks that are in <strong>Done</strong> or <strong>Approved</strong> status. The archive runs once per day at the specified time (IST).
+          </p>
+          <form onSubmit={saveAutoArchive}>
+            <div style={{ marginBottom: 20, padding: 18, background: 'var(--surface-2)', borderRadius: 10, border: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: autoArchive.enabled ? 18 : 0 }}>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 14 }}>Auto-Archive Completed Tasks</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 3 }}>Runs daily at the configured time</div>
+                </div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                  <div style={{ position: 'relative', width: 44, height: 24 }}>
+                    <input type="checkbox" checked={autoArchive.enabled} onChange={e => setAutoArchive({ ...autoArchive, enabled: e.target.checked })} style={{ opacity: 0, width: 0, height: 0, position: 'absolute' }} />
+                    <div onClick={() => setAutoArchive({ ...autoArchive, enabled: !autoArchive.enabled })} style={{ position: 'absolute', inset: 0, borderRadius: 12, background: autoArchive.enabled ? 'var(--accent)' : 'var(--border)', cursor: 'pointer', transition: 'background 0.2s' }}>
+                      <div style={{ position: 'absolute', top: 3, left: autoArchive.enabled ? 23 : 3, width: 18, height: 18, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+                    </div>
+                  </div>
+                  <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{autoArchive.enabled ? 'Enabled' : 'Disabled'}</span>
+                </label>
+              </div>
+              {autoArchive.enabled && (
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Archive Time (IST)</label>
+                  <input
+                    type="time"
+                    className="form-control"
+                    value={autoArchive.time}
+                    onChange={e => setAutoArchive({ ...autoArchive, time: e.target.value })}
+                    style={{ maxWidth: 160 }}
+                  />
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 5 }}>
+                    Every day at {autoArchive.time} IST, tasks in <em>Done</em> and <em>Approved</em> will be moved to the archive.
+                  </div>
+                </div>
+              )}
+            </div>
+            <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Saving...' : 'Save Task Settings'}</button>
           </form>
         </div>
       )}
