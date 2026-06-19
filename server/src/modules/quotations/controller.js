@@ -12,7 +12,7 @@ const { logUsage } = require('../../middleware/entitlement');
 const getQuotations = async (req, res) => {
   try {
     const { user, workspaceId } = req;
-    const { page = 1, limit = 20, status, leadId, search } = req.query;
+    const { page = 1, limit = 20, status, leadId, search, dateFrom, dateTo } = req.query;
     const { limit: lim, offset } = paginate(page, limit);
     const ws = workspaceId ? { workspaceId } : {};
     const where = { organizationId: user.organizationId, ...ws };
@@ -26,6 +26,12 @@ const getQuotations = async (req, res) => {
         { clientPhone: { [Op.like]: `%${search.trim()}%` } },
         { clientEmail: { [Op.like]: `%${search.trim()}%` } },
       ];
+    }
+
+    if (dateFrom || dateTo) {
+      where.createdAt = {};
+      if (dateFrom) where.createdAt[Op.gte] = new Date(dateFrom);
+      if (dateTo) { const d = new Date(dateTo); d.setDate(d.getDate() + 1); where.createdAt[Op.lt] = d; }
     }
 
     const { count, rows } = await Quotation.findAndCountAll({

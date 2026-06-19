@@ -6,7 +6,7 @@ const notificationService = require('../../services/notificationService');
 const getFollowups = async (req, res) => {
   try {
     const { user, workspaceId } = req;
-    const { filter = 'all', page = 1, limit = 20 } = req.query;
+    const { filter = 'all', page = 1, limit = 20, dateFrom, dateTo } = req.query;
     const { limit: lim, offset } = paginate(page, limit);
     const now = new Date();
 
@@ -35,6 +35,13 @@ const getFollowups = async (req, res) => {
         [literal(`CASE WHEN \`Followup\`.\`status\` = 'overdue' THEN 1 WHEN \`Followup\`.\`status\` = 'pending' THEN 2 WHEN \`Followup\`.\`status\` = 'completed' THEN 3 ELSE 4 END`), 'ASC'],
         ['scheduledAt', 'ASC'],
       ];
+    }
+
+    if (dateFrom || dateTo) {
+      const dateRange = {};
+      if (dateFrom) dateRange[Op.gte] = new Date(dateFrom);
+      if (dateTo) { const d = new Date(dateTo); d.setDate(d.getDate() + 1); dateRange[Op.lt] = d; }
+      where.scheduledAt = where.scheduledAt ? { [Op.and]: [where.scheduledAt, dateRange] } : dateRange;
     }
 
     const { count, rows } = await Followup.findAndCountAll({

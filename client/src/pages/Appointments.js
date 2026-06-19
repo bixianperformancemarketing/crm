@@ -6,6 +6,7 @@ import Pagination from '../components/common/Pagination';
 import { appointmentsAPI, usersAPI, leadsAPI } from '../services/api';
 import { formatDateTime, formatDate, formatTime, getStatusColor, ENUMS } from '../utils/helpers';
 import { useAuth } from '../context/AuthContext';
+import DateFilter from '../components/common/DateFilter';
 import './Appointments.css';
 
 const Appointments = () => {
@@ -16,6 +17,8 @@ const Appointments = () => {
   const [pagination, setPagination] = useState(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [month, setMonth] = useState(new Date().getMonth() + 1);
   const [year, setYear] = useState(new Date().getFullYear());
   const [showCreate, setShowCreate] = useState(false);
@@ -26,12 +29,15 @@ const Appointments = () => {
   const loadList = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await appointmentsAPI.getAll({ page });
+      const params = { page };
+      if (dateFrom) params.dateFrom = dateFrom;
+      if (dateTo) params.dateTo = dateTo;
+      const { data } = await appointmentsAPI.getAll(params);
       setAppointments(data.data || []);
       setPagination(data.pagination);
     } catch { toast.error('Failed to load appointments'); }
     finally { setLoading(false); }
-  }, [page]);
+  }, [page, dateFrom, dateTo]);
 
   const loadCalendar = useCallback(async () => {
     setLoading(true);
@@ -91,6 +97,11 @@ const Appointments = () => {
           <button className="btn btn-primary" onClick={() => setShowCreate(true)}>+ New</button>
         </div>
       </div>
+      {view === 'list' && (
+        <div style={{ marginBottom: 14 }}>
+          <DateFilter onChange={({ dateFrom: df, dateTo: dt }) => { setDateFrom(df); setDateTo(dt); setPage(1); }} />
+        </div>
+      )}
 
       {loading ? (
         <div className="loading-spinner"><div className="spinner" /></div>

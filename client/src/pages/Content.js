@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import Layout from '../components/layout/Layout';
 import Pagination from '../components/common/Pagination';
+import DateFilter from '../components/common/DateFilter';
 import UpgradeModal from '../components/common/UpgradeModal';
 import TaskNotesSection from '../components/common/TaskNotesSection';
 import { contentAPI, usersAPI, orgAPI } from '../services/api';
@@ -143,6 +144,9 @@ const Content = () => {
   const [editSaving, setEditSaving] = useState(false);
   const [archivingId, setArchivingId] = useState(null);
   const [unarchivingId, setUnarchivingId] = useState(null);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [dueDateSort, setDueDateSort] = useState('');
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(searchQuery), 400);
@@ -161,12 +165,15 @@ const Content = () => {
       if (userFilter && (isRole('admin') || isRole('owner'))) params.assignedTo = userFilter;
       if (isRole('owner') && workspaceFilter) params.workspaceId = workspaceFilter;
       if (debouncedSearch) params.search = debouncedSearch;
+      if (dateFrom) params.dateFrom = dateFrom;
+      if (dateTo) params.dateTo = dateTo;
+      if (dueDateSort) params.dueDateSort = dueDateSort;
       const { data } = await contentAPI.getAll(params);
       setTasks(data.data || []);
       setPagination(data.pagination);
     } catch { toast.error('Failed to load tasks'); }
     finally { setLoading(false); }
-  }, [page, statusFilter, userFilter, workspaceFilter, debouncedSearch, isRole]);
+  }, [page, statusFilter, userFilter, workspaceFilter, debouncedSearch, isRole, dateFrom, dateTo, dueDateSort]);
 
   const loadCal = useCallback(async () => {
     setLoading(true);
@@ -391,6 +398,7 @@ const Content = () => {
                 style={{ minWidth: 180 }}
               />
             )}
+            <DateFilter onChange={({ dateFrom: df, dateTo: dt }) => { setDateFrom(df); setDateTo(dt); setPage(1); }} />
           </div>
           {loading ? <div className="loading-spinner"><div className="spinner" /></div> : tasks.length === 0 ? (
             <div className="empty-state"><div className="empty-icon">✅</div><div className="empty-title">No tasks yet</div></div>
@@ -398,7 +406,13 @@ const Content = () => {
             <>
               <div className="table-wrap">
                 <table>
-                  <thead><tr><th>Title</th><th>Assigned To</th><th>Due Date</th><th>Priority</th><th>Approval</th><th>Status</th><th>Actions</th></tr></thead>
+                  <thead><tr>
+                    <th>Title</th><th>Assigned To</th>
+                    <th style={{ cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }} onClick={() => { setDueDateSort(s => s === '' ? 'asc' : s === 'asc' ? 'desc' : ''); setPage(1); }}>
+                      Due Date <span style={{ fontSize: 10, opacity: dueDateSort ? 1 : 0.3 }}>{dueDateSort === 'desc' ? '↓' : '↑'}</span>
+                    </th>
+                    <th>Priority</th><th>Approval</th><th>Status</th><th>Actions</th>
+                  </tr></thead>
                   <tbody>
                     {tasks.map((t) => (
                       <tr key={t.id} style={{ cursor: 'pointer' }} onClick={() => setShowTask(t)}>

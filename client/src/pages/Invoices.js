@@ -7,6 +7,7 @@ import { invoicesAPI, paymentsAPI, orgAPI } from '../services/api';
 import { formatCurrency, formatDate, getStatusColor, downloadBlob } from '../utils/helpers';
 import { useAuth } from '../context/AuthContext';
 import { ENUMS } from '../utils/helpers';
+import DateFilter from '../components/common/DateFilter';
 import './Invoices.css';
 
 const emptyItem = () => ({ description: '', subDescription: '', subItems: [], totalPrice: '' });
@@ -25,6 +26,9 @@ const Invoices = () => {
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('');
   const [search, setSearch] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [dueDateSort, setDueDateSort] = useState('');
   const [upgradeModal, setUpgradeModal] = useState(null);
   const [showPayment, setShowPayment] = useState(null);
   const [payForm, setPayForm] = useState({ amount: '', mode: 'UPI', reference: '', note: '' });
@@ -50,12 +54,15 @@ const Invoices = () => {
       const params = { page };
       if (statusFilter) params.status = statusFilter;
       if (search.trim()) params.search = search.trim();
+      if (dateFrom) params.dateFrom = dateFrom;
+      if (dateTo) params.dateTo = dateTo;
+      if (dueDateSort) params.dueDateSort = dueDateSort;
       const { data } = await invoicesAPI.getAll(params);
       setInvoices(data.data || []);
       setPagination(data.pagination);
     } catch { toast.error('Failed to load invoices'); }
     finally { setLoading(false); }
-  }, [page, statusFilter, search]);
+  }, [page, statusFilter, search, dateFrom, dateTo, dueDateSort]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -279,6 +286,7 @@ const Invoices = () => {
               </button>
             ))}
           </div>
+          <DateFilter onChange={({ dateFrom: df, dateTo: dt }) => { setDateFrom(df); setDateTo(dt); setPage(1); }} />
           <button className="btn btn-primary" onClick={() => setShowCreate(true)}>+ New Invoice</button>
         </div>
       </div>
@@ -289,7 +297,13 @@ const Invoices = () => {
         <>
           <div className="table-wrap">
             <table>
-              <thead><tr><th>Invoice #</th><th>Client</th><th>Total</th><th>Paid</th><th>Due</th><th>Status</th><th>Due Date</th><th>Created By</th><th>Actions</th></tr></thead>
+              <thead><tr>
+                <th>Invoice #</th><th>Client</th><th>Total</th><th>Paid</th><th>Due</th><th>Status</th>
+                <th style={{ cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }} onClick={() => { setDueDateSort(s => s === '' ? 'asc' : s === 'asc' ? 'desc' : ''); setPage(1); }}>
+                  Due Date <span style={{ fontSize: 10, opacity: dueDateSort ? 1 : 0.3 }}>{dueDateSort === 'desc' ? '↓' : '↑'}</span>
+                </th>
+                <th>Created By</th><th>Actions</th>
+              </tr></thead>
               <tbody>
                 {invoices.map((inv) => (
                   <tr key={inv.id}>

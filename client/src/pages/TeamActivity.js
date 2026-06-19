@@ -6,6 +6,7 @@ import Pagination from '../components/common/Pagination';
 import { teamActivityAPI } from '../services/api';
 import { timeAgo } from '../utils/helpers';
 import { useAuth } from '../context/AuthContext';
+import DateFilter from '../components/common/DateFilter';
 
 const ACTIVITY_ICONS = {
   created: '🌱', call_logged: '📞', whatsapp_sent: '💬', email_sent: '✉️',
@@ -60,6 +61,8 @@ const TeamActivity = () => {
   const [selectedEmployee, setSelectedEmployee] = useState('');
   const [selectedType, setSelectedType] = useState('');
   const [page, setPage] = useState(1);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [autoRefresh, setAutoRefresh] = useState(false);
   const intervalRef = useRef(null);
 
@@ -85,12 +88,14 @@ const TeamActivity = () => {
     finally { setSummaryLoading(false); }
   };
 
-  const loadFeed = async (pg, empId, type) => {
+  const loadFeed = async (pg, empId, type, df, dt) => {
     setFeedLoading(true);
     try {
       const params = { page: pg, limit: 30 };
       if (empId) params.userId = empId;
       if (type) params.type = type;
+      if (df) params.dateFrom = df;
+      if (dt) params.dateTo = dt;
       const { data } = await teamActivityAPI.getFeed(params);
       setFeed(data.data || []);
       setPagination(data.pagination);
@@ -101,27 +106,27 @@ const TeamActivity = () => {
 
   useEffect(() => {
     loadSummary();
-    loadFeed(1, '', '');
+    loadFeed(1, '', '', '', '');
   }, []);
 
   useEffect(() => {
-    loadFeed(1, selectedEmployee, selectedType);
-  }, [selectedEmployee, selectedType]);
+    loadFeed(1, selectedEmployee, selectedType, dateFrom, dateTo);
+  }, [selectedEmployee, selectedType, dateFrom, dateTo]);
 
   useEffect(() => {
     clearInterval(intervalRef.current);
     if (autoRefresh) {
       intervalRef.current = setInterval(() => {
         loadSummary();
-        loadFeed(page, selectedEmployee, selectedType);
+        loadFeed(page, selectedEmployee, selectedType, dateFrom, dateTo);
       }, 60000);
     }
     return () => clearInterval(intervalRef.current);
-  }, [autoRefresh, page, selectedEmployee, selectedType]);
+  }, [autoRefresh, page, selectedEmployee, selectedType, dateFrom, dateTo]);
 
   const handleRefresh = () => {
     loadSummary();
-    loadFeed(page, selectedEmployee, selectedType);
+    loadFeed(page, selectedEmployee, selectedType, dateFrom, dateTo);
   };
 
   return (
@@ -253,8 +258,9 @@ const TeamActivity = () => {
           ))}
         </select>
 
-        {(selectedEmployee || selectedType) && (
-          <button className="btn btn-ghost btn-sm" onClick={() => { setSelectedEmployee(''); setSelectedType(''); }}>
+        <DateFilter onChange={({ dateFrom: df, dateTo: dt }) => { setDateFrom(df); setDateTo(dt); }} />
+        {(selectedEmployee || selectedType || dateFrom) && (
+          <button className="btn btn-ghost btn-sm" onClick={() => { setSelectedEmployee(''); setSelectedType(''); setDateFrom(''); setDateTo(''); }}>
             ✕ Clear filters
           </button>
         )}
@@ -322,7 +328,7 @@ const TeamActivity = () => {
       {pagination && pagination.pages > 1 && (
         <Pagination
           pagination={pagination}
-          onPageChange={(p) => loadFeed(p, selectedEmployee, selectedType)}
+          onPageChange={(p) => loadFeed(p, selectedEmployee, selectedType, dateFrom, dateTo)}
         />
       )}
 

@@ -8,6 +8,7 @@ import ConfirmModal from '../components/common/ConfirmModal';
 import { leadsAPI, usersAPI, orgAPI } from '../services/api';
 import { formatDateTime, getStatusColor, getPriorityColor, getInitials, ENUMS } from '../utils/helpers';
 import { useAuth } from '../context/AuthContext';
+import DateFilter from '../components/common/DateFilter';
 import './Leads.css';
 
 const getLeadCity = (lead) => {
@@ -35,7 +36,7 @@ const Leads = () => {
   const [upgradeModal, setUpgradeModal] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
-  const [filters, setFilters] = useState({ search: '', status: '', source: '', priority: '', assignedTo: '', city: '', page: 1 });
+  const [filters, setFilters] = useState({ search: '', status: '', source: '', priority: '', assignedTo: '', city: '', dateFrom: '', dateTo: '', page: 1 });
   const [form, setForm] = useState({ name: '', phone: '', email: '', source: 'Website', priority: 'Warm', status: 'New', assignedTo: '', campaign: '', city: '', clientAddress: '', designation: '', workspaceId: '' });
   const [workspaces, setWorkspaces] = useState([]);
   const [importing, setImporting] = useState(false);
@@ -278,6 +279,7 @@ const Leads = () => {
             {agents.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
           </select>
         )}
+        <DateFilter onChange={({ dateFrom: df, dateTo: dt }) => setFilters(f => ({ ...f, dateFrom: df, dateTo: dt, page: 1 }))} />
       </div>
 
       {/* bulk action bar */}

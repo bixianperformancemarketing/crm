@@ -8,7 +8,7 @@ const COMPLETED_STATUSES = ['Done', 'Approved', 'Not Approved', 'Cancelled'];
 const getTasks = async (req, res) => {
   try {
     const { user, workspaceId } = req;
-    const { page = 1, limit = 20, status, assignedTo, dateFrom, dateTo, search } = req.query;
+    const { page = 1, limit = 20, status, assignedTo, dateFrom, dateTo, search, dueDateSort } = req.query;
     const { limit: lim, offset } = paginate(page, limit);
 
     const ws = workspaceId ? { workspaceId } : {};
@@ -21,9 +21,9 @@ const getTasks = async (req, res) => {
     if (assignedTo && user.role !== 'employee') where.assignedTo = assignedTo;
     if (search) where.title = { [Op.like]: `%${search}%` };
     if (dateFrom || dateTo) {
-      where.dueDate = {};
-      if (dateFrom) where.dueDate[Op.gte] = dateFrom;
-      if (dateTo) where.dueDate[Op.lte] = dateTo;
+      where.scheduledFor = {};
+      if (dateFrom) where.scheduledFor[Op.gte] = new Date(dateFrom);
+      if (dateTo) { const d = new Date(dateTo); d.setDate(d.getDate() + 1); where.scheduledFor[Op.lt] = d; }
     }
 
     const { count, rows } = await ContentTask.findAndCountAll({
@@ -33,7 +33,7 @@ const getTasks = async (req, res) => {
         { model: Lead, as: 'lead', attributes: ['id', 'name'], required: false },
         { model: User, as: 'creator', attributes: ['id', 'name'], required: false },
       ],
-      order: [['dueDate', 'ASC'], ['createdAt', 'DESC']],
+      order: [['dueDate', dueDateSort === 'desc' ? 'DESC' : 'ASC'], ['createdAt', 'DESC']],
       limit: lim, offset,
     });
     res.json({ success: true, ...paginateResponse(rows, count, page, lim) });

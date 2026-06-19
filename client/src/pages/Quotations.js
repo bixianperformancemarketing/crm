@@ -6,6 +6,7 @@ import UpgradeModal from '../components/common/UpgradeModal';
 import { quotationsAPI, orgAPI } from '../services/api';
 import { formatCurrency, formatDate, getStatusColor, downloadBlob } from '../utils/helpers';
 import { useAuth } from '../context/AuthContext';
+import DateFilter from '../components/common/DateFilter';
 import './Quotations.css';
 
 const emptyItem = () => ({ description: '', subDescription: '', subItems: [], totalPrice: '' });
@@ -32,18 +33,22 @@ const Quotations = () => {
   const [editForm, setEditForm] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [search, setSearch] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const params = { page };
       if (search.trim()) params.search = search.trim();
+      if (dateFrom) params.dateFrom = dateFrom;
+      if (dateTo) params.dateTo = dateTo;
       const { data } = await quotationsAPI.getAll(params);
       setQuotations(data.data || []);
       setPagination(data.pagination);
     } catch { toast.error('Failed to load quotations'); }
     finally { setLoading(false); }
-  }, [page, search]);
+  }, [page, search, dateFrom, dateTo]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -252,6 +257,7 @@ const Quotations = () => {
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             style={{ padding: '7px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: 13, width: 270, outline: 'none' }}
           />
+          <DateFilter onChange={({ dateFrom: df, dateTo: dt }) => { setDateFrom(df); setDateTo(dt); setPage(1); }} />
           <button className="btn btn-primary" onClick={() => setShowCreate(true)}>+ New Quotation</button>
         </div>
       </div>

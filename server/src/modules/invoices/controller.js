@@ -11,7 +11,7 @@ const { logUsage } = require('../../middleware/entitlement');
 const getInvoices = async (req, res) => {
   try {
     const { user, workspaceId } = req;
-    const { page = 1, limit = 20, status, leadId, search } = req.query;
+    const { page = 1, limit = 20, status, leadId, search, dateFrom, dateTo, dueDateSort } = req.query;
     const { limit: lim, offset } = paginate(page, limit);
     const ws = workspaceId ? { workspaceId } : {};
     const where = { organizationId: user.organizationId, ...ws };
@@ -25,14 +25,20 @@ const getInvoices = async (req, res) => {
         { clientEmail: { [Op.like]: `%${search.trim()}%` } },
       ];
     }
+    if (dateFrom || dateTo) {
+      where.createdAt = {};
+      if (dateFrom) where.createdAt[Op.gte] = new Date(dateFrom);
+      if (dateTo) { const d = new Date(dateTo); d.setDate(d.getDate() + 1); where.createdAt[Op.lt] = d; }
+    }
 
+    const order = dueDateSort ? [['dueDate', dueDateSort === 'desc' ? 'DESC' : 'ASC']] : [['createdAt', 'DESC']];
     const { count, rows } = await Invoice.findAndCountAll({
       where,
       include: [
         { model: Lead, as: 'lead', attributes: ['id', 'name'], required: false },
         { model: User, as: 'creator', attributes: ['id', 'name'], required: false },
       ],
-      order: [['createdAt', 'DESC']],
+      order,
       limit: lim, offset,
     });
     res.json({ success: true, ...paginateResponse(rows, count, page, lim) });

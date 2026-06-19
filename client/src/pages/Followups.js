@@ -5,6 +5,7 @@ import Layout from '../components/layout/Layout';
 import Pagination from '../components/common/Pagination';
 import { followupsAPI } from '../services/api';
 import { formatDateTime, getStatusColor } from '../utils/helpers';
+import DateFilter from '../components/common/DateFilter';
 import './Followups.css';
 
 const TABS = [
@@ -22,6 +23,8 @@ const Followups = () => {
   const [pagination, setPagination] = useState(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [showComplete, setShowComplete] = useState(null);
   const [completeForm, setCompleteForm] = useState({ outcome: '', nextFollowupDate: '' });
   const [completing, setCompleting] = useState(false);
@@ -29,12 +32,15 @@ const Followups = () => {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await followupsAPI.getAll({ filter, page });
+      const params = { filter, page };
+      if (dateFrom) params.dateFrom = dateFrom;
+      if (dateTo) params.dateTo = dateTo;
+      const { data } = await followupsAPI.getAll(params);
       setFollowups(data.data || []);
       setPagination(data.pagination);
     } catch { toast.error('Failed to load followups'); }
     finally { setLoading(false); }
-  }, [filter, page]);
+  }, [filter, page, dateFrom, dateTo]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -65,12 +71,15 @@ const Followups = () => {
         <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{pagination?.total || 0} followups</div>
       </div>
 
-      <div className="followup-tabs">
-        {TABS.map((t) => (
-          <button key={t.key} className={`followup-tab${filter === t.key ? ' active' : ''}`} onClick={() => { setFilter(t.key); setPage(1); }}>
-            {t.label}
-          </button>
-        ))}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
+        <div className="followup-tabs" style={{ marginBottom: 0 }}>
+          {TABS.map((t) => (
+            <button key={t.key} className={`followup-tab${filter === t.key ? ' active' : ''}`} onClick={() => { setFilter(t.key); setPage(1); }}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <DateFilter onChange={({ dateFrom: df, dateTo: dt }) => { setDateFrom(df); setDateTo(dt); setPage(1); }} />
       </div>
 
       {loading ? (

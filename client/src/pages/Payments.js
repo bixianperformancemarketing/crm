@@ -6,6 +6,7 @@ import Layout from '../components/layout/Layout';
 import Pagination from '../components/common/Pagination';
 import { paymentsAPI } from '../services/api';
 import { formatCurrency, formatDateTime, buildMonthlyChartData } from '../utils/helpers';
+import DateFilter from '../components/common/DateFilter';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend);
 
@@ -15,16 +16,21 @@ const Payments = () => {
   const [pagination, setPagination] = useState(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [listRes, statsRes] = await Promise.all([paymentsAPI.getAll({ page }), paymentsAPI.getStats()]);
+      const params = { page };
+      if (dateFrom) params.dateFrom = dateFrom;
+      if (dateTo) params.dateTo = dateTo;
+      const [listRes, statsRes] = await Promise.all([paymentsAPI.getAll(params), paymentsAPI.getStats()]);
       setPayments(listRes.data.data || []);
       setPagination(listRes.data.pagination);
       setStats(statsRes.data);
     } catch { toast.error('Failed to load'); }
     finally { setLoading(false); }
-  }, [page]);
+  }, [page, dateFrom, dateTo]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -51,7 +57,10 @@ const Payments = () => {
 
   return (
     <Layout title="Payments">
-      <div className="page-header"><div className="page-title">Payment History</div></div>
+      <div className="page-header">
+        <div className="page-title">Payment History</div>
+        <DateFilter onChange={({ dateFrom: df, dateTo: dt }) => { setDateFrom(df); setDateTo(dt); setPage(1); }} />
+      </div>
       {stats && (
         <div className="charts-grid">
           <div className="chart-card"><div className="chart-title">Revenue by Month</div><div className="chart-container"><Bar data={revenueChart} options={opts} /></div></div>
