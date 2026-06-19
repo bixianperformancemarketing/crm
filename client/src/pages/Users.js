@@ -78,7 +78,7 @@ const Users = () => {
       <div className="page-header">
         <div className="page-title">Team Members</div>
         {(isRole('owner') || isRole('admin')) && (
-          <button className="btn btn-primary" onClick={() => { setForm(emptyForm); setShowCreate(true); }}>+ Add Employee</button>
+          <button className="btn btn-primary" onClick={() => { setForm(emptyForm); setShowCreate(true); }}>+ Add User</button>
         )}
       </div>
 
@@ -133,7 +133,7 @@ const Users = () => {
       {(showCreate || editUser) && (
         <div className="modal-overlay" onClick={() => { setShowCreate(false); setEditUser(null); }}>
           <div className="modal" style={{ maxWidth: 460 }} onClick={e => e.stopPropagation()}>
-            <h3>{showCreate ? 'Add Employee' : 'Edit User'}</h3>
+            <h3>{showCreate ? (form.role === 'admin' ? 'Add Admin' : 'Add Employee') : 'Edit User'}</h3>
             <button className="modal-close" onClick={() => { setShowCreate(false); setEditUser(null); }}>×</button>
             <form onSubmit={showCreate ? handleCreate : handleUpdate}>
               <div className="form-group"><label className="form-label">Full Name *</label><input className="form-control" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="John Doe" /></div>
@@ -175,7 +175,7 @@ const Users = () => {
               )}
               <div className="modal-actions">
                 <button type="button" className="btn btn-ghost" onClick={() => { setShowCreate(false); setEditUser(null); }}>Cancel</button>
-                <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Saving...' : showCreate ? 'Add Employee' : 'Save Changes'}</button>
+                <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Saving...' : showCreate ? (form.role === 'admin' ? 'Add Admin' : 'Add Employee') : 'Save Changes'}</button>
               </div>
             </form>
           </div>
