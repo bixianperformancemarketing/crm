@@ -36,7 +36,7 @@ const Leads = () => {
   const [upgradeModal, setUpgradeModal] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
-  const [filters, setFilters] = useState({ search: '', status: '', source: '', priority: '', assignedTo: '', city: '', dateFrom: '', dateTo: '', page: 1 });
+  const [filters, setFilters] = useState({ search: '', status: '', source: '', priority: '', assignedTo: '', city: '', dateFrom: '', dateTo: '', workspaceId: '', page: 1 });
   const [form, setForm] = useState({ name: '', phone: '', email: '', source: 'Website', priority: 'Warm', status: 'New', assignedTo: '', campaign: '', city: '', clientAddress: '', designation: '', workspaceId: '' });
   const [workspaces, setWorkspaces] = useState([]);
   const [importing, setImporting] = useState(false);
@@ -273,10 +273,19 @@ const Leads = () => {
           {ENUMS.LEAD_SOURCES.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
         <input className="search-input" placeholder="🏙 Filter by city..." value={filters.city} onChange={(e) => updateFilter('city', e.target.value)} style={{ maxWidth: 160 }} />
-        {(user?.role === 'admin' || user?.role === 'owner') && agents.length > 0 && (
+        {user?.role === 'owner' && workspaces.length > 0 && (
+          <select className="filter-select" value={filters.workspaceId} onChange={(e) => setFilters(f => ({ ...f, workspaceId: e.target.value, assignedTo: '', page: 1 }))}>
+            <option value="">All Workspaces</option>
+            {workspaces.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
+          </select>
+        )}
+        {(user?.role === 'admin' || user?.role === 'owner') && (
           <select className="filter-select" value={filters.assignedTo} onChange={(e) => updateFilter('assignedTo', e.target.value)}>
             <option value="">All Agents</option>
-            {agents.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+            <option value="unassigned">Unassigned</option>
+            {agents
+              .filter(a => !filters.workspaceId || String(a.workspaceId) === String(filters.workspaceId))
+              .map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
           </select>
         )}
         <DateFilter onChange={({ dateFrom: df, dateTo: dt }) => setFilters(f => ({ ...f, dateFrom: df, dateTo: dt, page: 1 }))} />

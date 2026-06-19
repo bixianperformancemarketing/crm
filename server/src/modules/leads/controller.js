@@ -24,11 +24,11 @@ const findLeastLoadedAgent = async (workspaceId, organizationId) => {
 const getLeads = async (req, res) => {
   try {
     const { workspaceId, user } = req;
-    const { page = 1, limit = 50, search, status, source, priority, assignedTo, city, dateFrom, dateTo, sort = 'createdAt', order = 'DESC' } = req.query;
+    const { page = 1, limit = 50, search, status, source, priority, assignedTo, city, dateFrom, dateTo, sort = 'createdAt', order = 'DESC', workspaceId: wsParam } = req.query;
     const { limit: lim, offset } = paginate(page, limit);
 
-    const ws = workspaceId ? { workspaceId } : {};
-    const where = { organizationId: user.organizationId, ...ws };
+    const wsFilter = user.role === 'owner' && wsParam ? { workspaceId: wsParam } : workspaceId ? { workspaceId } : {};
+    const where = { organizationId: user.organizationId, ...wsFilter };
     if (user.role === 'employee') where.assignedTo = user.id;
     if (search) {
       where[Op.or] = [
@@ -40,7 +40,8 @@ const getLeads = async (req, res) => {
     if (status) where.status = status;
     if (source) where.source = source;
     if (priority) where.priority = priority;
-    if (assignedTo) where.assignedTo = assignedTo;
+    if (assignedTo === 'unassigned') where.assignedTo = null;
+    else if (assignedTo) where.assignedTo = assignedTo;
     if (city) where.city = { [Op.like]: `%${city}%` };
     if (dateFrom || dateTo) {
       where.createdAt = {};
