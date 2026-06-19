@@ -156,7 +156,7 @@ const Expenses = () => {
         )}
         {Object.entries(summary.byCategory || {}).slice(0, 3).map(([cat, total]) => (
           <div key={cat} style={{ padding: '16px 20px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10 }}>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>{CATEGORY_ICONS[cat]} {cat}</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>{cat}</div>
             <div style={{ fontSize: 18, fontWeight: 700 }}>{fmt(total)}</div>
           </div>
         ))}
