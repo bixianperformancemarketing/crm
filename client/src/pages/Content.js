@@ -85,7 +85,7 @@ const TaskFormFields = ({ f, setF, isOwner, users, workspaces, showAssignTo = tr
     {showAssignTo && (
       <div className="form-group">
         <label className="form-label">Assign To</label>
-        <select className="form-control" value={f.assignedTo} onChange={e => {
+        <select key={f.workspaceId || 'none'} className="form-control" value={f.assignedTo} onChange={e => {
           const selected = users.find(u => String(u.id) === e.target.value);
           setF({ ...f, assignedTo: e.target.value, workspaceId: selected?.workspaceId ? String(selected.workspaceId) : f.workspaceId });
         }}>

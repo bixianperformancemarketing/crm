@@ -1,25 +1,8 @@
-const path = require('path');
-const fs = require('fs');
-const multer = require('multer');
 const { Op } = require('sequelize');
 const { Expense, User, Workspace } = require('../../config/models');
 const notificationService = require('../../services/notificationService');
 
-const uploadDir = path.join(__dirname, '../../../uploads/expenses');
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `expense_${Date.now()}_${Math.random().toString(36).slice(2)}${ext}`);
-  },
-});
-const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
-const uploadMiddleware = upload.single('receipt');
-
-const CATEGORIES = ['Fuel', 'Food & Entertainment', 'Subscriptions', 'Software', 'Office Supplies', 'Travel', 'Other'];
-const PAYMENT_MODES = ['Cash', 'UPI', 'Card', 'Bank Transfer'];
+const PAYMENT_MODES = ['UPI', 'Bank Transfer', 'Cash', 'Cheque', 'Online'];
 
 const getExpenses = async (req, res) => {
   try {
@@ -53,47 +36,38 @@ const getExpenses = async (req, res) => {
 };
 
 const createExpense = async (req, res) => {
-  uploadMiddleware(req, res, async (err) => {
-    if (err) return res.status(400).json({ success: false, message: err.message });
-    try {
-      const { user } = req;
-      const { title, category, amount, expenseDate, billReference, paymentMode, notes, workspaceId } = req.body;
+  try {
+    const { user } = req;
+    const { title, category, amount, expenseDate, billReference, paymentMode, notes, workspaceId } = req.body;
 
-      if (!title || !amount || !expenseDate) {
-        return res.status(400).json({ success: false, message: 'Title, amount, and date are required' });
-      }
-      if (category && !CATEGORIES.includes(category)) {
-        return res.status(400).json({ success: false, message: 'Invalid category' });
-      }
-      if (paymentMode && !PAYMENT_MODES.includes(paymentMode)) {
-        return res.status(400).json({ success: false, message: 'Invalid payment mode' });
-      }
-
-      const receiptUrl = req.file ? `/uploads/expenses/${req.file.filename}` : null;
-
-      const expense = await Expense.create({
-        organizationId: user.organizationId,
-        workspaceId: workspaceId ? parseInt(workspaceId) : null,
-        submittedBy: user.id,
-        title: title.trim(),
-        category: category || 'Other',
-        amount: parseFloat(amount),
-        expenseDate,
-        billReference: billReference?.trim() || null,
-        receiptUrl,
-        paymentMode: paymentMode || 'Cash',
-        notes: notes?.trim() || null,
-        status: 'Pending',
-      });
-
-      await notificationService.notifyExpenseSubmitted({ expense, submitter: user });
-
-      res.status(201).json({ success: true, expense });
-    } catch (err) {
-      console.error('createExpense error:', err.message);
-      res.status(500).json({ success: false, message: 'Failed to create expense' });
+    if (!title || !amount || !expenseDate || !paymentMode) {
+      return res.status(400).json({ success: false, message: 'Title, amount, date, and payment mode are required' });
     }
-  });
+    if (!PAYMENT_MODES.includes(paymentMode)) {
+      return res.status(400).json({ success: false, message: 'Invalid payment mode' });
+    }
+
+    const expense = await Expense.create({
+      organizationId: user.organizationId,
+      workspaceId: workspaceId ? parseInt(workspaceId) : null,
+      submittedBy: user.id,
+      title: title.trim(),
+      category: category?.trim() || null,
+      amount: parseFloat(amount),
+      expenseDate,
+      billReference: billReference?.trim() || null,
+      paymentMode,
+      notes: notes?.trim() || null,
+      status: 'Pending',
+    });
+
+    await notificationService.notifyExpenseSubmitted({ expense, submitter: user });
+
+    res.status(201).json({ success: true, expense });
+  } catch (err) {
+    console.error('createExpense error:', err.message);
+    res.status(500).json({ success: false, message: 'Failed to create expense' });
+  }
 };
 
 const updateExpense = async (req, res) => {
@@ -192,11 +166,6 @@ const deleteExpense = async (req, res) => {
     }
     if (user.role === 'employee' && expense.status !== 'Pending') {
       return res.status(400).json({ success: false, message: 'Only pending expenses can be deleted' });
-    }
-
-    if (expense.receiptUrl) {
-      const filePath = path.join(__dirname, '../../../', expense.receiptUrl);
-      fs.unlink(filePath, () => {});
     }
 
     await expense.destroy();

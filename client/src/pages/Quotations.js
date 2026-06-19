@@ -27,7 +27,7 @@ const Quotations = () => {
   const [saving, setSaving] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(null);
   const [sendingWhatsapp, setSendingWhatsapp] = useState(null);
-  const [form, setForm] = useState({ clientName: '', clientEmail: '', clientPhone: '', clientAddress: '', clientGST: '', gstPercent: 18, terms: [], notes: '', validUntil: '', workspaceId: '', items: [emptyItem()] });
+  const [form, setForm] = useState({ title: '', clientName: '', clientEmail: '', clientPhone: '', clientAddress: '', clientGST: '', gstPercent: 18, terms: [], notes: '', validUntil: '', workspaceId: '', items: [emptyItem()] });
   const [workspaces, setWorkspaces] = useState([]);
   const [editQuotation, setEditQuotation] = useState(null);
   const [editForm, setEditForm] = useState(null);
@@ -127,7 +127,7 @@ const Quotations = () => {
       if (data.upgradeRequired) { setUpgradeModal(data); return; }
       toast.success('Quotation created');
       setShowCreate(false);
-      setForm({ clientName: '', clientEmail: '', clientPhone: '', clientAddress: '', clientGST: '', gstPercent: 18, terms: [], notes: '', validUntil: '', workspaceId: '', items: [emptyItem()] });
+      setForm({ title: '', clientName: '', clientEmail: '', clientPhone: '', clientAddress: '', clientGST: '', gstPercent: 18, terms: [], notes: '', validUntil: '', workspaceId: '', items: [emptyItem()] });
       load();
     } catch (err) {
       const d = err.response?.data;
@@ -141,6 +141,7 @@ const Quotations = () => {
       const { data } = await quotationsAPI.get(q.id);
       const qData = data.quotation;
       setEditForm({
+        title: qData.title || '',
         clientName: qData.clientName || '',
         clientEmail: qData.clientEmail || '',
         clientPhone: qData.clientPhone || '',
@@ -328,6 +329,7 @@ const Quotations = () => {
               <button className="modal-close" style={{ position: 'static' }} onClick={() => setShowCreate(false)}>×</button>
             </div>
             <form onSubmit={handleCreate}>
+              <div className="form-group"><label className="form-label">Document Title (for filename)</label><input className="form-control" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="e.g. SmartTech → SmartTech_QTN-0001_19062026.pdf" /></div>
               <div className="form-row">
                 <div className="form-group"><label className="form-label">Client Name *</label><input className="form-control" value={form.clientName} onChange={(e) => setForm({ ...form, clientName: e.target.value })} /></div>
                 <div className="form-group"><label className="form-label">Client Email *</label><input className="form-control" type="email" value={form.clientEmail} onChange={(e) => setForm({ ...form, clientEmail: e.target.value })} /></div>
@@ -430,6 +432,7 @@ const Quotations = () => {
               <button className="modal-close" style={{ position: 'static' }} onClick={closeEdit}>×</button>
             </div>
             <form onSubmit={handleEdit}>
+              <div className="form-group"><label className="form-label">Document Title (for filename)</label><input className="form-control" value={editForm.title} onChange={(e) => setEditForm({ ...editForm, title: e.target.value })} placeholder="e.g. SmartTech → SmartTech_QTN-0001_19062026.pdf" /></div>
               <div className="form-row">
                 <div className="form-group"><label className="form-label">Client Name *</label><input className="form-control" value={editForm.clientName} onChange={(e) => setEditForm({ ...editForm, clientName: e.target.value })} /></div>
                 <div className="form-group"><label className="form-label">Client Email *</label><input className="form-control" type="email" value={editForm.clientEmail} onChange={(e) => setEditForm({ ...editForm, clientEmail: e.target.value })} /></div>

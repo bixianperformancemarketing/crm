@@ -180,7 +180,7 @@ const getDashboard = async (req, res) => {
       canAccessLeads ? Lead.count({ where: wonLeadWhere }) : zero,
       canAccessLeads ? Lead.count({ where: { ...leadWhere, isHot: true } }) : zero,
       canAccessLeads ? Payment.sum('amount', { where: paymentWhere }) : zero,
-      canAccessLeads ? Invoice.sum('dueAmount', { where: { ...pendingInvoiceWhere, status: { [Op.in]: ['Unpaid', 'Partial'] } } }) : zero,
+      canAccessLeads ? Invoice.sum('dueAmount', { where: { ...pendingInvoiceWhere, status: { [Op.in]: ['Unpaid', 'Partial', 'Overdue'] } } }) : zero,
       canAccessLeads ? Invoice.count({ where: { ...pendingInvoiceWhere, status: 'Overdue' } }) : zero,
       canAccessLeads ? Followup.count({ where: { ...followupWhere, status: 'pending', scheduledAt: followupScheduledAt } }) : zero,
       canAccessLeads ? Followup.count({ where: { ...followupWhere, status: { [Op.in]: ['pending', 'overdue'] }, scheduledAt: overdueScheduledAt } }) : zero,
@@ -280,6 +280,9 @@ const getDashboard = async (req, res) => {
       }
     }
 
+    const dashExpenseWhere = { organizationId: orgId, status: 'Approved', ...ws };
+    const totalExpenses = canAccessLeads ? (await Expense.sum('amount', { where: dashExpenseWhere })) || 0 : 0;
+
     res.json({
       success: true,
       period,
@@ -287,6 +290,8 @@ const getDashboard = async (req, res) => {
         totalLeads, activeLeads, wonLeads, hotLeads,
         totalRevenue: parseFloat(totalRevenue) || 0,
         pendingRevenue: parseFloat(pendingRevenue) || 0,
+        totalExpenses: parseFloat(totalExpenses) || 0,
+        netRevenue: (parseFloat(totalRevenue) || 0) - (parseFloat(totalExpenses) || 0),
         overdueInvoices, pendingFollowups, overdueFollowups, todayAppts,
         conversionRate, avgDealSize: Math.round(avgDealSize),
         totalTasks, overviewTasks, todoTodayTasks, inProgressTasks, reviewTasks, approvedTasks, notApprovedTasks,

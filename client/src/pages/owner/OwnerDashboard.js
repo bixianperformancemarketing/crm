@@ -177,6 +177,8 @@ const OwnerDashboard = () => {
                 <MetricCard label="Hot Leads" value={metrics.stats?.hotLeads ?? 0} color="#ef4444" />
                 <MetricCard label="Total Revenue" value={formatCurrency(metrics.stats?.totalRevenue ?? 0)} color="#22c55e" />
                 <MetricCard label="Pending Revenue" value={formatCurrency(metrics.stats?.pendingRevenue ?? 0)} color="#f59e0b" />
+                <MetricCard label="Total Expenses" value={formatCurrency(metrics.stats?.totalExpenses ?? 0)} color="#ef4444" />
+                <MetricCard label="Net Revenue" value={formatCurrency(metrics.stats?.netRevenue ?? 0)} color={(metrics.stats?.netRevenue ?? 0) >= 0 ? '#22c55e' : '#ef4444'} />
                 <MetricCard label="Overdue Invoices" value={metrics.stats?.overdueInvoices ?? 0} color="#ef4444" />
                 <MetricCard label="Overdue Followups" value={metrics.stats?.overdueFollowups ?? 0} color="#ef4444" />
                 <MetricCard label="Pending Followups" value={metrics.stats?.pendingFollowups ?? 0} color="#f59e0b" />

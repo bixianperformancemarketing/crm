@@ -11,7 +11,7 @@ import DateFilter from '../components/common/DateFilter';
 import './Invoices.css';
 
 const emptyItem = () => ({ description: '', subDescription: '', subItems: [], totalPrice: '' });
-const emptyForm = () => ({ clientName: '', clientEmail: '', clientPhone: '', clientAddress: '', clientGST: '', gstPercent: 18, terms: [], notes: '', dueDate: '', workspaceId: '', items: [emptyItem()] });
+const emptyForm = () => ({ title: '', clientName: '', clientEmail: '', clientPhone: '', clientAddress: '', clientGST: '', gstPercent: 18, terms: [], notes: '', dueDate: '', workspaceId: '', items: [emptyItem()] });
 const parseTermsArray = (raw) => {
   if (!raw) return [];
   try { const p = JSON.parse(raw); return Array.isArray(p) ? p : (raw ? [raw] : []); }
@@ -153,6 +153,7 @@ const Invoices = () => {
       const { data } = await invoicesAPI.get(inv.id);
       const invData = data.invoice;
       setEditForm({
+        title: invData.title || '',
         clientName: invData.clientName || '',
         clientEmail: invData.clientEmail || '',
         clientPhone: invData.clientPhone || '',
@@ -187,7 +188,7 @@ const Invoices = () => {
     try {
       const termsStr = JSON.stringify((editForm.terms || []).filter(t => t.trim()));
       const payload = hasPayments
-        ? { terms: termsStr, notes: editForm.notes, dueDate: editForm.dueDate }
+        ? { title: editForm.title, terms: termsStr, notes: editForm.notes, dueDate: editForm.dueDate }
         : { ...editForm, terms: termsStr, items: editForm.items.filter((i) => i.description?.trim()) };
       await invoicesAPI.update(editInvoice.id, payload);
       toast.success('Invoice updated');
@@ -361,6 +362,7 @@ const Invoices = () => {
             <h3>New Invoice</h3>
             <button className="modal-close" onClick={() => setShowCreate(false)}>×</button>
             <form onSubmit={handleCreate}>
+              <div className="form-group"><label className="form-label">Document Title (for filename)</label><input className="form-control" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="e.g. SmartTech → SmartTech_INV-0001_19062026.pdf" /></div>
               <div className="form-row">
                 <div className="form-group"><label className="form-label">Client Name *</label><input className="form-control" value={form.clientName} onChange={(e) => setForm({ ...form, clientName: e.target.value })} placeholder="Client name..." /></div>
                 <div className="form-group"><label className="form-label">Phone *</label><input className="form-control" value={form.clientPhone} onChange={(e) => setForm({ ...form, clientPhone: e.target.value })} placeholder="+91..." /></div>
@@ -470,6 +472,7 @@ const Invoices = () => {
               )}
 
               <form onSubmit={handleEdit}>
+                <div className="form-group"><label className="form-label">Document Title (for filename)</label><input className="form-control" value={editForm.title} onChange={(e) => setEditForm({ ...editForm, title: e.target.value })} placeholder="e.g. SmartTech → SmartTech_INV-0001_19062026.pdf" /></div>
                 {!hasPayments && (
                   <>
                     <div className="form-row">

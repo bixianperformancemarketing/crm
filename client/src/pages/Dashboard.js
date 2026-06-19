@@ -116,6 +116,8 @@ const Dashboard = () => {
     { label: 'Hot Leads', value: stats.hotLeads, icon: '⚡', color: '#ef4444' },
     { label: 'Total Revenue', value: formatCurrency(stats.totalRevenue), icon: '💰', color: '#22c55e' },
     { label: 'Pending Revenue', value: formatCurrency(stats.pendingRevenue), icon: '⏳', color: '#f59e0b' },
+    { label: 'Total Expenses', value: formatCurrency(stats.totalExpenses), icon: '💸', color: '#ef4444' },
+    { label: 'Net Revenue', value: formatCurrency(stats.netRevenue), icon: '📊', color: (stats.netRevenue ?? 0) >= 0 ? '#22c55e' : '#ef4444' },
     { label: 'Overdue Invoices', value: stats.overdueInvoices, icon: '🧾', color: '#ef4444' },
     { label: 'Appointments', value: stats.todayAppts, icon: '📅', color: '#7c3aed' },
     { label: 'Pending Followups', value: stats.pendingFollowups, icon: '📞', color: '#0ea5e9' },

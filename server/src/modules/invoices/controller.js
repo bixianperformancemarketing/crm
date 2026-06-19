@@ -97,7 +97,7 @@ const createInvoice = async (req, res) => {
   try {
     const { user, workspaceId } = req;
     if (!workspaceId) return res.status(400).json({ success: false, message: 'Workspace context required for this action' });
-    const { leadId, clientName, clientEmail, clientPhone, clientAddress, clientGST, items = [], gstPercent = 18, notes, terms, dueDate } = req.body;
+    const { leadId, clientName, clientEmail, clientPhone, clientAddress, clientGST, items = [], gstPercent = 18, notes, terms, dueDate, title } = req.body;
 
     if (!clientName?.trim()) return res.status(400).json({ success: false, message: 'Client name is required' });
     if (!clientPhone?.trim()) return res.status(400).json({ success: false, message: 'Phone number is required' });
@@ -146,7 +146,7 @@ const createInvoice = async (req, res) => {
       clientPhone: clientPhone.trim(), clientAddress: clientAddress?.trim() || null, clientGST,
       subtotal, gstPercent, gstAmount, totalAmount,
       paidAmount: 0, dueAmount: totalAmount, status: 'Unpaid', notes, terms,
-      dueDate: dueDate || null,
+      dueDate: dueDate || null, title: title?.trim() || null,
     });
 
     const itemsData = items.map((i) => ({
@@ -190,6 +190,7 @@ const updateInvoice = async (req, res) => {
       if (req.body.terms !== undefined) updates.terms = req.body.terms;
       if (req.body.notes !== undefined) updates.notes = req.body.notes;
       if (req.body.dueDate !== undefined) updates.dueDate = req.body.dueDate;
+      if (req.body.title !== undefined) updates.title = req.body.title?.trim() || null;
     } else {
       // No payments — allow full edit including items and amounts
       const { items, gstPercent, clientName, clientEmail, clientPhone, clientAddress, clientGST, notes, terms, dueDate } = req.body;
@@ -247,7 +248,10 @@ const downloadPDF = async (req, res) => {
     const org = await Organization.findByPk(user.organizationId, { attributes: ['settings'] });
     const pdf = await generateInvoicePDF(inv, org?.settings, inv.items);
     await logUsage(user.organizationId, inv.workspaceId, 'pdf_generated');
-    res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': `attachment; filename="${inv.invoiceNumber}.pdf"` });
+    const dateStr = new Date().toLocaleDateString('en-GB').replace(/\//g, '');
+    const safeName = inv.title ? inv.title.replace(/[^a-zA-Z0-9]/g, '') : '';
+    const pdfName = safeName ? `${safeName}_${inv.invoiceNumber}_${dateStr}.pdf` : `${inv.invoiceNumber}_${dateStr}.pdf`;
+    res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': `attachment; filename="${pdfName}"` });
     res.send(pdf);
   } catch (err) {
     console.error('downloadInvoicePDF error:', err);

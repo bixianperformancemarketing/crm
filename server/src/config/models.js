@@ -285,6 +285,7 @@ const Quotation = sequelize.define('Quotation', {
   organizationId: { type: DataTypes.INTEGER, allowNull: false },
   workspaceId: { type: DataTypes.INTEGER, allowNull: false },
   quotationNumber: { type: DataTypes.STRING(20), allowNull: false },
+  title: { type: DataTypes.STRING(200), allowNull: true },
   leadId: { type: DataTypes.INTEGER, allowNull: true },
   createdBy: { type: DataTypes.INTEGER, allowNull: false },
   clientName: { type: DataTypes.STRING(200) },
@@ -325,6 +326,7 @@ const Invoice = sequelize.define('Invoice', {
   organizationId: { type: DataTypes.INTEGER, allowNull: false },
   workspaceId: { type: DataTypes.INTEGER, allowNull: false },
   invoiceNumber: { type: DataTypes.STRING(20), allowNull: false },
+  title: { type: DataTypes.STRING(200), allowNull: true },
   quotationId: { type: DataTypes.INTEGER, allowNull: true },
   leadId: { type: DataTypes.INTEGER, allowNull: true },
   createdBy: { type: DataTypes.INTEGER, allowNull: false },
@@ -389,16 +391,13 @@ const Expense = sequelize.define('Expense', {
   submittedBy: { type: DataTypes.INTEGER, allowNull: false },
   approvedBy: { type: DataTypes.INTEGER, allowNull: true },
   title: { type: DataTypes.STRING(255), allowNull: false },
-  category: {
-    type: DataTypes.ENUM('Fuel', 'Food & Entertainment', 'Subscriptions', 'Software', 'Office Supplies', 'Travel', 'Other'),
-    defaultValue: 'Other',
-  },
+  category: { type: DataTypes.STRING(100), defaultValue: 'Other' },
   amount: { type: DataTypes.DECIMAL(12, 2), allowNull: false },
   expenseDate: { type: DataTypes.DATEONLY, allowNull: false },
   billReference: { type: DataTypes.STRING(100), allowNull: true },
   receiptUrl: { type: DataTypes.STRING(500), allowNull: true },
   paymentMode: {
-    type: DataTypes.ENUM('Cash', 'UPI', 'Card', 'Bank Transfer'),
+    type: DataTypes.ENUM('UPI', 'Bank Transfer', 'Cash', 'Cheque', 'Online'),
     defaultValue: 'Cash',
   },
   notes: { type: DataTypes.TEXT, allowNull: true },
@@ -850,6 +849,28 @@ const syncDatabase = async () => {
       if (!ctCols4.scheduledFor) {
         await qi.addColumn('content_tasks', 'scheduledFor', { type: DataTypes.DATE, allowNull: true });
       }
+    } catch (e) { /* ignore */ }
+
+    // Add title column to quotations if missing
+    try {
+      const qCols = await qi.describeTable('quotations');
+      if (!qCols.title) {
+        await qi.addColumn('quotations', 'title', { type: DataTypes.STRING(200), allowNull: true });
+      }
+    } catch (e) { /* ignore */ }
+
+    // Add title column to invoices if missing
+    try {
+      const invTitleCols = await qi.describeTable('invoices');
+      if (!invTitleCols.title) {
+        await qi.addColumn('invoices', 'title', { type: DataTypes.STRING(200), allowNull: true });
+      }
+    } catch (e) { /* ignore */ }
+
+    // Fix expenses paymentMode ENUM and category to VARCHAR
+    try {
+      await sequelize.query(`ALTER TABLE expenses MODIFY category VARCHAR(100) NULL DEFAULT NULL`);
+      await sequelize.query(`ALTER TABLE expenses MODIFY paymentMode ENUM('UPI','Bank Transfer','Cash','Cheque','Online') NOT NULL DEFAULT 'Cash'`);
     } catch (e) { /* ignore */ }
 
     // Extend notifications ENUM to include expense types

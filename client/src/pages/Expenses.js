@@ -4,8 +4,18 @@ import Layout from '../components/layout/Layout';
 import { expensesAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
-const CATEGORIES = ['Fuel', 'Food & Entertainment', 'Subscriptions', 'Software', 'Office Supplies', 'Travel', 'Other'];
-const PAYMENT_MODES = ['Cash', 'UPI', 'Card', 'Bank Transfer'];
+const PAYMENT_MODES = ['UPI', 'Bank Transfer', 'Cash', 'Cheque', 'Online'];
+
+const getSavedCategories = () => {
+  try { return JSON.parse(localStorage.getItem('expenseCategories') || '[]'); } catch { return []; }
+};
+const saveCategory = (cat) => {
+  if (!cat?.trim()) return;
+  const existing = getSavedCategories();
+  if (!existing.includes(cat.trim())) {
+    localStorage.setItem('expenseCategories', JSON.stringify([cat.trim(), ...existing].slice(0, 20)));
+  }
+};
 
 const STATUS_COLORS = {
   Pending: { bg: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: 'rgba(245,158,11,0.3)' },
@@ -13,20 +23,11 @@ const STATUS_COLORS = {
   Rejected: { bg: 'rgba(239,68,68,0.12)', color: '#ef4444', border: 'rgba(239,68,68,0.3)' },
 };
 
-const CATEGORY_ICONS = {
-  'Fuel': '⛽',
-  'Food & Entertainment': '🍽️',
-  'Subscriptions': '🔄',
-  'Software': '💻',
-  'Office Supplies': '📦',
-  'Travel': '✈️',
-  'Other': '📌',
-};
 
 const fmt = (n) => `₹${parseFloat(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 
-const emptyForm = { title: '', category: 'Other', amount: '', expenseDate: new Date().toISOString().slice(0, 10), billReference: '', paymentMode: 'Cash', notes: '' };
+const emptyForm = { title: '', category: '', amount: '', expenseDate: new Date().toISOString().slice(0, 10), billReference: '', paymentMode: '', notes: '' };
 
 const Expenses = () => {
   const { user, isRole } = useAuth();
@@ -37,8 +38,8 @@ const Expenses = () => {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
-  const [receipt, setReceipt] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [savedCategories, setSavedCategories] = useState(getSavedCategories);
   const [editId, setEditId] = useState(null);
   const [rejectModal, setRejectModal] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
@@ -64,7 +65,7 @@ const Expenses = () => {
 
   useEffect(() => { load(); }, [load]);
 
-  const openAdd = () => { setEditId(null); setForm(emptyForm); setReceipt(null); setShowForm(true); };
+  const openAdd = () => { setEditId(null); setForm(emptyForm); setShowForm(true); };
 
   const openEdit = (exp) => {
     setEditId(exp.id);
@@ -77,25 +78,23 @@ const Expenses = () => {
       paymentMode: exp.paymentMode,
       notes: exp.notes || '',
     });
-    setReceipt(null);
     setShowForm(true);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.title.trim() || !form.amount || !form.expenseDate) {
-      return toast.error('Title, amount, and date are required');
+    if (!form.title.trim() || !form.amount || !form.expenseDate || !form.paymentMode) {
+      return toast.error('Title, amount, date, and payment mode are required');
     }
     setSaving(true);
     try {
+      saveCategory(form.category);
+      setSavedCategories(getSavedCategories());
       if (editId) {
         await expensesAPI.update(editId, form);
         toast.success('Expense updated');
       } else {
-        const fd = new FormData();
-        Object.entries(form).forEach(([k, v]) => v !== '' && fd.append(k, v));
-        if (receipt) fd.append('receipt', receipt);
-        await expensesAPI.create(fd);
+        await expensesAPI.create(form);
         toast.success('Expense submitted for approval');
       }
       setShowForm(false);
@@ -171,10 +170,12 @@ const Expenses = () => {
           <option value="Approved">Approved</option>
           <option value="Rejected">Rejected</option>
         </select>
-        <select className="form-control" style={{ width: 'auto' }} value={filterCategory} onChange={e => setFilterCategory(e.target.value)}>
-          <option value="">All Categories</option>
-          {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-        </select>
+        {savedCategories.length > 0 && (
+          <select className="form-control" style={{ width: 'auto' }} value={filterCategory} onChange={e => setFilterCategory(e.target.value)}>
+            <option value="">All Categories</option>
+            {savedCategories.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        )}
       </div>
 
       {/* Table */}
@@ -210,11 +211,8 @@ const Expenses = () => {
                       {exp.status === 'Rejected' && exp.rejectionReason && (
                         <div style={{ fontSize: 11, color: '#ef4444', marginTop: 3 }}>Rejected: {exp.rejectionReason}</div>
                       )}
-                      {exp.receiptUrl && (
-                        <a href={exp.receiptUrl} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: 'var(--accent)', marginTop: 2, display: 'inline-block' }}>📎 Receipt</a>
-                      )}
                     </td>
-                    <td style={{ padding: '10px 14px', fontSize: 13, whiteSpace: 'nowrap' }}>{CATEGORY_ICONS[exp.category]} {exp.category}</td>
+                    <td style={{ padding: '10px 14px', fontSize: 13, whiteSpace: 'nowrap' }}>{exp.category || '—'}</td>
                     <td style={{ padding: '10px 14px', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap' }}>{fmt(exp.amount)}</td>
                     <td style={{ padding: '10px 14px', fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{exp.paymentMode}</td>
                     <td style={{ padding: '10px 14px', fontSize: 12, color: 'var(--text-muted)' }}>{exp.billReference || '—'}</td>
@@ -259,13 +257,15 @@ const Expenses = () => {
               <div className="form-row">
                 <div className="form-group">
                   <label className="form-label">Category</label>
-                  <select className="form-control" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
-                    {CATEGORIES.map(c => <option key={c} value={c}>{CATEGORY_ICONS[c]} {c}</option>)}
-                  </select>
+                  <input className="form-control" list="expense-categories" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} placeholder="e.g. Fuel, Travel, Software..." />
+                  <datalist id="expense-categories">
+                    {savedCategories.map(c => <option key={c} value={c} />)}
+                  </datalist>
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Payment Mode</label>
-                  <select className="form-control" value={form.paymentMode} onChange={e => setForm({ ...form, paymentMode: e.target.value })}>
+                  <label className="form-label">Payment Mode *</label>
+                  <select className="form-control" value={form.paymentMode} onChange={e => setForm({ ...form, paymentMode: e.target.value })} required>
+                    <option value="">Select mode</option>
                     {PAYMENT_MODES.map(m => <option key={m} value={m}>{m}</option>)}
                   </select>
                 </div>
@@ -281,15 +281,9 @@ const Expenses = () => {
                 </div>
               </div>
               <div className="form-group">
-                <label className="form-label">Bill / Receipt Reference No.</label>
-                <input className="form-control" value={form.billReference} onChange={e => setForm({ ...form, billReference: e.target.value })} placeholder="e.g. INV-2024-001 or receipt number" />
+                <label className="form-label">BILL / CHEQUE / RECEIPT REFERENCE NO.</label>
+                <input className="form-control" value={form.billReference} onChange={e => setForm({ ...form, billReference: e.target.value })} placeholder="e.g. Bill no., cheque no., receipt no." />
               </div>
-              {!editId && (
-                <div className="form-group">
-                  <label className="form-label">Upload Receipt (optional)</label>
-                  <input type="file" className="form-control" accept="image/*,.pdf" onChange={e => setReceipt(e.target.files[0])} style={{ padding: '6px 12px' }} />
-                </div>
-              )}
               <div className="form-group">
                 <label className="form-label">Notes</label>
                 <textarea className="form-control" rows={2} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Any additional details..." />
