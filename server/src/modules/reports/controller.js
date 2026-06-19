@@ -1,6 +1,6 @@
 const { Op, fn, col, literal } = require('sequelize');
 const moment = require('moment-timezone');
-const { Lead, Payment, Invoice, Followup, Appointment, ContentTask, User, Quotation } = require('../../config/models');
+const { Lead, Payment, Invoice, Followup, Appointment, ContentTask, User, Quotation, Expense } = require('../../config/models');
 const { startOfTodayIST, endOfTodayIST } = require('../../utils/helpers');
 
 const getLoginSummary = async (req, res) => {
@@ -360,6 +360,12 @@ const getAdvancedReports = async (req, res) => {
       Invoice.sum('dueAmount', { where: { organizationId: orgId, ...ws, status: { [Op.in]: ['Unpaid', 'Partial'] }, ...(hasDateFilter ? { createdAt: dateFilter } : {}) } }),
     ]);
 
+    const expenseWhere = { organizationId: orgId, status: 'Approved', ...(hasDateFilter ? { expenseDate: dateFilter } : {}) };
+    const [totalExpenses, expenseByCategory] = await Promise.all([
+      Expense.sum('amount', { where: expenseWhere }),
+      Expense.findAll({ where: expenseWhere, attributes: ['category', [fn('SUM', col('amount')), 'total']], group: ['category'], raw: true }),
+    ]);
+
     const [quotationByStatus, quotationTotalValue, quotationApprovedValue, appointmentByStatus, appointmentByType, followupByStatus, followupByAgentRaw, paymentByMode, paymentByAgentRaw] = await Promise.all([
       Quotation.findAll({ where: quotationWhere, attributes: ['status', [fn('COUNT', col('id')), 'count']], group: ['status'], raw: true }),
       Quotation.sum('totalAmount', { where: quotationWhere }),
@@ -430,6 +436,9 @@ const getAdvancedReports = async (req, res) => {
       agentStats,
       contentStats,
       totalRevenue: parseFloat(totalRevenue || 0),
+      totalExpenses: parseFloat(totalExpenses || 0),
+      netRevenue: parseFloat(totalRevenue || 0) - parseFloat(totalExpenses || 0),
+      expenseByCategory,
       totalInvoices,
       paidInvoices: parseInt(paidInvoices?.count || 0),
       pendingAmount: parseFloat(pendingAmount || 0),

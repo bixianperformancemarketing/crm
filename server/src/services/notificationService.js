@@ -127,6 +127,54 @@ const notifyWorkspaceLimitReached = async ({ ownerId, organizationId, limitType 
   });
 };
 
+const notifyExpenseSubmitted = async ({ expense, submitter }) => {
+  try {
+    const { User } = require('../config/models');
+    const approvers = await User.findAll({
+      where: { organizationId: expense.organizationId, role: { [require('sequelize').Op.in]: ['admin', 'owner'] } },
+      attributes: ['id'],
+    });
+    const promises = approvers
+      .filter(u => u.id !== submitter.id)
+      .map(u => create({
+        organizationId: expense.organizationId,
+        workspaceId: expense.workspaceId || null,
+        userId: u.id,
+        type: 'expense_submitted',
+        title: 'New Expense Submitted',
+        message: `${submitter.name} submitted an expense: ${expense.title} (₹${parseFloat(expense.amount).toLocaleString('en-IN')})`,
+        data: { expenseId: expense.id },
+      }));
+    return Promise.all(promises);
+  } catch (err) {
+    console.error('notifyExpenseSubmitted error:', err.message);
+  }
+};
+
+const notifyExpenseApproved = async ({ expense, approver }) => {
+  return create({
+    organizationId: expense.organizationId,
+    workspaceId: expense.workspaceId || null,
+    userId: expense.submittedBy,
+    type: 'expense_approved',
+    title: 'Expense Approved',
+    message: `Your expense "${expense.title}" (₹${parseFloat(expense.amount).toLocaleString('en-IN')}) has been approved by ${approver.name}`,
+    data: { expenseId: expense.id },
+  });
+};
+
+const notifyExpenseRejected = async ({ expense, approver, reason }) => {
+  return create({
+    organizationId: expense.organizationId,
+    workspaceId: expense.workspaceId || null,
+    userId: expense.submittedBy,
+    type: 'expense_rejected',
+    title: 'Expense Rejected',
+    message: `Your expense "${expense.title}" was rejected by ${approver.name}${reason ? `: ${reason}` : ''}`,
+    data: { expenseId: expense.id, reason },
+  });
+};
+
 module.exports = {
   create,
   notifyLeadAssigned,
@@ -137,4 +185,7 @@ module.exports = {
   notifyAppointmentReminder,
   notifyPlanExpiring,
   notifyWorkspaceLimitReached,
+  notifyExpenseSubmitted,
+  notifyExpenseApproved,
+  notifyExpenseRejected,
 };

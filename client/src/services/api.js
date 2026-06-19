@@ -181,6 +181,17 @@ export const contentAPI = {
   archiveBulk: (params) => api.post('/content/archive-bulk', {}, { params }),
 };
 
+// ─── EXPENSES ─────────────────────────────────────────────────────────────
+export const expensesAPI = {
+  getAll: (params) => api.get('/expenses', { params }),
+  getSummary: (params) => api.get('/expenses/summary', { params }),
+  create: (data) => api.post('/expenses', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  update: (id, data) => api.put(`/expenses/${id}`, data),
+  approve: (id) => api.post(`/expenses/${id}/approve`),
+  reject: (id, reason) => api.post(`/expenses/${id}/reject`, { reason }),
+  delete: (id) => api.delete(`/expenses/${id}`),
+};
+
 // ─── REPORTS ──────────────────────────────────────────────────────────────
 export const reportsAPI = {
   getDashboard: (params) => api.get('/reports/dashboard', { params }),

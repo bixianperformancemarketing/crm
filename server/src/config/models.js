@@ -381,6 +381,34 @@ const Payment = sequelize.define('Payment', {
   receivedAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
 }, { tableName: 'payments' });
 
+// ─── EXPENSE ──────────────────────────────────────────────────────────────
+const Expense = sequelize.define('Expense', {
+  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  organizationId: { type: DataTypes.INTEGER, allowNull: false },
+  workspaceId: { type: DataTypes.INTEGER, allowNull: true },
+  submittedBy: { type: DataTypes.INTEGER, allowNull: false },
+  approvedBy: { type: DataTypes.INTEGER, allowNull: true },
+  title: { type: DataTypes.STRING(255), allowNull: false },
+  category: {
+    type: DataTypes.ENUM('Fuel', 'Food & Entertainment', 'Subscriptions', 'Software', 'Office Supplies', 'Travel', 'Other'),
+    defaultValue: 'Other',
+  },
+  amount: { type: DataTypes.DECIMAL(12, 2), allowNull: false },
+  expenseDate: { type: DataTypes.DATEONLY, allowNull: false },
+  billReference: { type: DataTypes.STRING(100), allowNull: true },
+  receiptUrl: { type: DataTypes.STRING(500), allowNull: true },
+  paymentMode: {
+    type: DataTypes.ENUM('Cash', 'UPI', 'Card', 'Bank Transfer'),
+    defaultValue: 'Cash',
+  },
+  notes: { type: DataTypes.TEXT, allowNull: true },
+  status: {
+    type: DataTypes.ENUM('Pending', 'Approved', 'Rejected'),
+    defaultValue: 'Pending',
+  },
+  rejectionReason: { type: DataTypes.TEXT, allowNull: true },
+}, { tableName: 'expenses' });
+
 // ─── CONTENT TASK ─────────────────────────────────────────────────────────
 const ContentTask = sequelize.define('ContentTask', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
@@ -535,6 +563,11 @@ Payment.belongsTo(User, { foreignKey: 'receivedBy', as: 'receiver' });
 
 Lead.hasMany(ContentTask, { foreignKey: 'leadId', as: 'contentTasks' });
 ContentTask.belongsTo(Lead, { foreignKey: 'leadId', as: 'lead' });
+
+Expense.belongsTo(User, { foreignKey: 'submittedBy', as: 'submitter' });
+Expense.belongsTo(User, { foreignKey: 'approvedBy', as: 'approver' });
+Expense.belongsTo(Workspace, { foreignKey: 'workspaceId', as: 'workspace' });
+User.hasMany(Expense, { foreignKey: 'submittedBy', as: 'expenses' });
 ContentTask.belongsTo(User, { foreignKey: 'assignedTo', as: 'assignee' });
 ContentTask.belongsTo(User, { foreignKey: 'createdBy', as: 'creator' });
 
@@ -819,6 +852,16 @@ const syncDatabase = async () => {
       }
     } catch (e) { /* ignore */ }
 
+    // Extend notifications ENUM to include expense types
+    try {
+      await sequelize.query(`ALTER TABLE notifications MODIFY type ENUM('lead_assigned','followup_due','quotation_approved','payment_overdue','new_lead','appointment_reminder','plan_expiring','workspace_limit_reached','system','expense_submitted','expense_approved','expense_rejected')`);
+    } catch (e) { /* ignore */ }
+
+    // Create expenses table if it doesn't exist
+    try {
+      await Expense.sync({ alter: false });
+    } catch (e) { /* ignore */ }
+
     console.log('Database synchronized successfully');
   } catch (err) {
     console.error('Database sync error:', err);
@@ -844,6 +887,7 @@ module.exports = {
   Invoice,
   InvoiceItem,
   Payment,
+  Expense,
   ContentTask,
   Notification,
   UsageLog,
