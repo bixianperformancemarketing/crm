@@ -1145,15 +1145,12 @@ const Settings = () => {
                   <div style={{ fontWeight: 600, fontSize: 14 }}>Auto-Archive Completed Tasks</div>
                   <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 3 }}>Runs daily at the configured time</div>
                 </div>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                  <div style={{ position: 'relative', width: 44, height: 24 }}>
-                    <input type="checkbox" checked={autoArchive.enabled} onChange={e => setAutoArchive({ ...autoArchive, enabled: e.target.checked })} style={{ opacity: 0, width: 0, height: 0, position: 'absolute' }} />
-                    <div onClick={() => setAutoArchive({ ...autoArchive, enabled: !autoArchive.enabled })} style={{ position: 'absolute', inset: 0, borderRadius: 12, background: autoArchive.enabled ? 'var(--accent)' : 'var(--border)', cursor: 'pointer', transition: 'background 0.2s' }}>
-                      <div style={{ position: 'absolute', top: 3, left: autoArchive.enabled ? 23 : 3, width: 18, height: 18, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
-                    </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }} onClick={() => setAutoArchive(a => ({ ...a, enabled: !a.enabled }))}>
+                  <div style={{ position: 'relative', width: 44, height: 24, borderRadius: 12, background: autoArchive.enabled ? 'var(--accent)' : 'var(--border)', transition: 'background 0.2s', flexShrink: 0 }}>
+                    <div style={{ position: 'absolute', top: 3, left: autoArchive.enabled ? 23 : 3, width: 18, height: 18, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
                   </div>
                   <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{autoArchive.enabled ? 'Enabled' : 'Disabled'}</span>
-                </label>
+                </div>
               </div>
               {autoArchive.enabled && (
                 <div className="form-group" style={{ marginBottom: 0 }}>
