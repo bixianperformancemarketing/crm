@@ -201,6 +201,7 @@ const TasksPipeline = () => {
   const handleEditSave = async (e) => {
     e.preventDefault();
     if (!editForm.title.trim()) return toast.error('Title is required');
+    if (editForm.scheduledFor && editForm.dueDate && editForm.dueDate < editForm.scheduledFor.slice(0, 10)) return toast.error('Due date cannot be before the scheduled date');
     setEditSaving(true);
     try {
       await contentAPI.update(editTask.id, editForm);

@@ -202,6 +202,7 @@ const Content = () => {
     e.preventDefault();
     if (!form.title || !form.dueDate) return toast.error('Title and due date required');
     if (isRole('owner') && !form.workspaceId) return toast.error('Workspace is required');
+    if (form.scheduledFor && form.dueDate < form.scheduledFor.slice(0, 10)) return toast.error('Due date cannot be before the scheduled date');
     setSaving(true);
     try {
       const payload = { ...form };
@@ -279,6 +280,7 @@ const Content = () => {
   const handleUpdate = async (e) => {
     e.preventDefault();
     if (!editForm.title || !editForm.dueDate) return toast.error('Title and due date required');
+    if (editForm.scheduledFor && editForm.dueDate < editForm.scheduledFor.slice(0, 10)) return toast.error('Due date cannot be before the scheduled date');
     setEditSaving(true);
     try {
       await contentAPI.update(editTask.id, editForm);
