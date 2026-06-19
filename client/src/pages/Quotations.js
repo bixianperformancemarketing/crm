@@ -204,8 +204,8 @@ const Quotations = () => {
 
   const handlePDF = async (id, num) => {
     try {
-      const { data } = await quotationsAPI.downloadPDF(id);
-      downloadBlob(data, `${num}.pdf`);
+      const { blob, filename } = await quotationsAPI.downloadPDF(id);
+      downloadBlob(blob, filename || `${num}.pdf`);
     } catch (err) {
       const d = err.response?.data;
       if (d?.upgradeRequired) { setUpgradeModal(d); return; }
