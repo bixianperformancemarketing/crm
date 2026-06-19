@@ -8,7 +8,7 @@ const COMPLETED_STATUSES = ['Done', 'Approved', 'Not Approved', 'Cancelled'];
 const getTasks = async (req, res) => {
   try {
     const { user, workspaceId } = req;
-    const { page = 1, limit = 20, status, assignedTo, dateFrom, dateTo, search, dueDateSort } = req.query;
+    const { page = 1, limit = 20, status, assignedTo, search, dueDateSort } = req.query;
     const { limit: lim, offset } = paginate(page, limit);
 
     const ws = workspaceId ? { workspaceId } : {};
@@ -20,21 +20,6 @@ const getTasks = async (req, res) => {
     if (status) where.status = status;
     if (assignedTo && user.role !== 'employee') where.assignedTo = assignedTo;
     if (search) where.title = { [Op.like]: `%${search}%` };
-    if (dateFrom || dateTo) {
-      const from = dateFrom ? new Date(dateFrom) : null;
-      const to = dateTo ? (() => { const d = new Date(dateTo); d.setDate(d.getDate() + 1); return d; })() : null;
-      const scheduledCond = {};
-      const createdCond = {};
-      if (from) { scheduledCond[Op.gte] = from; createdCond[Op.gte] = from; }
-      if (to) { scheduledCond[Op.lt] = to; createdCond[Op.lt] = to; }
-      const dateCond = { [Op.or]: [{ scheduledFor: scheduledCond }, { createdAt: createdCond }] };
-      if (where[Op.or]) {
-        where[Op.and] = [{ [Op.or]: where[Op.or] }, dateCond];
-        delete where[Op.or];
-      } else {
-        Object.assign(where, dateCond);
-      }
-    }
 
     const { count, rows } = await ContentTask.findAndCountAll({
       where,
@@ -282,11 +267,16 @@ const archiveBulk = async (req, res) => {
 const getArchivedTasks = async (req, res) => {
   try {
     const { user, workspaceId } = req;
-    const { page = 1, limit = 20 } = req.query;
+    const { page = 1, limit = 20, dateFrom, dateTo } = req.query;
     const { limit: lim, offset } = paginate(page, limit);
     const ws = workspaceId ? { workspaceId } : {};
     const where = { organizationId: user.organizationId, ...ws, isArchived: true };
     if (user.role === 'employee') where.assignedTo = user.id;
+    if (dateFrom || dateTo) {
+      where.createdAt = {};
+      if (dateFrom) where.createdAt[Op.gte] = new Date(dateFrom);
+      if (dateTo) { const d = new Date(dateTo); d.setDate(d.getDate() + 1); where.createdAt[Op.lt] = d; }
+    }
 
     const { count, rows } = await ContentTask.findAndCountAll({
       where,

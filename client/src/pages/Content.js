@@ -144,9 +144,9 @@ const Content = () => {
   const [editSaving, setEditSaving] = useState(false);
   const [archivingId, setArchivingId] = useState(null);
   const [unarchivingId, setUnarchivingId] = useState(null);
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
   const [dueDateSort, setDueDateSort] = useState('');
+  const [archivedDateFrom, setArchivedDateFrom] = useState('');
+  const [archivedDateTo, setArchivedDateTo] = useState('');
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(searchQuery), 400);
@@ -165,15 +165,13 @@ const Content = () => {
       if (userFilter && (isRole('admin') || isRole('owner'))) params.assignedTo = userFilter;
       if (isRole('owner') && workspaceFilter) params.workspaceId = workspaceFilter;
       if (debouncedSearch) params.search = debouncedSearch;
-      if (dateFrom) params.dateFrom = dateFrom;
-      if (dateTo) params.dateTo = dateTo;
       if (dueDateSort) params.dueDateSort = dueDateSort;
       const { data } = await contentAPI.getAll(params);
       setTasks(data.data || []);
       setPagination(data.pagination);
     } catch { toast.error('Failed to load tasks'); }
     finally { setLoading(false); }
-  }, [page, statusFilter, userFilter, workspaceFilter, debouncedSearch, isRole, dateFrom, dateTo, dueDateSort]);
+  }, [page, statusFilter, userFilter, workspaceFilter, debouncedSearch, isRole, dueDateSort]);
 
   const loadCal = useCallback(async () => {
     setLoading(true);
@@ -187,12 +185,15 @@ const Content = () => {
   const loadArchived = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await contentAPI.getArchived({ page: archivedPage });
+      const params = { page: archivedPage };
+      if (archivedDateFrom) params.dateFrom = archivedDateFrom;
+      if (archivedDateTo) params.dateTo = archivedDateTo;
+      const { data } = await contentAPI.getArchived(params);
       setArchivedTasks(data.data || []);
       setArchivedPagination(data.pagination);
     } catch { toast.error('Failed to load archived tasks'); }
     finally { setLoading(false); }
-  }, [archivedPage]);
+  }, [archivedPage, archivedDateFrom, archivedDateTo]);
 
   useEffect(() => {
     if (view === 'list') loadList();
@@ -398,7 +399,6 @@ const Content = () => {
                 style={{ minWidth: 180 }}
               />
             )}
-            <DateFilter onChange={({ dateFrom: df, dateTo: dt }) => { setDateFrom(df); setDateTo(dt); setPage(1); }} />
           </div>
           {loading ? <div className="loading-spinner"><div className="spinner" /></div> : tasks.length === 0 ? (
             <div className="empty-state"><div className="empty-icon">✅</div><div className="empty-title">No tasks yet</div></div>
@@ -490,7 +490,10 @@ const Content = () => {
 
       {view === 'archived' && (
         <>
-          <div style={{ marginBottom: 16, fontSize: 13, color: 'var(--text-muted)' }}>Completed tasks that have been archived. Restore them to make them active again.</div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 16 }}>
+            <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>Completed tasks that have been archived. Restore them to make them active again.</span>
+            <DateFilter onChange={({ dateFrom: df, dateTo: dt }) => { setArchivedDateFrom(df); setArchivedDateTo(dt); setArchivedPage(1); }} />
+          </div>
           {loading ? <div className="loading-spinner"><div className="spinner" /></div> : archivedTasks.length === 0 ? (
             <div className="empty-state"><div className="empty-icon">📦</div><div className="empty-title">No archived tasks</div></div>
           ) : (
