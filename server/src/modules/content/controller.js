@@ -21,9 +21,19 @@ const getTasks = async (req, res) => {
     if (assignedTo && user.role !== 'employee') where.assignedTo = assignedTo;
     if (search) where.title = { [Op.like]: `%${search}%` };
     if (dateFrom || dateTo) {
-      where.scheduledFor = {};
-      if (dateFrom) where.scheduledFor[Op.gte] = new Date(dateFrom);
-      if (dateTo) { const d = new Date(dateTo); d.setDate(d.getDate() + 1); where.scheduledFor[Op.lt] = d; }
+      const from = dateFrom ? new Date(dateFrom) : null;
+      const to = dateTo ? (() => { const d = new Date(dateTo); d.setDate(d.getDate() + 1); return d; })() : null;
+      const scheduledCond = {};
+      const createdCond = {};
+      if (from) { scheduledCond[Op.gte] = from; createdCond[Op.gte] = from; }
+      if (to) { scheduledCond[Op.lt] = to; createdCond[Op.lt] = to; }
+      const dateCond = { [Op.or]: [{ scheduledFor: scheduledCond }, { createdAt: createdCond }] };
+      if (where[Op.or]) {
+        where[Op.and] = [{ [Op.or]: where[Op.or] }, dateCond];
+        delete where[Op.or];
+      } else {
+        Object.assign(where, dateCond);
+      }
     }
 
     const { count, rows } = await ContentTask.findAndCountAll({
