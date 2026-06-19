@@ -161,6 +161,9 @@ const deleteExpense = async (req, res) => {
     const expense = await Expense.findOne({ where: { id, organizationId: user.organizationId } });
     if (!expense) return res.status(404).json({ success: false, message: 'Expense not found' });
 
+    if (expense.status === 'Approved') {
+      return res.status(400).json({ success: false, message: 'Approved expenses cannot be deleted' });
+    }
     if (user.role === 'employee' && expense.submittedBy !== user.id) {
       return res.status(403).json({ success: false, message: 'Access denied' });
     }

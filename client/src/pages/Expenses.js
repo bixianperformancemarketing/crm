@@ -201,7 +201,7 @@ const Expenses = () => {
               {expenses.map((exp, i) => {
                 const sc = STATUS_COLORS[exp.status] || STATUS_COLORS.Pending;
                 const canEdit = exp.status === 'Pending' && (!isEmployee || exp.submittedBy === user.id);
-                const canDelete = !isEmployee ? true : (exp.submittedBy === user.id && exp.status === 'Pending');
+                const canDelete = exp.status !== 'Approved' && (!isEmployee ? true : (exp.submittedBy === user.id && exp.status === 'Pending'));
                 return (
                   <tr key={exp.id} style={{ borderBottom: i < expenses.length - 1 ? '1px solid var(--border)' : 'none' }}>
                     <td style={{ padding: '10px 14px', fontSize: 13, whiteSpace: 'nowrap', color: 'var(--text-muted)' }}>{fmtDate(exp.expenseDate)}</td>
