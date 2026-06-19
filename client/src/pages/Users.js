@@ -142,14 +142,14 @@ const Users = () => {
               {showCreate && isRole('owner') && (
                 <div className="form-group">
                   <label className="form-label">Role</label>
-                  <select className="form-control" value={form.role} onChange={e => setForm({ ...form, role: e.target.value, label: e.target.value === 'admin' ? '' : form.label })}>
+                  <select className="form-control" value={form.role} onChange={e => setForm({ ...form, role: e.target.value })}>
                     {allowedRoles.map(r => <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>)}
                   </select>
                 </div>
               )}
               <div className="form-group">
                 <label className="form-label">Designation</label>
-                <input className="form-control" value={form.label} onChange={e => setForm({ ...form, label: e.target.value })} placeholder="e.g. Sales Executive, Team Lead, BDE..." disabled={form.role === 'admin'} />
+                <input className="form-control" value={form.label} onChange={e => setForm({ ...form, label: e.target.value })} placeholder="e.g. Sales Executive, Team Lead, BDE..." />
               </div>
               <div className="form-group"><label className="form-label">Phone</label><input className="form-control" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value.replace(/[^0-9+]/g, '') })} placeholder="+91 9876543210" /></div>
               {form.role === 'employee' && (

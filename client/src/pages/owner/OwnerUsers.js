@@ -209,7 +209,7 @@ const OwnerUsers = () => {
               <div className="form-row">
                 <div className="form-group">
                   <label className="form-label">Role</label>
-                  <select className="form-control" value={form.role} onChange={e => setForm({ ...form, role: e.target.value, label: e.target.value === 'admin' ? '' : form.label })}>
+                  <select className="form-control" value={form.role} onChange={e => setForm({ ...form, role: e.target.value })}>
                     {['admin', 'employee'].map(r => (
                       <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>
                     ))}
@@ -217,7 +217,7 @@ const OwnerUsers = () => {
                 </div>
                 <div className="form-group">
                   <label className="form-label">Designation</label>
-                  <input className="form-control" value={form.label} onChange={e => setForm({ ...form, label: e.target.value })} placeholder="e.g. Sales Executive, Team Lead, BDE..." disabled={form.role === 'admin'} />
+                  <input className="form-control" value={form.label} onChange={e => setForm({ ...form, label: e.target.value })} placeholder="e.g. Sales Executive, Team Lead, BDE..." />
                 </div>
               </div>
               <div className="form-group">
