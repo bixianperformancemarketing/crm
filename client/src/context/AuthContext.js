@@ -24,6 +24,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(userData));
     if (userData.workspaceId) localStorage.setItem('workspaceId', userData.workspaceId);
+    else localStorage.removeItem('workspaceId');
     setUser(userData);
     setOrg(userData.organization || null);
     setWorkspace(userData.workspace || null);
@@ -54,6 +55,7 @@ export const AuthProvider = ({ children }) => {
         setUser(data.user);
         setOrg(data.user.organization || null);
         setWorkspace(data.user.workspace || null);
+        if (!data.user.workspaceId) localStorage.removeItem('workspaceId');
       })
       .catch(() => { localStorage.removeItem('token'); })
       .finally(() => setLoading(false));
