@@ -283,10 +283,18 @@ const getDashboard = async (req, res) => {
     const dashExpenseWhere = {
       organizationId: orgId,
       status: 'Approved',
-      ...ws,
-      ...(isEmployee ? { submittedBy: user.id } : {}),
       ...(periodFilter ? { expenseDate: periodFilter } : {}),
     };
+    if (isEmployee) {
+      dashExpenseWhere.submittedBy = user.id;
+    } else if (user.role === 'admin' && workspaceId) {
+      const wsUsers = await User.findAll({
+        where: { organizationId: orgId, workspaceId },
+        attributes: ['id'], raw: true,
+      });
+      const ids = wsUsers.map(u => u.id);
+      dashExpenseWhere.submittedBy = { [Op.in]: ids.length ? ids : [-1] };
+    }
     const totalExpenses = (await Expense.sum('amount', { where: dashExpenseWhere })) || 0;
 
     res.json({
