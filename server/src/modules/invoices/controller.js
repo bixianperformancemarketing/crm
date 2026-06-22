@@ -189,7 +189,7 @@ const updateInvoice = async (req, res) => {
       // Payment recorded — only allow non-financial fields
       if (req.body.terms !== undefined) updates.terms = req.body.terms;
       if (req.body.notes !== undefined) updates.notes = req.body.notes;
-      if (req.body.dueDate !== undefined) updates.dueDate = req.body.dueDate;
+      if (req.body.dueDate !== undefined) updates.dueDate = req.body.dueDate || null;
       if (req.body.title !== undefined) updates.title = req.body.title?.trim() || null;
     } else {
       // No payments — allow full edit including items and amounts
@@ -202,7 +202,7 @@ const updateInvoice = async (req, res) => {
       if (clientGST !== undefined) updates.clientGST = clientGST;
       if (notes !== undefined) updates.notes = notes;
       if (terms !== undefined) updates.terms = terms;
-      if (dueDate !== undefined) updates.dueDate = dueDate;
+      if (dueDate !== undefined) updates.dueDate = dueDate || null;
 
       if (items && items.length) {
         const subtotal = items.reduce((sum, i) => sum + parseFloat(i.totalPrice || 0), 0);
