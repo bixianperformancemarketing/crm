@@ -11,8 +11,16 @@ const getExpenses = async (req, res) => {
     const offset = (parseInt(page) - 1) * parseInt(limit);
 
     const where = { organizationId: user.organizationId };
-    if (user.role === 'employee') where.submittedBy = user.id;
-    else if (user.role === 'admin' && req.workspaceId) where.workspaceId = req.workspaceId;
+    if (user.role === 'employee') {
+      where.submittedBy = user.id;
+    } else if (user.role === 'admin' && req.workspaceId) {
+      const wsUsers = await User.findAll({
+        where: { organizationId: user.organizationId, workspaceId: req.workspaceId },
+        attributes: ['id'], raw: true,
+      });
+      const ids = wsUsers.map(u => u.id);
+      where.submittedBy = { [Op.in]: ids.length ? ids : [-1] };
+    }
     if (status) where.status = status;
     if (category) where.category = category;
     if (from && to) where.expenseDate = { [Op.between]: [from, to] };
@@ -39,7 +47,7 @@ const getExpenses = async (req, res) => {
 const createExpense = async (req, res) => {
   try {
     const { user } = req;
-    const { title, category, amount, expenseDate, billReference, paymentMode, notes, workspaceId } = req.body;
+    const { title, category, amount, expenseDate, billReference, paymentMode, notes } = req.body;
 
     if (!title || !amount || !expenseDate || !paymentMode || !billReference?.trim()) {
       return res.status(400).json({ success: false, message: 'Title, amount, date, payment mode, and bill/cheque/receipt reference are required' });
@@ -50,7 +58,7 @@ const createExpense = async (req, res) => {
 
     const expense = await Expense.create({
       organizationId: user.organizationId,
-      workspaceId: workspaceId ? parseInt(workspaceId) : null,
+      workspaceId: req.workspaceId || null,
       submittedBy: user.id,
       title: title.trim(),
       category: category?.trim() || null,
@@ -86,7 +94,7 @@ const updateExpense = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Only pending expenses can be edited' });
     }
 
-    const { title, category, amount, expenseDate, billReference, paymentMode, notes, workspaceId } = req.body;
+    const { title, category, amount, expenseDate, billReference, paymentMode, notes } = req.body;
     const updates = {};
     if (title) updates.title = title.trim();
     if (category) updates.category = category;
@@ -95,7 +103,6 @@ const updateExpense = async (req, res) => {
     if (billReference !== undefined) updates.billReference = billReference?.trim() || null;
     if (paymentMode) updates.paymentMode = paymentMode;
     if (notes !== undefined) updates.notes = notes?.trim() || null;
-    if (workspaceId !== undefined) updates.workspaceId = workspaceId ? parseInt(workspaceId) : null;
 
     await expense.update(updates);
     res.json({ success: true, expense });
@@ -185,8 +192,16 @@ const getExpenseSummary = async (req, res) => {
     const { user } = req;
     const { from, to } = req.query;
     const where = { organizationId: user.organizationId, status: 'Approved' };
-    if (user.role === 'employee') where.submittedBy = user.id;
-    else if (user.role === 'admin' && req.workspaceId) where.workspaceId = req.workspaceId;
+    if (user.role === 'employee') {
+      where.submittedBy = user.id;
+    } else if (user.role === 'admin' && req.workspaceId) {
+      const wsUsers = await User.findAll({
+        where: { organizationId: user.organizationId, workspaceId: req.workspaceId },
+        attributes: ['id'], raw: true,
+      });
+      const ids = wsUsers.map(u => u.id);
+      where.submittedBy = { [Op.in]: ids.length ? ids : [-1] };
+    }
     if (from && to) where.expenseDate = { [Op.between]: [from, to] };
 
     const expenses = await Expense.findAll({ where, attributes: ['category', 'amount'], raw: true });
