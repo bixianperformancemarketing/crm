@@ -165,9 +165,9 @@ const updateQuotation = async (req, res) => {
     if (q.status === 'Approved') return res.status(400).json({ success: false, message: 'Cannot edit an approved quotation' });
 
     const { items, gstPercent, terms, notes, validUntil, clientName, clientEmail, clientPhone, clientAddress, clientGST, title } = req.body;
-    if (title !== undefined) updates.title = title?.trim() || null;
 
     let updates = {};
+    if (title !== undefined) updates.title = title?.trim() || null;
     if (clientName) updates.clientName = clientName;
     if (clientEmail) updates.clientEmail = clientEmail;
     if (clientPhone) updates.clientPhone = clientPhone;
