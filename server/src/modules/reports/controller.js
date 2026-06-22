@@ -280,8 +280,14 @@ const getDashboard = async (req, res) => {
       }
     }
 
-    const dashExpenseWhere = { organizationId: orgId, status: 'Approved', ...ws };
-    const totalExpenses = canAccessLeads ? (await Expense.sum('amount', { where: dashExpenseWhere })) || 0 : 0;
+    const dashExpenseWhere = {
+      organizationId: orgId,
+      status: 'Approved',
+      ...ws,
+      ...(isEmployee ? { submittedBy: user.id } : {}),
+      ...(periodFilter ? { expenseDate: periodFilter } : {}),
+    };
+    const totalExpenses = (await Expense.sum('amount', { where: dashExpenseWhere })) || 0;
 
     res.json({
       success: true,

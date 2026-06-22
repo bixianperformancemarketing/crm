@@ -12,6 +12,7 @@ const getExpenses = async (req, res) => {
 
     const where = { organizationId: user.organizationId };
     if (user.role === 'employee') where.submittedBy = user.id;
+    else if (user.role === 'admin' && req.workspaceId) where.workspaceId = req.workspaceId;
     if (status) where.status = status;
     if (category) where.category = category;
     if (from && to) where.expenseDate = { [Op.between]: [from, to] };
@@ -184,6 +185,8 @@ const getExpenseSummary = async (req, res) => {
     const { user } = req;
     const { from, to } = req.query;
     const where = { organizationId: user.organizationId, status: 'Approved' };
+    if (user.role === 'employee') where.submittedBy = user.id;
+    else if (user.role === 'admin' && req.workspaceId) where.workspaceId = req.workspaceId;
     if (from && to) where.expenseDate = { [Op.between]: [from, to] };
 
     const expenses = await Expense.findAll({ where, attributes: ['category', 'amount'], raw: true });

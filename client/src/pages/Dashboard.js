@@ -116,14 +116,17 @@ const Dashboard = () => {
     { label: 'Hot Leads', value: stats.hotLeads, icon: '⚡', color: '#ef4444' },
     { label: 'Total Revenue', value: formatCurrency(stats.totalRevenue), icon: '💰', color: '#22c55e' },
     { label: 'Pending Revenue', value: formatCurrency(stats.pendingRevenue), icon: '⏳', color: '#f59e0b' },
-    { label: 'Total Expenses', value: formatCurrency(stats.totalExpenses), icon: '💸', color: '#ef4444' },
-    { label: 'Net Revenue', value: formatCurrency(stats.netRevenue), icon: '📊', color: (stats.netRevenue ?? 0) >= 0 ? '#22c55e' : '#ef4444' },
     { label: 'Overdue Invoices', value: stats.overdueInvoices, icon: '🧾', color: '#ef4444' },
     { label: 'Appointments', value: stats.todayAppts, icon: '📅', color: '#7c3aed' },
     { label: 'Pending Followups', value: stats.pendingFollowups, icon: '📞', color: '#0ea5e9' },
     { label: 'Overdue Followups', value: stats.overdueFollowups, icon: '⏰', color: '#ef4444' },
     { label: 'Conversion Rate', value: `${stats.conversionRate}%`, icon: '📈', color: '#22c55e' },
     { label: 'Avg Deal Size', value: formatCurrency(stats.avgDealSize), icon: '💎', color: '#7c3aed' },
+  ];
+
+  const expenseStatCards = [
+    { label: 'Total Expenses', value: formatCurrency(stats.totalExpenses), icon: '💸', color: '#ef4444' },
+    { label: 'Net Revenue', value: formatCurrency(stats.netRevenue), icon: '📊', color: (stats.netRevenue ?? 0) >= 0 ? '#22c55e' : '#ef4444' },
   ];
 
   const taskStatCards = [
@@ -219,6 +222,21 @@ const Dashboard = () => {
           </div>
         </div>
       )}
+
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
+          Expenses & Net Revenue
+        </div>
+        <div className="stats-grid">
+          {expenseStatCards.map((s) => (
+            <div className="stat-card" key={s.label}>
+              <div className="stat-icon">{s.icon}</div>
+              <div className="stat-value" style={{ color: s.color }}>{s.value}</div>
+              <div className="stat-label">{s.label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {canUseTasks && (
         <div style={{ marginBottom: 24 }}>
