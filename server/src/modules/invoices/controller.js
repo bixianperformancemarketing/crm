@@ -193,7 +193,8 @@ const updateInvoice = async (req, res) => {
       if (req.body.title !== undefined) updates.title = req.body.title?.trim() || null;
     } else {
       // No payments — allow full edit including items and amounts
-      const { items, gstPercent, clientName, clientEmail, clientPhone, clientAddress, clientGST, notes, terms, dueDate } = req.body;
+      const { items, gstPercent, clientName, clientEmail, clientPhone, clientAddress, clientGST, notes, terms, dueDate, title } = req.body;
+      if (title !== undefined) updates.title = title?.trim() || null;
       if (clientName !== undefined) updates.clientName = clientName;
       if (clientEmail !== undefined) updates.clientEmail = clientEmail;
       if (clientPhone !== undefined) updates.clientPhone = clientPhone;
