@@ -122,8 +122,9 @@ const TasksPipeline = () => {
       }
     }
 
-    if (APPROVAL_RESTRICTED.has(dest) && !canApprove) {
-      return toast.error('Only admins and owners can approve or reject tasks');
+    if (APPROVAL_RESTRICTED.has(dest)) {
+      if (!canApprove) return toast.error('Only admins and owners can approve or reject tasks');
+      if (task && String(task.assignedTo) === String(user?.id)) return toast.error('You cannot approve or reject a task assigned to you');
     }
 
     const newPipeline = { ...pipeline };
@@ -138,8 +139,8 @@ const TasksPipeline = () => {
     try {
       await contentAPI.update(draggableId, { status: destination.droppableId });
       toast.success(`Moved to ${destination.droppableId}`);
-    } catch {
-      toast.error('Failed to update status');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update status');
       loadPipeline();
     }
   };
