@@ -247,7 +247,7 @@ const Content = () => {
       toast.success('Status updated');
       view === 'list' ? loadList() : loadCal();
       if (showTask) setShowTask({ ...showTask, status });
-    } catch { toast.error('Failed to update'); }
+    } catch (err) { toast.error(err.response?.data?.message || 'Failed to update status'); }
   };
 
   const handleDelete = async (id) => {
@@ -257,7 +257,7 @@ const Content = () => {
       toast.success('Deleted');
       setShowTask(null);
       view === 'list' ? loadList() : loadCal();
-    } catch { toast.error('Failed to delete'); }
+    } catch (err) { toast.error(err.response?.data?.message || 'Failed to delete task'); }
   };
 
   const handleArchive = async (id) => {
@@ -267,7 +267,7 @@ const Content = () => {
       toast.success('Task archived');
       setShowTask(null);
       view === 'list' ? loadList() : loadCal();
-    } catch { toast.error('Failed to archive'); }
+    } catch (err) { toast.error(err.response?.data?.message || 'Failed to archive task'); }
     finally { setArchivingId(null); }
   };
 
@@ -277,7 +277,7 @@ const Content = () => {
       await contentAPI.unarchive(id);
       toast.success('Task restored to active');
       loadArchived();
-    } catch { toast.error('Failed to restore task'); }
+    } catch (err) { toast.error(err.response?.data?.message || 'Failed to restore task'); }
     finally { setUnarchivingId(null); }
   };
 
@@ -308,7 +308,7 @@ const Content = () => {
       toast.success('Task updated');
       setEditTask(null);
       view === 'list' ? loadList() : loadCal();
-    } catch { toast.error('Failed to update task'); }
+    } catch (err) { toast.error(err.response?.data?.message || 'Failed to update task'); }
     finally { setEditSaving(false); }
   };
 
