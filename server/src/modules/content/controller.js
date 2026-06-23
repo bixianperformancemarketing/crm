@@ -143,8 +143,13 @@ const updateTask = async (req, res) => {
     const newStatus = req.body.status;
     if (newStatus) {
       const APPROVAL_ONLY = ['Approved', 'Not Approved'];
-      if (APPROVAL_ONLY.includes(newStatus) && user.role === 'employee') {
-        return res.status(403).json({ success: false, message: 'Only admins and owners can approve or reject tasks' });
+      if (APPROVAL_ONLY.includes(newStatus)) {
+        if (user.role === 'employee') {
+          return res.status(403).json({ success: false, message: 'Only admins and owners can approve or reject tasks' });
+        }
+        if (String(task.assignedTo) === String(user.id)) {
+          return res.status(403).json({ success: false, message: 'You cannot approve or reject a task assigned to you' });
+        }
       }
       if (newStatus === 'Done' && task.requiresApproval !== false) {
         return res.status(400).json({ success: false, message: 'This task requires approval — move it to Review first' });

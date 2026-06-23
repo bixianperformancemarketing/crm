@@ -353,7 +353,8 @@ const Content = () => {
   const getStatusOptions = (task) => {
     const all = task?.requiresApproval !== false ? APPROVAL_STATUSES : BASE_STATUSES;
     const restricted = ['Approved', 'Not Approved'];
-    return all.filter(s => s !== task?.status && (!restricted.includes(s) || canManage));
+    const isAssignee = String(task?.assignedTo) === String(user?.id);
+    return all.filter(s => s !== task?.status && (!restricted.includes(s) || (canManage && !isAssignee)));
   };
 
   return (
