@@ -37,6 +37,18 @@ const fmtDueTime = (t) => {
   return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${ampm}`;
 };
 
+const toLocalDatetimeInput = (utcString) => {
+  if (!utcString) return '';
+  const d = new Date(utcString);
+  if (isNaN(d.getTime())) return '';
+  const yyyy = d.getFullYear();
+  const MM = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  return `${yyyy}-${MM}-${dd}T${hh}:${mm}`;
+};
+
 const ApprovalToggle = ({ value, onChange }) => (
   <div className="form-group">
     <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none' }}>
@@ -106,6 +118,7 @@ const TaskFormFields = ({ f, setF, isOwner, users, workspaces, showAssignTo = tr
           type="datetime-local"
           value={f.scheduledFor || ''}
           onChange={e => setF({ ...f, scheduledFor: e.target.value })}
+          max="9999-12-31T23:59"
         />
       </div>
     )}
@@ -280,7 +293,7 @@ const Content = () => {
       priority: t.priority || 'Medium',
       notes: t.notes || '',
       requiresApproval: t.requiresApproval !== false,
-      scheduledFor: t.scheduledFor ? t.scheduledFor.slice(0, 16) : '',
+      scheduledFor: toLocalDatetimeInput(t.scheduledFor),
     });
     setEditTask(t);
   };
