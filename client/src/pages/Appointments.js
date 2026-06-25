@@ -11,6 +11,35 @@ import './Appointments.css';
 
 const BLANK_FORM = { title: '', description: '', startTime: '', endTime: '', type: 'Meeting', assignedTo: '', leadId: '', location: '', meetingLink: '', notes: '' };
 
+const AppointmentForm = ({ formData, setFormData, onSubmit, onCancel, isSaving, title, submitLabel, agents, user }) => (
+  <div className="modal-overlay" onClick={onCancel}>
+    <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <h3>{title}</h3>
+      <button className="modal-close" onClick={onCancel}>×</button>
+      <form onSubmit={onSubmit}>
+        <div className="form-group"><label className="form-label">Title *</label><input className="form-control" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} required /></div>
+        <div className="form-row">
+          <div className="form-group"><label className="form-label">Start Time *</label><input className="form-control" type="datetime-local" value={formData.startTime} onChange={(e) => setFormData({ ...formData, startTime: e.target.value })} required /></div>
+          <div className="form-group"><label className="form-label">End Time *</label><input className="form-control" type="datetime-local" value={formData.endTime} onChange={(e) => setFormData({ ...formData, endTime: e.target.value })} required /></div>
+        </div>
+        <div className="form-row">
+          <div className="form-group"><label className="form-label">Type</label><select className="form-control" value={formData.type} onChange={(e) => setFormData({ ...formData, type: e.target.value })}>{ENUMS.APPOINTMENT_TYPES.map((t) => <option key={t}>{t}</option>)}</select></div>
+          {(user?.role === 'admin' || user?.role === 'owner') && agents.length > 0 && (
+            <div className="form-group"><label className="form-label">Assign To</label><select className="form-control" value={formData.assignedTo} onChange={(e) => setFormData({ ...formData, assignedTo: e.target.value })}><option value="">Self</option>{agents.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></div>
+          )}
+        </div>
+        <div className="form-group"><label className="form-label">Location</label><input className="form-control" value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} /></div>
+        <div className="form-group"><label className="form-label">Meeting Link</label><input className="form-control" value={formData.meetingLink} onChange={(e) => setFormData({ ...formData, meetingLink: e.target.value })} placeholder="https://meet.google.com/..." /></div>
+        <div className="form-group"><label className="form-label">Description</label><textarea className="form-control" rows={2} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} /></div>
+        <div className="modal-actions">
+          <button type="button" className="btn btn-ghost" onClick={onCancel}>Cancel</button>
+          <button type="submit" className="btn btn-primary" disabled={isSaving}>{isSaving ? 'Saving...' : submitLabel}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+);
+
 const Appointments = () => {
   const { user } = useAuth();
   const [view, setView] = useState('list');
@@ -124,35 +153,6 @@ const Appointments = () => {
 
   const canEdit = (a) => user?.role === 'owner' || user?.role === 'admin' || String(a.createdBy) === String(user?.id);
 
-  const AppointmentForm = ({ formData, setFormData, onSubmit, onCancel, isSaving, title, submitLabel }) => (
-    <div className="modal-overlay" onClick={onCancel}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h3>{title}</h3>
-        <button className="modal-close" onClick={onCancel}>×</button>
-        <form onSubmit={onSubmit}>
-          <div className="form-group"><label className="form-label">Title *</label><input className="form-control" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} required /></div>
-          <div className="form-row">
-            <div className="form-group"><label className="form-label">Start Time *</label><input className="form-control" type="datetime-local" value={formData.startTime} onChange={(e) => setFormData({ ...formData, startTime: e.target.value })} required /></div>
-            <div className="form-group"><label className="form-label">End Time *</label><input className="form-control" type="datetime-local" value={formData.endTime} onChange={(e) => setFormData({ ...formData, endTime: e.target.value })} required /></div>
-          </div>
-          <div className="form-row">
-            <div className="form-group"><label className="form-label">Type</label><select className="form-control" value={formData.type} onChange={(e) => setFormData({ ...formData, type: e.target.value })}>{ENUMS.APPOINTMENT_TYPES.map((t) => <option key={t}>{t}</option>)}</select></div>
-            {(user?.role === 'admin' || user?.role === 'owner') && agents.length > 0 && (
-              <div className="form-group"><label className="form-label">Assign To</label><select className="form-control" value={formData.assignedTo} onChange={(e) => setFormData({ ...formData, assignedTo: e.target.value })}><option value="">Self</option>{agents.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></div>
-            )}
-          </div>
-          <div className="form-group"><label className="form-label">Location</label><input className="form-control" value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} /></div>
-          <div className="form-group"><label className="form-label">Meeting Link</label><input className="form-control" value={formData.meetingLink} onChange={(e) => setFormData({ ...formData, meetingLink: e.target.value })} placeholder="https://meet.google.com/..." /></div>
-          <div className="form-group"><label className="form-label">Description</label><textarea className="form-control" rows={2} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} /></div>
-          <div className="modal-actions">
-            <button type="button" className="btn btn-ghost" onClick={onCancel}>Cancel</button>
-            <button type="submit" className="btn btn-primary" disabled={isSaving}>{isSaving ? 'Saving...' : submitLabel}</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-
   return (
     <Layout title="Appointments">
       <div className="page-header">
@@ -248,6 +248,8 @@ const Appointments = () => {
           isSaving={saving}
           title="New Appointment"
           submitLabel="Create"
+          agents={agents}
+          user={user}
         />
       )}
 
@@ -260,6 +262,8 @@ const Appointments = () => {
           isSaving={editSaving}
           title="Edit Appointment"
           submitLabel="Save Changes"
+          agents={agents}
+          user={user}
         />
       )}
 
