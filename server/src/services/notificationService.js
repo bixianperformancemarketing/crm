@@ -130,8 +130,13 @@ const notifyWorkspaceLimitReached = async ({ ownerId, organizationId, limitType 
 const notifyExpenseSubmitted = async ({ expense, submitter }) => {
   try {
     const { User } = require('../config/models');
+    // Only notify roles strictly above the submitter
+    let notifyRoles;
+    if (submitter.role === 'employee') notifyRoles = ['admin', 'owner'];
+    else if (submitter.role === 'admin') notifyRoles = ['owner'];
+    else return; // owner or above — nobody higher to notify
     const approvers = await User.findAll({
-      where: { organizationId: expense.organizationId, role: { [require('sequelize').Op.in]: ['admin', 'owner'] } },
+      where: { organizationId: expense.organizationId, role: { [require('sequelize').Op.in]: notifyRoles } },
       attributes: ['id'],
     });
     const promises = approvers
