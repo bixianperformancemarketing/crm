@@ -4,7 +4,7 @@ import Layout from '../components/layout/Layout';
 import { expensesAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
-const PAYMENT_MODES = ['UPI', 'Bank Transfer', 'Cash', 'Cheque', 'Online'];
+const PAYMENT_MODES = ['UPI', 'Bank Transfer', 'Cash', 'Cheque', 'Online', 'Card'];
 
 const getSavedCategories = () => {
   try { return JSON.parse(localStorage.getItem('expenseCategories') || '[]'); } catch { return []; }

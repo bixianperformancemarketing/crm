@@ -10,7 +10,7 @@ export const ENUMS = {
   CONTENT_PLATFORMS: ['Instagram', 'Facebook', 'LinkedIn', 'YouTube', 'Twitter/X', 'Website', 'Google', 'WhatsApp', 'Other'],
   CONTENT_TYPES: ['Post', 'Story', 'Reel', 'Video', 'Blog', 'Ad Creative', 'Banner', 'Logo', 'Brochure', 'Other'],
   CONTENT_STATUSES: ['Pending', 'In Progress', 'Review', 'Approved', 'Published', 'Rejected'],
-  PAYMENT_MODES: ['UPI', 'Bank Transfer', 'Cash', 'Cheque', 'Online'],
+  PAYMENT_MODES: ['UPI', 'Bank Transfer', 'Cash', 'Cheque', 'Online', 'Card'],
   ROLES: ['employee', 'admin'],
   PLANS: ['trial', 'starter', 'growth', 'agency', 'custom'],
 };

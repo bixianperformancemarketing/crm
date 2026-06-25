@@ -2,7 +2,7 @@ const { Op } = require('sequelize');
 const { Expense, User, Workspace } = require('../../config/models');
 const notificationService = require('../../services/notificationService');
 
-const PAYMENT_MODES = ['UPI', 'Bank Transfer', 'Cash', 'Cheque', 'Online'];
+const PAYMENT_MODES = ['UPI', 'Bank Transfer', 'Cash', 'Cheque', 'Online', 'Card'];
 
 const getExpenses = async (req, res) => {
   try {

@@ -397,7 +397,7 @@ const Expense = sequelize.define('Expense', {
   billReference: { type: DataTypes.STRING(100), allowNull: true },
   receiptUrl: { type: DataTypes.STRING(500), allowNull: true },
   paymentMode: {
-    type: DataTypes.ENUM('UPI', 'Bank Transfer', 'Cash', 'Cheque', 'Online'),
+    type: DataTypes.ENUM('UPI', 'Bank Transfer', 'Cash', 'Cheque', 'Online', 'Card'),
     defaultValue: 'Cash',
   },
   notes: { type: DataTypes.TEXT, allowNull: true },
@@ -870,7 +870,7 @@ const syncDatabase = async () => {
     // Fix expenses paymentMode ENUM and category to VARCHAR
     try {
       await sequelize.query(`ALTER TABLE expenses MODIFY category VARCHAR(100) NULL DEFAULT NULL`);
-      await sequelize.query(`ALTER TABLE expenses MODIFY paymentMode ENUM('UPI','Bank Transfer','Cash','Cheque','Online') NOT NULL DEFAULT 'Cash'`);
+      await sequelize.query(`ALTER TABLE expenses MODIFY paymentMode ENUM('UPI','Bank Transfer','Cash','Cheque','Online','Card') NOT NULL DEFAULT 'Cash'`);
     } catch (e) { /* ignore */ }
 
     // Extend notifications ENUM to include expense types
