@@ -883,6 +883,11 @@ const syncDatabase = async () => {
       await Expense.sync({ alter: false });
     } catch (e) { /* ignore */ }
 
+    // Enforce global email uniqueness on users table
+    try {
+      await sequelize.query(`ALTER TABLE users ADD UNIQUE KEY users_email_unique (email)`);
+    } catch (e) { /* ignore — constraint already exists or duplicate data present */ }
+
     console.log('Database synchronized successfully');
   } catch (err) {
     console.error('Database sync error:', err);

@@ -60,9 +60,14 @@ const createUser = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Cannot create user with this role' });
     }
 
-    const existing = await User.findOne({ where: { email: email.toLowerCase(), organizationId: user.organizationId } });
-    if (existing && existing.isActive && existing.workspaceId) {
-      return res.status(400).json({ success: false, message: 'Email already exists in this organization' });
+    const existing = await User.findOne({ where: { email: email.toLowerCase() } });
+    if (existing) {
+      if (String(existing.organizationId) !== String(user.organizationId)) {
+        return res.status(400).json({ success: false, message: 'This email is already in use' });
+      }
+      if (existing.isActive && existing.workspaceId) {
+        return res.status(400).json({ success: false, message: 'Email already exists in this organization' });
+      }
     }
 
     const hash = await bcrypt.hash(password, 12);
