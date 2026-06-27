@@ -895,6 +895,7 @@ const Settings = () => {
 
   const [wsForm, setWsForm] = useState({ name: '', description: '' });
   const [currencyCode, setCurrencyCode] = useState('INR');
+  const [pdfThemeColor, setPdfThemeColor] = useState('#E7C51C');
   const [orgSettings, setOrgSettings] = useState({ companyName: '', companyAddress: '', companyPhone: '', companyPhone2: '', companyEmail: '', companyGST: '', companyWebsite: '', logoUrl: '', signatureUrl: '', signatoryName: '', signatoryDesignation: '' });
   const [bankDetails, setBankDetails] = useState({ bankName: '', accountHolder: '', accountNumber: '', ifscCode: '', qrCode: '' });
   const [smtpForm, setSmtpForm] = useState({ host: '', port: 587, user: '', pass: '', from: '', secure: false });
@@ -935,6 +936,7 @@ const Settings = () => {
         setAutoArchive({ enabled: s.autoArchive.enabled || false, time: s.autoArchive.time || '18:00' });
       }
       if (s.currency?.code) setCurrencyCode(s.currency.code);
+      if (s.pdfThemeColor) setPdfThemeColor(s.pdfThemeColor);
     }
   }, [org]);
 
@@ -978,6 +980,7 @@ const Settings = () => {
             qrCode: bankDetails.qrCode,
           },
           currency: { code: selectedCurrency.code, symbol: selectedCurrency.symbol, locale: selectedCurrency.locale, name: selectedCurrency.name },
+          pdfThemeColor,
         },
       });
       toast.success('Organization settings saved');
@@ -1141,6 +1144,31 @@ const Settings = () => {
               <select className="form-control" value={currencyCode} onChange={e => setCurrencyCode(e.target.value)}>
                 {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
               </select>
+            </div>
+
+            {/* ── PDF Theme Color ── */}
+            <div style={{ margin: '28px 0 16px', padding: '10px 14px', background: 'var(--surface-2)', borderRadius: 8, borderLeft: '3px solid #0ea5e9', fontWeight: 700, fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span>PDF Theme Color</span>
+              <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-muted)' }}>applied to invoice & quotation header, footer and table</span>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Preset Colors</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
+                {['#E7C51C','#0ea5e9','#7c3aed','#22c55e','#e94560','#f97316','#ec4899','#1a1a2e','#334155','#059669'].map(c => (
+                  <button key={c} type="button" title={c}
+                    onClick={() => setPdfThemeColor(c)}
+                    style={{ width: 32, height: 32, borderRadius: 6, background: c, border: pdfThemeColor === c ? '3px solid var(--text)' : '2px solid transparent', cursor: 'pointer', outline: 'none', boxShadow: pdfThemeColor === c ? '0 0 0 2px var(--surface-1)' : 'none' }}
+                  />
+                ))}
+              </div>
+              <label className="form-label" style={{ marginTop: 4 }}>Custom Color</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <input type="color" value={pdfThemeColor} onChange={e => setPdfThemeColor(e.target.value)}
+                  style={{ width: 44, height: 36, padding: 2, border: '1px solid var(--border)', borderRadius: 6, background: 'var(--surface-1)', cursor: 'pointer' }} />
+                <input type="text" className="form-control" value={pdfThemeColor} onChange={e => setPdfThemeColor(e.target.value)}
+                  style={{ width: 110, fontFamily: 'monospace', fontSize: 13 }} maxLength={7} placeholder="#E7C51C" />
+                <div style={{ width: 80, height: 36, borderRadius: 6, background: pdfThemeColor, border: '1px solid var(--border)' }} />
+              </div>
             </div>
 
             <div style={{ marginTop: 28 }}>

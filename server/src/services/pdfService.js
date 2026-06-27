@@ -13,12 +13,34 @@ const fetchImageBuffer = async (url) => {
 };
 
 const IST = 'Asia/Kolkata';
-const PRIMARY = '#E7C51C';
-const PRIMARY_DARK = '#1a1a2e';
-const ACCENT_BG = '#fffef0';
 const LIGHT_GRAY = '#f5f5f5';
 const GRAY = '#888888';
 const BLACK = '#000000';
+
+// Derive theme palette from a hex color stored in orgSettings.pdfThemeColor
+const hexToRgb = (hex) => {
+  const h = hex.replace('#', '');
+  return { r: parseInt(h.slice(0, 2), 16), g: parseInt(h.slice(2, 4), 16), b: parseInt(h.slice(4, 6), 16) };
+};
+const luminance = ({ r, g, b }) => {
+  const s = [r, g, b].map((v) => { const c = v / 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); });
+  return 0.2126 * s[0] + 0.7152 * s[1] + 0.0722 * s[2];
+};
+const blendWithWhite = ({ r, g, b }, alpha) => {
+  const blend = (c) => Math.round(c * alpha + 255 * (1 - alpha));
+  return `#${[blend(r), blend(g), blend(b)].map((v) => v.toString(16).padStart(2, '0')).join('')}`;
+};
+
+const getTheme = (orgSettings) => {
+  const raw = (typeof orgSettings === 'string' ? JSON.parse(orgSettings || '{}') : (orgSettings || {}));
+  const hex = raw?.pdfThemeColor || '#E7C51C';
+  const rgb = hexToRgb(hex.startsWith('#') ? hex : '#E7C51C');
+  const lum = luminance(rgb);
+  const onPrimary = lum > 0.35 ? '#1a1a2e' : '#ffffff';   // dark text on light bg, white on dark
+  const onPrimaryMid = lum > 0.35 ? '#4a3a00' : '#dde8ff'; // slightly softer version
+  const accentBg = blendWithWhite(rgb, 0.08);               // very light tint for alt rows
+  return { primary: hex, onPrimary, onPrimaryMid, accentBg };
+};
 
 // Height reserved at the bottom of every page for the footer (last page) or bottom margin
 const FOOTER_HEIGHT = 130;
@@ -28,6 +50,7 @@ const drawLine = (doc, y, color = '#dddddd') => {
 };
 
 const addHeader = (doc, orgSettings, type) => {
+  const { primary, onPrimary, onPrimaryMid } = getTheme(orgSettings);
   const branding = orgSettings?.branding || {};
   const companyName = branding.companyName || process.env.COMPANY_NAME || 'Company';
   const address = branding.address || process.env.COMPANY_ADDRESS || '';
@@ -37,25 +60,26 @@ const addHeader = (doc, orgSettings, type) => {
   const email = branding.email || process.env.COMPANY_EMAIL || '';
   const website = branding.website || process.env.COMPANY_WEBSITE || '';
 
-  doc.rect(0, 0, doc.page.width, 130).fill(PRIMARY);
-  doc.fontSize(22).fillColor(PRIMARY_DARK).font('Helvetica-Bold').text(companyName, 50, 30, { width: 340 });
-  doc.fontSize(9).fillColor('#5a4a00').font('Helvetica');
+  doc.rect(0, 0, doc.page.width, 130).fill(primary);
+  doc.fontSize(22).fillColor(onPrimary).font('Helvetica-Bold').text(companyName, 50, 30, { width: 340 });
+  doc.fontSize(9).fillColor(onPrimaryMid).font('Helvetica');
   if (address) doc.text(address, 50, 58, { width: 340 });
   if (gst) doc.text(`GST: ${gst}`, 50, 70, { width: 340 });
   if (phone || phone2) doc.text([phone, phone2].filter(Boolean).join('  /  '), 50, 82, { width: 340 });
   if (email) doc.text(email, 50, 94, { width: 340 });
   if (website) doc.text(website, 50, 106, { width: 340 });
 
-  doc.fontSize(16).fillColor(PRIMARY_DARK).font('Helvetica-Bold').text(type.toUpperCase(), 395, 40, { align: 'right', width: 150 });
+  doc.fontSize(16).fillColor(onPrimary).font('Helvetica-Bold').text(type.toUpperCase(), 395, 40, { align: 'right', width: 150 });
   doc.moveDown(0.5);
 };
 
 // Lightweight header drawn at the top of continuation pages
 const addContinuationHeader = (doc, orgSettings, type) => {
+  const { primary, onPrimary } = getTheme(orgSettings);
   const branding = orgSettings?.branding || {};
   const companyName = branding.companyName || process.env.COMPANY_NAME || 'Company';
-  doc.rect(0, 0, doc.page.width, 36).fill(PRIMARY);
-  doc.fontSize(9).fillColor(PRIMARY_DARK).font('Helvetica-Bold')
+  doc.rect(0, 0, doc.page.width, 36).fill(primary);
+  doc.fontSize(9).fillColor(onPrimary).font('Helvetica-Bold')
     .text(`${companyName}  ·  ${type} (Continued)`, 50, 13, { width: 495 });
   return 46;
 };
@@ -96,6 +120,7 @@ const parseTerms = (raw) => {
 };
 
 const addItemsTable = (doc, items, startY, orgSettings, type) => {
+  const { primary, onPrimary, accentBg } = getTheme(orgSettings);
   const safeBottom = doc.page.height - FOOTER_HEIGHT;
   const cols = [
     { x: 50, w: 235, label: 'SERVICE', align: 'left' },
@@ -104,8 +129,8 @@ const addItemsTable = (doc, items, startY, orgSettings, type) => {
   ];
 
   const drawTableHeader = (y) => {
-    doc.rect(50, y, 495, 22).fill(PRIMARY);
-    doc.fontSize(9).fillColor(PRIMARY_DARK).font('Helvetica-Bold');
+    doc.rect(50, y, 495, 22).fill(primary);
+    doc.fontSize(9).fillColor(onPrimary).font('Helvetica-Bold');
     cols.forEach((col) => {
       doc.text(col.label, col.x + 5, y + 7, { width: col.w - 10, align: col.align });
     });
@@ -147,7 +172,7 @@ const addItemsTable = (doc, items, startY, orgSettings, type) => {
       currentY = drawTableHeader(newY);
     }
 
-    if (idx % 2 === 0) doc.rect(50, currentY, 495, rowH).fill(ACCENT_BG);
+    if (idx % 2 === 0) doc.rect(50, currentY, 495, rowH).fill(accentBg);
 
     doc.fontSize(9).fillColor(BLACK).font('Helvetica-Bold');
     doc.text(item.description || '', cols[0].x + 5, currentY + 8, { width: cols[0].w - 10 });
@@ -175,6 +200,7 @@ const addItemsTable = (doc, items, startY, orgSettings, type) => {
 };
 
 const addTotals = (doc, data, startY, orgSettings, type) => {
+  const { primary: totalColor } = getTheme(orgSettings);
   const safeBottom = doc.page.height - FOOTER_HEIGHT;
 
   const paidAmt = parseFloat(data.paidAmount || 0);
@@ -205,7 +231,7 @@ const addTotals = (doc, data, startY, orgSettings, type) => {
 
   drawLine(doc, y);
   y += 8;
-  addTotalRow('TOTAL:', data.totalAmount, true, PRIMARY_DARK);
+  addTotalRow('TOTAL:', data.totalAmount, true, totalColor);
 
   if (paidAmt > 0) {
     y += 4;
@@ -317,11 +343,11 @@ const addFooter = (doc, data, orgSettings, logoBuffer, signatureBuffer, type, cu
 
   const footerY = doc.page.height - FOOTER_HEIGHT;
 
-  // Yellow background — mirrors the header
-  doc.rect(0, footerY, doc.page.width, doc.page.height - footerY).fill(PRIMARY);
+  const { primary, onPrimary, onPrimaryMid } = getTheme(orgSettings);
+  doc.rect(0, footerY, doc.page.width, doc.page.height - footerY).fill(primary);
 
-  const TEXT_DARK = PRIMARY_DARK;  // #1a1a2e on yellow
-  const TEXT_MID  = '#5a4a00';     // dark amber on yellow
+  const TEXT_DARK = onPrimary;
+  const TEXT_MID  = onPrimaryMid;
 
   // Thin separator line at top of footer
   doc.strokeColor(TEXT_DARK).lineWidth(0.5).opacity(0.3)
