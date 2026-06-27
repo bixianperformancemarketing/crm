@@ -1,6 +1,7 @@
 const PDFDocument = require('pdfkit');
 const moment = require('moment-timezone');
 const axios = require('axios');
+const { fmtMoney } = require('../utils/helpers');
 
 const fetchImageBuffer = async (url) => {
   if (!url || !url.trim()) return null;
@@ -164,7 +165,7 @@ const addItemsTable = (doc, items, startY, orgSettings, type) => {
     }
 
     doc.fontSize(10).fillColor(BLACK).font('Helvetica-Bold');
-    doc.text(`Rs. ${parseFloat(item.totalPrice || 0).toLocaleString('en-IN')}`, cols[2].x + 5, currentY + 8, { width: cols[2].w - 10, align: 'right' });
+    doc.text(fmtMoney(item.totalPrice, orgSettings), cols[2].x + 5, currentY + 8, { width: cols[2].w - 10, align: 'right' });
 
     currentY += rowH;
     drawLine(doc, currentY, '#eeeeee');
@@ -195,7 +196,7 @@ const addTotals = (doc, data, startY, orgSettings, type) => {
 
   const addTotalRow = (label, value, bold = false, color = BLACK) => {
     doc.fontSize(10).fillColor(GRAY).font(bold ? 'Helvetica-Bold' : 'Helvetica').text(label, labelX, y, { width: 90, align: 'right' });
-    doc.fillColor(color).font(bold ? 'Helvetica-Bold' : 'Helvetica').text(`Rs. ${parseFloat(value || 0).toLocaleString('en-IN')}`, valueX, y, { width: 95, align: 'right' });
+    doc.fillColor(color).font(bold ? 'Helvetica-Bold' : 'Helvetica').text(fmtMoney(value, orgSettings), valueX, y, { width: 95, align: 'right' });
     y += 18;
   };
 

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authAPI } from '../services/api';
+import { setCurrencyConfig } from '../utils/helpers';
 
 const AuthContext = createContext(null);
 
@@ -20,15 +21,23 @@ export const AuthProvider = ({ children }) => {
     window.location.href = '/login';
   }, []);
 
+  const applyOrgCurrency = useCallback((orgData) => {
+    const s = orgData?.settings;
+    const currency = (typeof s === 'string' ? JSON.parse(s) : s)?.currency;
+    if (currency?.code) setCurrencyConfig(currency);
+  }, []);
+
   const setAuthData = useCallback((token, userData) => {
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(userData));
     if (userData.workspaceId) localStorage.setItem('workspaceId', userData.workspaceId);
     else localStorage.removeItem('workspaceId');
     setUser(userData);
-    setOrg(userData.organization || null);
+    const orgData = userData.organization || null;
+    setOrg(orgData);
     setWorkspace(userData.workspace || null);
-  }, []);
+    applyOrgCurrency(orgData);
+  }, [applyOrgCurrency]);
 
   const login = useCallback(async (email, password) => {
     const { data } = await authAPI.login({ email, password });
@@ -40,12 +49,14 @@ export const AuthProvider = ({ children }) => {
     try {
       const { data } = await authAPI.getMe();
       setUser(data.user);
-      setOrg(data.user.organization || null);
+      const orgData = data.user.organization || null;
+      setOrg(orgData);
       setWorkspace(data.user.workspace || null);
+      applyOrgCurrency(orgData);
     } catch {
       logout();
     }
-  }, [logout]);
+  }, [logout, applyOrgCurrency]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -53,9 +64,11 @@ export const AuthProvider = ({ children }) => {
     authAPI.getMe()
       .then(({ data }) => {
         setUser(data.user);
-        setOrg(data.user.organization || null);
+        const orgData = data.user.organization || null;
+        setOrg(orgData);
         setWorkspace(data.user.workspace || null);
         if (!data.user.workspaceId) localStorage.removeItem('workspaceId');
+        applyOrgCurrency(orgData);
       })
       .catch(() => { localStorage.removeItem('token'); })
       .finally(() => setLoading(false));

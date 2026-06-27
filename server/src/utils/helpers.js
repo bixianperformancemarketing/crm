@@ -12,8 +12,26 @@ const nowIST = () => moment().tz(IST);
 const startOfTodayIST = () => nowIST().startOf('day').toDate();
 const endOfTodayIST = () => nowIST().endOf('day').toDate();
 
-const formatCurrency = (amount) =>
-  new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount || 0);
+const formatCurrency = (amount, currency) => {
+  const code   = currency?.code   || 'INR';
+  const locale = currency?.locale || 'en-IN';
+  try {
+    return new Intl.NumberFormat(locale, { style: 'currency', currency: code, minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount || 0);
+  } catch {
+    return `${currency?.symbol || '₹'}${parseFloat(amount || 0).toLocaleString()}`;
+  }
+};
+
+const getCurrencySymbol = (orgSettings) => {
+  const currency = (typeof orgSettings === 'string' ? JSON.parse(orgSettings || '{}') : orgSettings)?.currency;
+  return currency?.symbol || '₹';
+};
+
+const fmtMoney = (amount, orgSettings) => {
+  const s = typeof orgSettings === 'string' ? JSON.parse(orgSettings || '{}') : (orgSettings || {});
+  const currency = s.currency;
+  return formatCurrency(amount, currency);
+};
 
 const paginate = (page, limit = 20) => {
   const p = Math.max(1, parseInt(page) || 1);
@@ -187,7 +205,7 @@ const mapCSVFieldToLead = (headers, row) => {
 
 module.exports = {
   toIST, formatIST, nowIST, startOfTodayIST, endOfTodayIST, IST,
-  formatCurrency, paginate, paginateResponse,
+  formatCurrency, getCurrencySymbol, fmtMoney, paginate, paginateResponse,
   generateSlug, generateWebhookToken, getNextNumber,
   calculateLeadScore, isHotLead,
   sanitizeInput, sanitizeObject,

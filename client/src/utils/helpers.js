@@ -1,5 +1,46 @@
 export const PLAN_LABELS = { trial: 'Trial', starter: 'Starter', growth: 'Growth', agency: 'Enterprise', custom: 'Custom' };
 
+export const CURRENCIES = [
+  { code: 'INR', symbol: '₹',    locale: 'en-IN', name: 'Indian Rupee (₹)' },
+  { code: 'USD', symbol: '$',    locale: 'en-US', name: 'US Dollar ($)' },
+  { code: 'EUR', symbol: '€',    locale: 'en-EU', name: 'Euro (€)' },
+  { code: 'GBP', symbol: '£',    locale: 'en-GB', name: 'British Pound (£)' },
+  { code: 'AED', symbol: 'AED',  locale: 'en-AE', name: 'UAE Dirham (AED)' },
+  { code: 'SAR', symbol: 'SAR',  locale: 'en-SA', name: 'Saudi Riyal (SAR)' },
+  { code: 'QAR', symbol: 'QAR',  locale: 'en-QA', name: 'Qatari Riyal (QAR)' },
+  { code: 'KWD', symbol: 'KWD',  locale: 'en-KW', name: 'Kuwaiti Dinar (KWD)' },
+  { code: 'BHD', symbol: 'BHD',  locale: 'en-BH', name: 'Bahraini Dinar (BHD)' },
+  { code: 'OMR', symbol: 'OMR',  locale: 'en-OM', name: 'Omani Rial (OMR)' },
+  { code: 'SGD', symbol: 'S$',   locale: 'en-SG', name: 'Singapore Dollar (S$)' },
+  { code: 'AUD', symbol: 'A$',   locale: 'en-AU', name: 'Australian Dollar (A$)' },
+  { code: 'CAD', symbol: 'C$',   locale: 'en-CA', name: 'Canadian Dollar (C$)' },
+  { code: 'MYR', symbol: 'RM',   locale: 'ms-MY', name: 'Malaysian Ringgit (RM)' },
+  { code: 'JPY', symbol: '¥',    locale: 'ja-JP', name: 'Japanese Yen (¥)' },
+  { code: 'CNY', symbol: '¥',    locale: 'zh-CN', name: 'Chinese Yuan (¥)' },
+  { code: 'CHF', symbol: 'CHF',  locale: 'de-CH', name: 'Swiss Franc (CHF)' },
+  { code: 'NZD', symbol: 'NZ$',  locale: 'en-NZ', name: 'New Zealand Dollar (NZ$)' },
+  { code: 'ZAR', symbol: 'R',    locale: 'en-ZA', name: 'South African Rand (R)' },
+  { code: 'PKR', symbol: '₨',    locale: 'ur-PK', name: 'Pakistani Rupee (₨)' },
+  { code: 'BDT', symbol: '৳',    locale: 'bn-BD', name: 'Bangladeshi Taka (৳)' },
+  { code: 'LKR', symbol: 'Rs',   locale: 'si-LK', name: 'Sri Lankan Rupee (Rs)' },
+  { code: 'NPR', symbol: 'Rs',   locale: 'ne-NP', name: 'Nepalese Rupee (Rs)' },
+  { code: 'THB', symbol: '฿',    locale: 'th-TH', name: 'Thai Baht (฿)' },
+  { code: 'IDR', symbol: 'Rp',   locale: 'id-ID', name: 'Indonesian Rupiah (Rp)' },
+  { code: 'PHP', symbol: '₱',    locale: 'fil-PH', name: 'Philippine Peso (₱)' },
+  { code: 'NGN', symbol: '₦',    locale: 'en-NG', name: 'Nigerian Naira (₦)' },
+  { code: 'KES', symbol: 'KSh',  locale: 'en-KE', name: 'Kenyan Shilling (KSh)' },
+  { code: 'MXN', symbol: '$',    locale: 'es-MX', name: 'Mexican Peso ($)' },
+  { code: 'BRL', symbol: 'R$',   locale: 'pt-BR', name: 'Brazilian Real (R$)' },
+];
+
+let _currency = { code: 'INR', symbol: '₹', locale: 'en-IN' };
+
+export const setCurrencyConfig = (cfg) => {
+  if (cfg?.code) _currency = cfg;
+};
+
+export const getCurrencySymbol = () => _currency.symbol;
+
 export const ENUMS = {
   LEAD_SOURCES: ['Meta Ads', 'Google Ads', 'Website', 'WhatsApp', 'Reference', 'Telecalling', 'Social Media', 'CSV Import', 'Instagram DM', 'Justdial', 'Walk-in', 'Cold visit', 'Other'],
   LEAD_STATUSES: ['New', 'Discussion', 'Meeting', 'Quotation', 'Review', 'Won', 'Lost'],
@@ -16,8 +57,12 @@ export const ENUMS = {
 };
 
 export const formatCurrency = (amount) => {
-  if (amount == null || isNaN(amount)) return '₹0';
-  return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
+  if (amount == null || isNaN(amount)) return `${_currency.symbol}0`;
+  try {
+    return new Intl.NumberFormat(_currency.locale, { style: 'currency', currency: _currency.code, minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
+  } catch {
+    return `${_currency.symbol}${parseFloat(amount).toLocaleString()}`;
+  }
 };
 
 export const formatDate = (date) => {

@@ -5,7 +5,7 @@ import { Line, Bar, Doughnut } from 'react-chartjs-2';
 import Layout from '../components/layout/Layout';
 import { reportsAPI, followupsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { formatCurrency, formatTime, buildMonthlyChartData } from '../utils/helpers';
+import { formatCurrency, formatTime, buildMonthlyChartData, getCurrencySymbol } from '../utils/helpers';
 import './Dashboard.css';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend);
@@ -89,7 +89,7 @@ const Dashboard = () => {
 
   const revenueChart = {
     labels: monthlyData.labels,
-    datasets: [{ label: 'Revenue (₹)', data: monthlyData.values, borderColor: '#e94560', backgroundColor: 'rgba(233,69,96,0.08)', tension: 0.4, fill: true, pointBackgroundColor: '#e94560' }],
+    datasets: [{ label: `Revenue (${getCurrencySymbol()})`, data: monthlyData.values, borderColor: '#e94560', backgroundColor: 'rgba(233,69,96,0.08)', tension: 0.4, fill: true, pointBackgroundColor: '#e94560' }],
   };
 
   const funnelChart = {

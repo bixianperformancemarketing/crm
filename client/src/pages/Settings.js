@@ -5,6 +5,7 @@ import Layout from '../components/layout/Layout';
 import { orgAPI, workspaceAPI, metaIntegrationAPI, authAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import PasswordInput from '../components/ui/PasswordInput';
+import { CURRENCIES } from '../utils/helpers';
 
 const API_BASE = process.env.REACT_APP_API_URL || window.location.origin;
 
@@ -893,6 +894,7 @@ const Settings = () => {
   const [pwSaving, setPwSaving] = useState(false);
 
   const [wsForm, setWsForm] = useState({ name: '', description: '' });
+  const [currencyCode, setCurrencyCode] = useState('INR');
   const [orgSettings, setOrgSettings] = useState({ companyName: '', companyAddress: '', companyPhone: '', companyPhone2: '', companyEmail: '', companyGST: '', companyWebsite: '', logoUrl: '', signatureUrl: '', signatoryName: '', signatoryDesignation: '' });
   const [bankDetails, setBankDetails] = useState({ bankName: '', accountHolder: '', accountNumber: '', ifscCode: '', qrCode: '' });
   const [smtpForm, setSmtpForm] = useState({ host: '', port: 587, user: '', pass: '', from: '', secure: false });
@@ -932,6 +934,7 @@ const Settings = () => {
       if (s.autoArchive) {
         setAutoArchive({ enabled: s.autoArchive.enabled || false, time: s.autoArchive.time || '18:00' });
       }
+      if (s.currency?.code) setCurrencyCode(s.currency.code);
     }
   }, [org]);
 
@@ -950,6 +953,7 @@ const Settings = () => {
     setSaving(true);
     try {
       const current = typeof org?.settings === 'string' ? JSON.parse(org.settings || '{}') : (org?.settings || {});
+      const selectedCurrency = CURRENCIES.find(c => c.code === currencyCode) || CURRENCIES[0];
       await orgAPI.updateSettings({
         settings: {
           ...current,
@@ -973,6 +977,7 @@ const Settings = () => {
             ifscCode: bankDetails.ifscCode,
             qrCode: bankDetails.qrCode,
           },
+          currency: { code: selectedCurrency.code, symbol: selectedCurrency.symbol, locale: selectedCurrency.locale, name: selectedCurrency.name },
         },
       });
       toast.success('Organization settings saved');
@@ -1125,6 +1130,18 @@ const Settings = () => {
               <div className="form-group"><label className="form-label">Designation</label><input className="form-control" value={orgSettings.signatoryDesignation} onChange={e => setOrgSettings({ ...orgSettings, signatoryDesignation: e.target.value })} placeholder="e.g. Founder & CEO" /></div>
             </div>
             <ImageUpload label="Signature Image" value={orgSettings.signatureUrl} onChange={v => setOrgSettings({ ...orgSettings, signatureUrl: v })} hint="Use a transparent PNG — sign on white paper, scan it, then remove the background." />
+
+            {/* ── Currency ── */}
+            <div style={{ margin: '28px 0 16px', padding: '10px 14px', background: 'var(--surface-2)', borderRadius: 8, borderLeft: '3px solid #0ea5e9', fontWeight: 700, fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span>Currency</span>
+              <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-muted)' }}>used across invoices, quotations & reports</span>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Currency</label>
+              <select className="form-control" value={currencyCode} onChange={e => setCurrencyCode(e.target.value)}>
+                {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
+              </select>
+            </div>
 
             <div style={{ marginTop: 28 }}>
               <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Saving...' : 'Save Organization Info'}</button>

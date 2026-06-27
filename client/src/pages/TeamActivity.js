@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import Layout from '../components/layout/Layout';
 import Pagination from '../components/common/Pagination';
 import { teamActivityAPI } from '../services/api';
-import { timeAgo } from '../utils/helpers';
+import { timeAgo, formatCurrency } from '../utils/helpers';
 import { useAuth } from '../context/AuthContext';
 import DateFilter from '../components/common/DateFilter';
 
@@ -47,7 +47,6 @@ const TASK_STAT_CARDS = [
   { key: 'overdueTasks',    label: 'Overdue Tasks',    icon: '⏰', color: '#ef4444', currency: false },
 ];
 
-const formatCurrency = (v) => `₹${Number(v).toLocaleString('en-IN')}`;
 
 const TeamActivity = () => {
   const { user } = useAuth();

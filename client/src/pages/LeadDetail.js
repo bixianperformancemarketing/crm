@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import Layout from '../components/layout/Layout';
 import { leadsAPI, followupsAPI, appointmentsAPI, quotationsAPI, communicationAPI, usersAPI, orgAPI } from '../services/api';
-import { formatDateTime, getStatusColor, getPriorityColor, ENUMS, timeAgo } from '../utils/helpers';
+import { formatDateTime, getStatusColor, getPriorityColor, ENUMS, timeAgo, formatCurrency } from '../utils/helpers';
 import { useAuth } from '../context/AuthContext';
 import './LeadDetail.css';
 import './Quotations.css';
@@ -356,7 +356,7 @@ const LeadDetail = () => {
                 <div key={q.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #1a1a2e', fontSize: 13 }}>
                   <span>{q.quotationNumber}</span>
                   <span style={{ color: getStatusColor(q.status) }}>{q.status}</span>
-                  <span>₹{parseFloat(q.totalAmount).toLocaleString('en-IN')}</span>
+                  <span>{formatCurrency(q.totalAmount)}</span>
                 </div>
               ))}
             </div>
@@ -369,7 +369,7 @@ const LeadDetail = () => {
                 <div key={inv.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #1a1a2e', fontSize: 13 }}>
                   <span>{inv.invoiceNumber}</span>
                   <span style={{ color: getStatusColor(inv.status) }}>{inv.status}</span>
-                  <span>₹{parseFloat(inv.totalAmount).toLocaleString('en-IN')}</span>
+                  <span>{formatCurrency(inv.totalAmount)}</span>
                 </div>
               ))}
             </div>
@@ -511,9 +511,9 @@ const LeadDetail = () => {
                 const sub = quotationForm.items.reduce((s, i) => s + parseFloat(i.totalPrice || 0), 0);
                 const gst = (sub * parseFloat(quotationForm.gstPercent || 0)) / 100;
                 return (<>
-                  <div className="total-row"><span>Subtotal</span><span>{sub.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span></div>
-                  <div className="total-row"><span>GST <input type="number" className="gst-input" value={quotationForm.gstPercent} onChange={(e) => setQuotationForm({ ...quotationForm, gstPercent: e.target.value })} />%</span><span>{gst.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span></div>
-                  <div className="total-row grand"><span>Total</span><span>{(sub + gst).toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span></div>
+                  <div className="total-row"><span>Subtotal</span><span>{formatCurrency(sub)}</span></div>
+                  <div className="total-row"><span>GST <input type="number" className="gst-input" value={quotationForm.gstPercent} onChange={(e) => setQuotationForm({ ...quotationForm, gstPercent: e.target.value })} />%</span><span>{formatCurrency(gst)}</span></div>
+                  <div className="total-row grand"><span>Total</span><span>{formatCurrency(sub + gst)}</span></div>
                 </>);
               })()}
             </div>

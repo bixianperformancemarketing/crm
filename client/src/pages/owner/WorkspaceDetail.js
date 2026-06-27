@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import Layout from '../../components/layout/Layout';
 import { orgAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { formatCurrency } from '../../utils/helpers';
 
 const WorkspaceDetail = () => {
   const { id } = useParams();
@@ -149,7 +150,7 @@ const WorkspaceDetail = () => {
         {[
           { label: 'Users', value: workspace.userCount || 0, icon: '👥', color: '#7c3aed' },
           { label: 'Leads', value: workspace.leadCount || 0, icon: '🎯', color: '#0ea5e9' },
-          { label: 'Revenue', value: `₹${(workspace.totalRevenue || 0).toLocaleString('en-IN')}`, icon: '💰', color: '#22c55e' },
+          { label: 'Revenue', value: formatCurrency(workspace.totalRevenue || 0), icon: '💰', color: '#22c55e' },
         ].map(stat => (
           <div key={stat.label} style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 10, padding: '14px 18px' }}>
             <div style={{ fontSize: 22, marginBottom: 4 }}>{stat.icon}</div>

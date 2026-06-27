@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import Layout from '../components/layout/Layout';
 import { expensesAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { formatCurrency, getCurrencySymbol } from '../utils/helpers';
 
 const PAYMENT_MODES = ['UPI', 'Bank Transfer', 'Cash', 'Cheque', 'Online', 'Card'];
 
@@ -24,7 +25,7 @@ const STATUS_COLORS = {
 };
 
 
-const fmt = (n) => `₹${parseFloat(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+const fmt = (n) => formatCurrency(parseFloat(n || 0));
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 
 const emptyForm = { title: '', category: '', amount: '', expenseDate: new Date().toISOString().slice(0, 10), billReference: '', paymentMode: '', notes: '' };
@@ -272,7 +273,7 @@ const Expenses = () => {
               </div>
               <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label">Amount (₹) *</label>
+                  <label className="form-label">Amount ({getCurrencySymbol()}) *</label>
                   <input className="form-control" type="number" min="0" step="0.01" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} placeholder="0.00" required />
                 </div>
                 <div className="form-group">

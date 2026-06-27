@@ -1,5 +1,6 @@
 const nodemailer = require('nodemailer');
 const moment = require('moment-timezone');
+const { fmtMoney } = require('../utils/helpers');
 
 const IST = 'Asia/Kolkata';
 
@@ -83,7 +84,7 @@ const parseTerms = (raw) => {
   } catch { return raw.trim() ? [raw] : []; }
 };
 
-const formatItemsTable = (items) => `
+const formatItemsTable = (items, orgSettings) => `
   <table class="items">
     <thead>
       <tr>
@@ -105,7 +106,7 @@ const formatItemsTable = (items) => `
               ${i.subDescription ? `<br><span style="font-size:12px;color:#666">${i.subDescription}</span>` : ''}
             </td>
             <td style="font-size:12px;color:#555">${deliverables || '—'}</td>
-            <td style="text-align:right">₹${parseFloat(i.totalPrice || 0).toLocaleString('en-IN')}</td>
+            <td style="text-align:right">${fmtMoney(i.totalPrice, orgSettings)}</td>
           </tr>`;
       }).join('')}
     </tbody>
@@ -163,12 +164,12 @@ const sendQuotationEmail = async (quotation, items, pdfBuffer, orgSettings, smtp
     <h2>Quotation #${quotation.quotationNumber}</h2>
     <p>Dear ${quotation.clientName},</p>
     <p>Please find your quotation attached. Here is a summary:</p>
-    ${formatItemsTable(items)}
+    ${formatItemsTable(items, orgSettings)}
     <table class="items" style="margin-top:0">
       <tbody>
-        <tr class="total-row"><td colspan="2">Subtotal</td><td style="text-align:right">₹${parseFloat(quotation.subtotal).toLocaleString('en-IN')}</td></tr>
-        <tr class="total-row"><td colspan="2">GST (${quotation.gstPercent}%)</td><td style="text-align:right">₹${parseFloat(quotation.gstAmount).toLocaleString('en-IN')}</td></tr>
-        <tr class="total-row"><td colspan="2">Total Amount</td><td style="text-align:right">₹${parseFloat(quotation.totalAmount).toLocaleString('en-IN')}</td></tr>
+        <tr class="total-row"><td colspan="2">Subtotal</td><td style="text-align:right">${fmtMoney(quotation.subtotal, orgSettings)}</td></tr>
+        <tr class="total-row"><td colspan="2">GST (${quotation.gstPercent}%)</td><td style="text-align:right">${fmtMoney(quotation.gstAmount, orgSettings)}</td></tr>
+        <tr class="total-row"><td colspan="2">Total Amount</td><td style="text-align:right">${fmtMoney(quotation.totalAmount, orgSettings)}</td></tr>
       </tbody>
     </table>
     ${quotation.validUntil ? `<p>This quotation is valid until <strong>${moment(quotation.validUntil).tz(IST).format('DD MMM YYYY')}</strong>.</p>` : ''}
@@ -231,9 +232,9 @@ const sendInvoiceDueReminder = async (invoice, orgSettings, smtpConfig) => {
     <p>${urgencyMsg}</p>
     <div class="info-box" style="border-left-color:${urgencyColor}">
       <div class="info-row"><span class="info-label">Invoice No.:</span><span class="info-value">${invoice.invoiceNumber}</span></div>
-      <div class="info-row"><span class="info-label">Invoice Total:</span><span class="info-value">₹${totalAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
-      ${isPartial ? `<div class="info-row"><span class="info-label">Amount Paid:</span><span class="info-value" style="color:#22c55e">₹${paidAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>` : ''}
-      <div class="info-row"><span class="info-label">Amount Due:</span><span class="info-value" style="font-weight:700;color:${urgencyColor}">₹${dueAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
+      <div class="info-row"><span class="info-label">Invoice Total:</span><span class="info-value">${fmtMoney(totalAmt, orgSettings)}</span></div>
+      ${isPartial ? `<div class="info-row"><span class="info-label">Amount Paid:</span><span class="info-value" style="color:#22c55e">${fmtMoney(paidAmt, orgSettings)}</span></div>` : ''}
+      <div class="info-row"><span class="info-label">Amount Due:</span><span class="info-value" style="font-weight:700;color:${urgencyColor}">${fmtMoney(dueAmt, orgSettings)}</span></div>
       ${dueDateStr ? `<div class="info-row"><span class="info-label">Due Date:</span><span class="info-value">${dueDateStr}</span></div>` : ''}
     </div>
     ${isPartial ? `<p>Thank you for the partial payment you have already made. We kindly request you to clear the remaining balance at your earliest convenience.</p>` : `<p>We kindly request you to process the payment at your earliest convenience to ensure uninterrupted services.</p>`}
@@ -352,13 +353,13 @@ const sendInvoiceEmail = async (invoice, items, pdfBuffer, orgSettings, smtpConf
     <h2>Invoice #${invoice.invoiceNumber}</h2>
     <p>Dear ${invoice.clientName},</p>
     <p>Please find your invoice attached. Here is a summary:</p>
-    ${formatItemsTable(items)}
+    ${formatItemsTable(items, orgSettings)}
     <table class="items" style="margin-top:0">
       <tbody>
-        <tr class="total-row"><td colspan="2">Subtotal</td><td style="text-align:right">₹${parseFloat(invoice.subtotal).toLocaleString('en-IN')}</td></tr>
-        <tr class="total-row"><td colspan="2">GST (${invoice.gstPercent}%)</td><td style="text-align:right">₹${parseFloat(invoice.gstAmount).toLocaleString('en-IN')}</td></tr>
-        <tr class="total-row"><td colspan="2">Total Amount</td><td style="text-align:right">₹${parseFloat(invoice.totalAmount).toLocaleString('en-IN')}</td></tr>
-        <tr class="total-row"><td colspan="2">Amount Due</td><td style="text-align:right">₹${parseFloat(invoice.dueAmount).toLocaleString('en-IN')}</td></tr>
+        <tr class="total-row"><td colspan="2">Subtotal</td><td style="text-align:right">${fmtMoney(invoice.subtotal, orgSettings)}</td></tr>
+        <tr class="total-row"><td colspan="2">GST (${invoice.gstPercent}%)</td><td style="text-align:right">${fmtMoney(invoice.gstAmount, orgSettings)}</td></tr>
+        <tr class="total-row"><td colspan="2">Total Amount</td><td style="text-align:right">${fmtMoney(invoice.totalAmount, orgSettings)}</td></tr>
+        <tr class="total-row"><td colspan="2">Amount Due</td><td style="text-align:right">${fmtMoney(invoice.dueAmount, orgSettings)}</td></tr>
       </tbody>
     </table>
     ${invoice.dueDate ? `<p>Payment due by <strong>${moment(invoice.dueDate).tz(IST).format('DD MMM YYYY')}</strong>.</p>` : ''}
@@ -383,7 +384,7 @@ const sendQuotationExpiryReminder = async (quotation, orgSettings, smtpConfig) =
     <p>This is a reminder that your quotation <strong>#${quotation.quotationNumber}</strong> expires today.</p>
     <div class="info-box">
       <div class="info-row"><span class="info-label">Quotation:</span><span class="info-value">${quotation.quotationNumber}</span></div>
-      <div class="info-row"><span class="info-label">Total Amount:</span><span class="info-value">₹${parseFloat(quotation.totalAmount).toLocaleString('en-IN')}</span></div>
+      <div class="info-row"><span class="info-label">Total Amount:</span><span class="info-value">${fmtMoney(quotation.totalAmount, orgSettings)}</span></div>
       <div class="info-row"><span class="info-label">Valid Until:</span><span class="info-value">${moment(quotation.validUntil).tz(IST).format('DD MMM YYYY')}</span></div>
     </div>
     <p>Please get in touch with us if you wish to proceed or need an extension.</p>

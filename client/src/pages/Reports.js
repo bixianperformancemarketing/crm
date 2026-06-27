@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import Layout from '../components/layout/Layout';
 import UpgradeModal from '../components/common/UpgradeModal';
 import { reportsAPI } from '../services/api';
-import { formatCurrency, buildMonthlyChartData } from '../utils/helpers';
+import { formatCurrency, buildMonthlyChartData, getCurrencySymbol } from '../utils/helpers';
 import { useAuth } from '../context/AuthContext';
 import './Reports.css';
 
@@ -70,7 +70,7 @@ const Reports = () => {
   const revenueMonthly = buildMonthlyChartData(data?.revenueByMonth || [], 12);
   const revenueChart = {
     labels: revenueMonthly.labels,
-    datasets: [{ label: 'Revenue (₹)', data: revenueMonthly.values, backgroundColor: 'rgba(233,69,96,0.6)', borderColor: '#e94560', borderWidth: 2 }],
+    datasets: [{ label: `Revenue (${getCurrencySymbol()})`, data: revenueMonthly.values, backgroundColor: 'rgba(233,69,96,0.6)', borderColor: '#e94560', borderWidth: 2 }],
   };
 
   const contentChart = data?.contentStats ? {
