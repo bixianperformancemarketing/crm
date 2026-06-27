@@ -3,20 +3,29 @@ import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import Layout from '../components/layout/Layout';
 import Pagination from '../components/common/Pagination';
-import { appointmentsAPI, usersAPI, leadsAPI } from '../services/api';
+import { appointmentsAPI, usersAPI, leadsAPI, orgAPI } from '../services/api';
 import { formatDateTime, formatDate, formatTime, getStatusColor, ENUMS } from '../utils/helpers';
 import { useAuth } from '../context/AuthContext';
 import DateFilter from '../components/common/DateFilter';
 import './Appointments.css';
 
-const BLANK_FORM = { title: '', description: '', startTime: '', endTime: '', type: 'Meeting', assignedTo: '', leadId: '', location: '', meetingLink: '', notes: '' };
+const BLANK_FORM = { title: '', description: '', startTime: '', endTime: '', type: 'Meeting', assignedTo: '', leadId: '', location: '', meetingLink: '', notes: '', workspaceId: '' };
 
-const AppointmentForm = ({ formData, setFormData, onSubmit, onCancel, isSaving, title, submitLabel, agents, user }) => (
+const AppointmentForm = ({ formData, setFormData, onSubmit, onCancel, isSaving, title, submitLabel, agents, user, workspaces }) => (
   <div className="modal-overlay" onClick={onCancel}>
     <div className="modal" onClick={(e) => e.stopPropagation()}>
       <h3>{title}</h3>
       <button className="modal-close" onClick={onCancel}>×</button>
       <form onSubmit={onSubmit}>
+        {user?.role === 'owner' && workspaces?.length > 0 && (
+          <div className="form-group">
+            <label className="form-label">Workspace *</label>
+            <select className="form-control" value={formData.workspaceId} onChange={(e) => setFormData({ ...formData, workspaceId: e.target.value })} required>
+              <option value="">Select Workspace</option>
+              {workspaces.map((ws) => <option key={ws.id} value={ws.id}>{ws.name}</option>)}
+            </select>
+          </div>
+        )}
         <div className="form-group"><label className="form-label">Title *</label><input className="form-control" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} required /></div>
         <div className="form-row">
           <div className="form-group"><label className="form-label">Start Time *</label><input className="form-control" type="datetime-local" value={formData.startTime} onChange={(e) => setFormData({ ...formData, startTime: e.target.value })} required /></div>
@@ -54,6 +63,7 @@ const Appointments = () => {
   const [year, setYear] = useState(new Date().getFullYear());
   const [showCreate, setShowCreate] = useState(false);
   const [agents, setAgents] = useState([]);
+  const [workspaces, setWorkspaces] = useState([]);
   const [form, setForm] = useState(BLANK_FORM);
   const [saving, setSaving] = useState(false);
 
@@ -86,11 +96,19 @@ const Appointments = () => {
   }, [month, year]);
 
   useEffect(() => { if (view === 'list') loadList(); else loadCalendar(); }, [view, loadList, loadCalendar]);
-  useEffect(() => { if (user?.role === 'admin' || user?.role === 'owner') usersAPI.getAll({ role: 'employee', limit: 100 }).then(({ data }) => setAgents(data.data || [])).catch(() => {}); }, [user]);
+  useEffect(() => {
+    if (user?.role === 'admin' || user?.role === 'owner') {
+      usersAPI.getAll({ role: 'employee', limit: 100 }).then(({ data }) => setAgents(data.data || [])).catch(() => {});
+    }
+    if (user?.role === 'owner') {
+      orgAPI.getWorkspaces().then(({ data }) => setWorkspaces(data.workspaces || [])).catch(() => {});
+    }
+  }, [user]);
 
   const handleCreate = async (e) => {
     e.preventDefault();
     if (!form.startTime || !form.endTime) return toast.error('Start and end time required');
+    if (user?.role === 'owner' && !form.workspaceId) return toast.error('Please select a workspace');
     setSaving(true);
     try {
       await appointmentsAPI.create({ ...form, leadId: form.leadId || undefined, assignedTo: form.assignedTo || user.id });
@@ -250,6 +268,7 @@ const Appointments = () => {
           submitLabel="Create"
           agents={agents}
           user={user}
+          workspaces={workspaces}
         />
       )}
 
