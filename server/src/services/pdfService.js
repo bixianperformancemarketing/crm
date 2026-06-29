@@ -1,7 +1,7 @@
 const PDFDocument = require('pdfkit');
 const moment = require('moment-timezone');
 const axios = require('axios');
-const { fmtMoney } = require('../utils/helpers');
+const { fmtMoneyPDF: fmtMoney } = require('../utils/helpers');
 
 const fetchImageBuffer = async (url) => {
   if (!url || !url.trim()) return null;

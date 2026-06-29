@@ -33,6 +33,13 @@ const fmtMoney = (amount, orgSettings) => {
   return formatCurrency(amount, currency);
 };
 
+// PDF-safe variant: replaces ₹ (U+20B9) with "Rs." because Helvetica/standard PDF fonts
+// only cover WinAnsiEncoding (Latin-1) and cannot render the Rupee symbol.
+const fmtMoneyPDF = (amount, orgSettings) => {
+  const formatted = fmtMoney(amount, orgSettings);
+  return formatted.replace('₹', 'Rs.');
+};
+
 const paginate = (page, limit = 20) => {
   const p = Math.max(1, parseInt(page) || 1);
   const l = Math.min(100, parseInt(limit) || 20);
@@ -205,7 +212,7 @@ const mapCSVFieldToLead = (headers, row) => {
 
 module.exports = {
   toIST, formatIST, nowIST, startOfTodayIST, endOfTodayIST, IST,
-  formatCurrency, getCurrencySymbol, fmtMoney, paginate, paginateResponse,
+  formatCurrency, getCurrencySymbol, fmtMoney, fmtMoneyPDF, paginate, paginateResponse,
   generateSlug, generateWebhookToken, getNextNumber,
   calculateLeadScore, isHotLead,
   sanitizeInput, sanitizeObject,
