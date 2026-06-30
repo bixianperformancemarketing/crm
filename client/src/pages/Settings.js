@@ -904,7 +904,7 @@ const Settings = () => {
   const [autoArchive, setAutoArchive] = useState({ enabled: false, time: '18:00' });
 
   useEffect(() => {
-    workspaceAPI.get().then(({ data }) => {
+    if (!isRole('owner')) workspaceAPI.get().then(({ data }) => {
       setWsForm({ name: data.workspace?.name || data.name || '', description: data.workspace?.description || data.description || '' });
     }).catch(() => {});
 
