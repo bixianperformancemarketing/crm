@@ -88,7 +88,7 @@ const processLead = async (leadData, org, workspace, source) => {
   const newLead = {
     organizationId: org.id, workspaceId: workspace.id,
     name: leadData.name || 'Unknown Lead', phone: leadData.phone, email: leadData.email,
-    source, campaign: leadData.campaign, city: leadData.city || null, priority: 'Medium', status: 'New',
+    source, campaign: leadData.campaign, city: leadData.city || null, priority: 'Warm', status: 'New',
     assignedTo, metadata: leadData.metadata || {},
   };
   newLead.score = calculateLeadScore(newLead);
@@ -302,6 +302,7 @@ const websiteWebhookPost = async (req, res) => {
       name: body.name || body.fullName,
       phone: body.phone || body.mobile,
       email: body.email,
+      city: body.city || null,
       campaign: body.source || body.page || body.campaign,
       metadata: body,
     };
