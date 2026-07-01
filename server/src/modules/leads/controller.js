@@ -352,7 +352,7 @@ const importCSV = async (req, res) => {
           organizationId: user.organizationId, workspaceId,
           name: data.name || 'Unknown', phone: data.phone, email: data.email,
           source: 'CSV Import', campaign: data.campaign, city: data.city, clientAddress: data.clientAddress,
-          priority: 'Medium', status: 'New', assignedTo: autoAgentId, metadata: data.metadata || {},
+          priority: 'Warm', status: 'New', assignedTo: autoAgentId, metadata: data.metadata || {},
         };
         leadData.score = calculateLeadScore(leadData);
         leadData.isHot = isHotLead(leadData);
