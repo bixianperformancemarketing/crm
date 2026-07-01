@@ -49,7 +49,7 @@ const LeadDetail = () => {
   const [showNote, setShowNote] = useState(false);
   const [note, setNote] = useState('');
   const [showCall, setShowCall] = useState(false);
-  const [callForm, setCallForm] = useState({ duration: '', note: '', outcome: '', callType: 'outbound', nextFollowup: '' });
+  const [callForm, setCallForm] = useState({ duration: '', note: '', outcome: '', callType: 'outbound', callStatus: 'Answered', nextFollowup: '' });
   const [showFollowup, setShowFollowup] = useState(false);
   const [followupForm, setFollowupForm] = useState({ scheduledAt: '', note: '' });
   const [showEmail, setShowEmail] = useState(false);
@@ -107,7 +107,7 @@ const LeadDetail = () => {
       await communicationAPI.logCall({ leadId: parseInt(id), ...callForm, duration: parseInt(callForm.duration) || 0 });
       toast.success('Call logged');
       setShowCall(false);
-      setCallForm({ duration: '', note: '', outcome: '', callType: 'outbound', nextFollowup: '' });
+      setCallForm({ duration: '', note: '', outcome: '', callType: 'outbound', callStatus: 'Answered', nextFollowup: '' });
       loadLead();
     } catch { toast.error('Failed to log call'); } finally { setSaving(false); }
   };
@@ -324,6 +324,7 @@ const LeadDetail = () => {
                 ['Workspace', lead.workspace?.name], ['Source', lead.source], ['Campaign', lead.campaign],
                 ['City', lead.city || (() => { const m = lead.metadata || {}; for (const k of Object.keys(m)) { if (/^city$/i.test(k) && m[k]) return m[k]; } if (m.rawFields) { for (const k of Object.keys(m.rawFields)) { if (/^city$/i.test(k) && m.rawFields[k]) return m.rawFields[k]; } } return null; })()], ['Address', lead.clientAddress], ['GST', lead.clientGST],
                 ['Next Followup', lead.nextFollowup ? formatDateTime(lead.nextFollowup) : null],
+                ['Last Call Status', lead.lastCallStatus],
                 ['Last Note', lead.lastCallNote],
                 ['Created', formatDateTime(lead.createdAt)],
               ].filter(([, v]) => v).map(([k, v]) => (
@@ -397,6 +398,7 @@ const LeadDetail = () => {
               <div className="form-group"><label className="form-label">Call Type</label><select className="form-control" value={callForm.callType} onChange={(e) => setCallForm({ ...callForm, callType: e.target.value })}><option value="outbound">Outbound</option><option value="inbound">Inbound</option></select></div>
               <div className="form-group"><label className="form-label">Duration (seconds)</label><input className="form-control" type="number" min="0" value={callForm.duration} onChange={(e) => setCallForm({ ...callForm, duration: e.target.value })} placeholder="120" /></div>
             </div>
+            <div className="form-group"><label className="form-label">Call Status</label><select className="form-control" value={callForm.callStatus} onChange={(e) => setCallForm({ ...callForm, callStatus: e.target.value })}>{ENUMS.CALL_STATUSES.map((c) => <option key={c}>{c}</option>)}</select></div>
             <div className="form-group"><label className="form-label">Outcome</label><input className="form-control" value={callForm.outcome} onChange={(e) => setCallForm({ ...callForm, outcome: e.target.value })} placeholder="e.g., Interested, Will call back..." /></div>
             <div className="form-group"><label className="form-label">Notes</label><textarea className="form-control" rows={3} value={callForm.note} onChange={(e) => setCallForm({ ...callForm, note: e.target.value })} /></div>
             <div className="form-group"><label className="form-label">Next Followup</label><input className="form-control" type="datetime-local" value={callForm.nextFollowup} onChange={(e) => setCallForm({ ...callForm, nextFollowup: e.target.value })} /></div>

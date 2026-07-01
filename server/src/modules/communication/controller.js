@@ -4,7 +4,7 @@ const emailService = require('../../services/emailService');
 const logCall = async (req, res) => {
   try {
     const { user, workspaceId } = req;
-    const { leadId, duration, note, outcome, callType = 'outbound', nextFollowup } = req.body;
+    const { leadId, duration, note, outcome, callType = 'outbound', callStatus = 'Answered', nextFollowup } = req.body;
     if (!leadId) return res.status(400).json({ success: false, message: 'Lead ID required' });
 
     const lead = await Lead.findOne({ where: { id: leadId, organizationId: user.organizationId, workspaceId } });
@@ -13,7 +13,7 @@ const logCall = async (req, res) => {
     const callLog = await CallLog.create({
       leadId, organizationId: user.organizationId, workspaceId,
       userId: user.id, duration: parseInt(duration) || 0,
-      note: note || '', outcome: outcome || '', callType,
+      note: note || '', outcome: outcome || '', callType, status: callStatus,
     });
 
     const mins = Math.floor((parseInt(duration) || 0) / 60);
@@ -21,11 +21,11 @@ const logCall = async (req, res) => {
     await LeadActivity.create({
       leadId, organizationId: user.organizationId, workspaceId, userId: user.id,
       type: 'call_logged',
-      description: `${callType === 'inbound' ? 'Inbound' : 'Outbound'} call logged (${mins}m ${secs}s). ${outcome || ''}`,
-      metadata: { callLogId: callLog.id, duration, outcome },
+      description: `${callType === 'inbound' ? 'Inbound' : 'Outbound'} call logged (${mins}m ${secs}s) — ${callStatus}. ${outcome || ''}`,
+      metadata: { callLogId: callLog.id, duration, outcome, callStatus },
     });
 
-    if (note) await Lead.update({ lastCallNote: note }, { where: { id: leadId } });
+    await Lead.update({ lastCallStatus: callStatus, ...(note ? { lastCallNote: note } : {}) }, { where: { id: leadId } });
     if (nextFollowup) {
       const { Followup } = require('../../config/models');
       await Followup.create({ leadId, organizationId: user.organizationId, workspaceId, userId: user.id, scheduledAt: nextFollowup, note: `Post-call followup`, status: 'pending' });

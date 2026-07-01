@@ -45,6 +45,7 @@ export const ENUMS = {
   LEAD_SOURCES: ['Meta Ads', 'Google Ads', 'Website', 'WhatsApp', 'Reference', 'Telecalling', 'Social Media', 'CSV Import', 'Instagram DM', 'Justdial', 'Walk-in', 'Cold visit', 'Other'],
   LEAD_STATUSES: ['New', 'Discussion', 'Meeting', 'Quotation', 'Review', 'Won', 'Lost'],
   LEAD_PRIORITIES: ['Hot', 'Warm', 'Cold'],
+  CALL_STATUSES: ['Answered', 'Not Answered', 'Not Reachable', 'Number Not Working'],
 
   APPOINTMENT_TYPES: ['Call', 'Meeting', 'Demo', 'Site Visit', 'Follow-up', 'Other'],
   APPOINTMENT_STATUSES: ['Scheduled', 'Completed', 'Cancelled', 'No Show'],
@@ -100,6 +101,7 @@ export const getStatusColor = (status) => {
     Unpaid: '#ef4444', Partial: '#f59e0b', Paid: '#22c55e', Overdue: '#e94560',
     Pending: '#f59e0b', 'In Progress': '#0ea5e9', 'In Review': '#7c3aed', Published: '#22c55e',
     trial: '#6b7280', starter: '#0ea5e9', growth: '#7c3aed', agency: '#e94560', custom: '#22c55e',
+    Answered: '#22c55e', 'Not Answered': '#f59e0b', 'Not Reachable': '#ef4444', 'Number Not Working': '#6b7280',
   };
   return map[status] || '#6b7280';
 };

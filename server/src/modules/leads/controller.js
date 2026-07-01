@@ -24,7 +24,7 @@ const findLeastLoadedAgent = async (workspaceId, organizationId) => {
 const getLeads = async (req, res) => {
   try {
     const { workspaceId, user } = req;
-    const { page = 1, limit = 50, search, status, source, priority, assignedTo, city, dateFrom, dateTo, sort = 'createdAt', order = 'DESC', workspaceId: wsParam } = req.query;
+    const { page = 1, limit = 50, search, status, source, priority, assignedTo, city, callStatus, dateFrom, dateTo, sort = 'createdAt', order = 'DESC', workspaceId: wsParam } = req.query;
     const { limit: lim, offset } = paginate(page, limit);
 
     const wsFilter = user.role === 'owner' && wsParam ? { workspaceId: wsParam } : workspaceId ? { workspaceId } : {};
@@ -43,13 +43,14 @@ const getLeads = async (req, res) => {
     if (assignedTo === 'unassigned') where.assignedTo = null;
     else if (assignedTo) where.assignedTo = assignedTo;
     if (city) where.city = { [Op.like]: `%${city}%` };
+    if (callStatus) where.lastCallStatus = callStatus;
     if (dateFrom || dateTo) {
       where.createdAt = {};
       if (dateFrom) where.createdAt[Op.gte] = new Date(dateFrom);
       if (dateTo) where.createdAt[Op.lte] = new Date(dateTo);
     }
 
-    const validSorts = ['createdAt', 'name', 'status', 'priority', 'score', 'nextFollowup'];
+    const validSorts = ['createdAt', 'name', 'status', 'priority', 'score', 'nextFollowup', 'lastCallStatus'];
     const sortCol = validSorts.includes(sort) ? sort : 'createdAt';
     const sortOrder = order === 'ASC' ? 'ASC' : 'DESC';
 

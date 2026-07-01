@@ -151,6 +151,10 @@ const Lead = sequelize.define('Lead', {
   assignedTo: { type: DataTypes.INTEGER, allowNull: true },
   nextFollowup: { type: DataTypes.DATE },
   lastCallNote: { type: DataTypes.TEXT },
+  lastCallStatus: {
+    type: DataTypes.ENUM('Answered', 'Not Answered', 'Not Reachable', 'Number Not Working'),
+    allowNull: true,
+  },
   city: { type: DataTypes.STRING(100) },
   clientAddress: { type: DataTypes.TEXT },
   clientGST: { type: DataTypes.STRING(20) },
@@ -220,6 +224,10 @@ const CallLog = sequelize.define('CallLog', {
   callType: {
     type: DataTypes.ENUM('outbound', 'inbound'),
     defaultValue: 'outbound',
+  },
+  status: {
+    type: DataTypes.ENUM('Answered', 'Not Answered', 'Not Reachable', 'Number Not Working'),
+    defaultValue: 'Answered',
   },
 }, { tableName: 'call_logs' });
 
@@ -862,6 +870,26 @@ const syncDatabase = async () => {
       const invTitleCols = await qi.describeTable('invoices');
       if (!invTitleCols.title) {
         await qi.addColumn('invoices', 'title', { type: DataTypes.STRING(200), allowNull: true });
+      }
+    } catch (e) { /* ignore */ }
+
+    // Add call status columns to leads and call_logs if missing
+    try {
+      const leadCallStatusCols = await qi.describeTable('leads');
+      if (!leadCallStatusCols.lastCallStatus) {
+        await qi.addColumn('leads', 'lastCallStatus', {
+          type: DataTypes.ENUM('Answered', 'Not Answered', 'Not Reachable', 'Number Not Working'),
+          allowNull: true,
+        });
+      }
+    } catch (e) { /* ignore */ }
+    try {
+      const callLogCols = await qi.describeTable('call_logs');
+      if (!callLogCols.status) {
+        await qi.addColumn('call_logs', 'status', {
+          type: DataTypes.ENUM('Answered', 'Not Answered', 'Not Reachable', 'Number Not Working'),
+          defaultValue: 'Answered',
+        });
       }
     } catch (e) { /* ignore */ }
 

@@ -36,7 +36,7 @@ const Leads = () => {
   const [upgradeModal, setUpgradeModal] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
-  const [filters, setFilters] = useState({ search: '', status: '', source: '', priority: '', assignedTo: '', city: '', dateFrom: '', dateTo: '', workspaceId: '', page: 1 });
+  const [filters, setFilters] = useState({ search: '', status: '', source: '', priority: '', assignedTo: '', city: '', callStatus: '', dateFrom: '', dateTo: '', workspaceId: '', sort: '', order: '', page: 1 });
   const [form, setForm] = useState({ name: '', phone: '', email: '', source: 'Website', priority: 'Warm', status: 'New', assignedTo: '', campaign: '', city: '', clientAddress: '', designation: '', workspaceId: '' });
   const [workspaces, setWorkspaces] = useState([]);
   const [importing, setImporting] = useState(false);
@@ -138,6 +138,17 @@ const Leads = () => {
   };
 
   const updateFilter = (key, val) => { lastClickedIndex.current = null; setFilters((f) => ({ ...f, [key]: val, page: 1 })); };
+
+  const toggleSort = (col) => {
+    lastClickedIndex.current = null;
+    setFilters((f) => ({
+      ...f,
+      sort: col,
+      order: f.sort === col && f.order === 'ASC' ? 'DESC' : 'ASC',
+      page: 1,
+    }));
+  };
+  const sortArrow = (col) => (filters.sort === col ? (filters.order === 'ASC' ? ' ↑' : ' ↓') : '');
 
   // selection helpers
   const allSelected = leads.length > 0 && leads.every((l) => selected.has(l.id));
@@ -273,6 +284,10 @@ const Leads = () => {
           {ENUMS.LEAD_SOURCES.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
         <input className="search-input" placeholder="🏙 Filter by city..." value={filters.city} onChange={(e) => updateFilter('city', e.target.value)} style={{ maxWidth: 160 }} />
+        <select className="filter-select" value={filters.callStatus} onChange={(e) => updateFilter('callStatus', e.target.value)}>
+          <option value="">All Call Statuses</option>
+          {ENUMS.CALL_STATUSES.map((c) => <option key={c} value={c}>{c}</option>)}
+        </select>
         {user?.role === 'owner' && workspaces.length > 0 && (
           <select className="filter-select" value={filters.workspaceId} onChange={(e) => setFilters(f => ({ ...f, workspaceId: e.target.value, assignedTo: '', page: 1 }))}>
             <option value="">All Workspaces</option>
@@ -379,7 +394,9 @@ const Leads = () => {
                       />
                     </th>
                   )}
-                  <th>Lead</th><th>Phone</th><th>City</th><th>Source</th><th>Priority</th><th>Status</th><th>Agent</th>{user?.role === 'owner' && <th>Workspace</th>}<th>Created</th><th>Actions</th>
+                  <th>Lead</th><th>Phone</th><th>City</th><th>Source</th><th>Priority</th><th>Status</th>
+                  <th style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => toggleSort('lastCallStatus')} title="Sort by call status">Call Status{sortArrow('lastCallStatus')}</th>
+                  <th>Agent</th>{user?.role === 'owner' && <th>Workspace</th>}<th>Created</th><th>Actions</th>
                 </tr>
               </thead>
               <tbody onTouchMove={user?.role === 'admin' || user?.role === 'owner' ? handleTouchMove : undefined} onTouchEnd={user?.role === 'admin' || user?.role === 'owner' ? handleTouchEnd : undefined}>
@@ -423,6 +440,13 @@ const Leads = () => {
                         <span className="status-dot" style={{ background: getStatusColor(lead.status) }} />
                         <span style={{ fontSize: 12 }}>{lead.status}</span>
                       </span>
+                    </td>
+                    <td>
+                      {lead.lastCallStatus
+                        ? <span style={{ background: `rgba(${getStatusColor(lead.lastCallStatus).slice(1).match(/.{2}/g).map((x) => parseInt(x, 16)).join(',')},0.15)`, color: getStatusColor(lead.lastCallStatus), padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 700 }}>
+                            {lead.lastCallStatus}
+                          </span>
+                        : <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>—</span>}
                     </td>
                     <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                       {lead.assignedAgent?.name
