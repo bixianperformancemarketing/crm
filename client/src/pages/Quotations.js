@@ -27,7 +27,7 @@ const Quotations = () => {
   const [saving, setSaving] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(null);
   const [sendingWhatsapp, setSendingWhatsapp] = useState(null);
-  const [form, setForm] = useState({ title: '', clientName: '', clientEmail: '', clientPhone: '', clientAddress: '', clientGST: '', gstPercent: 18, terms: [], notes: '', validUntil: '', workspaceId: '', items: [emptyItem()] });
+  const [form, setForm] = useState({ title: '', clientName: '', clientEmail: '', clientPhone: '', clientAddress: '', clientGST: '', gstPercent: 18, terms: [], validUntil: '', workspaceId: '', items: [emptyItem()] });
   const [workspaces, setWorkspaces] = useState([]);
   const [editQuotation, setEditQuotation] = useState(null);
   const [editForm, setEditForm] = useState(null);
@@ -127,7 +127,7 @@ const Quotations = () => {
       if (data.upgradeRequired) { setUpgradeModal(data); return; }
       toast.success('Quotation created');
       setShowCreate(false);
-      setForm({ title: '', clientName: '', clientEmail: '', clientPhone: '', clientAddress: '', clientGST: '', gstPercent: 18, terms: [], notes: '', validUntil: '', workspaceId: '', items: [emptyItem()] });
+      setForm({ title: '', clientName: '', clientEmail: '', clientPhone: '', clientAddress: '', clientGST: '', gstPercent: 18, terms: [], validUntil: '', workspaceId: '', items: [emptyItem()] });
       load();
     } catch (err) {
       const d = err.response?.data;
@@ -149,7 +149,6 @@ const Quotations = () => {
         clientGST: qData.clientGST || '',
         gstPercent: qData.gstPercent || 18,
         terms: parseTermsArray(qData.terms),
-        notes: qData.notes || '',
         validUntil: qData.validUntil ? qData.validUntil.slice(0, 10) : '',
         items: qData.items?.length
           ? qData.items.map((i) => ({ description: i.description, subDescription: i.subDescription || '', subItems: i.subItems || [], totalPrice: i.totalPrice }))
@@ -397,10 +396,7 @@ const Quotations = () => {
 
               <div className="q-section">
                 <p className="q-section-title">Additional Details</p>
-                <div className="form-row">
-                  <div className="form-group" style={{ marginBottom: 0 }}><label className="form-label">Valid Until</label><input className="form-control" type="date" value={form.validUntil} onChange={(e) => setForm({ ...form, validUntil: e.target.value })} /></div>
-                  <div className="form-group" style={{ marginBottom: 0 }}><label className="form-label">Notes</label><textarea className="form-control" rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Internal notes or client instructions" /></div>
-                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}><label className="form-label">Valid Until</label><input className="form-control" type="date" value={form.validUntil} onChange={(e) => setForm({ ...form, validUntil: e.target.value })} /></div>
               </div>
 
               <div className="form-group" style={{ marginTop: 16 }}>
@@ -490,10 +486,7 @@ const Quotations = () => {
 
               <div className="q-section">
                 <p className="q-section-title">Additional Details</p>
-                <div className="form-row">
-                  <div className="form-group" style={{ marginBottom: 0 }}><label className="form-label">Valid Until</label><input className="form-control" type="date" value={editForm.validUntil} onChange={(e) => setEditForm({ ...editForm, validUntil: e.target.value })} /></div>
-                  <div className="form-group" style={{ marginBottom: 0 }}><label className="form-label">Notes</label><textarea className="form-control" rows={2} value={editForm.notes || ''} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} placeholder="Internal notes or client instructions" /></div>
-                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}><label className="form-label">Valid Until</label><input className="form-control" type="date" value={editForm.validUntil} onChange={(e) => setEditForm({ ...editForm, validUntil: e.target.value })} /></div>
               </div>
 
               <div className="form-group" style={{ marginTop: 16 }}>

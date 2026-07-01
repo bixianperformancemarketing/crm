@@ -253,6 +253,13 @@ const addTotals = (doc, data, startY, orgSettings, type) => {
   return y + 10;
 };
 
+const TERM_LINE_GAP = 6;
+
+const measureTermsHeight = (doc, terms, width) => {
+  doc.fontSize(8).font('Helvetica');
+  return terms.reduce((sum, term) => sum + doc.heightOfString(`•  ${term}`, { width }) + TERM_LINE_GAP, 0);
+};
+
 const addTermsAndPayment = (doc, bankDetails, termsRaw, startY, qrBuffer = null, orgSettings = null, type = '') => {
   const terms = parseTerms(termsRaw);
   const bankFields = [
@@ -267,7 +274,8 @@ const addTermsAndPayment = (doc, bankDetails, termsRaw, startY, qrBuffer = null,
   if (!hasBank && !hasTerms) return startY;
 
   const QR_SIZE = 58;
-  const termH   = hasTerms ? terms.length * 14 + 28 : 0;
+  const termsWidth = hasBank ? 225 : 470;
+  const termH   = hasTerms ? measureTermsHeight(doc, terms, termsWidth) + 28 : 0;
   const bankH   = hasBank  ? bankFields.length * 13 + 28 + (qrBuffer ? QR_SIZE + 14 : 0) : 0;
   const boxH    = Math.max(termH, bankH, 52);
 
@@ -303,7 +311,7 @@ const addTermsAndPayment = (doc, bankDetails, termsRaw, startY, qrBuffer = null,
     let ty = boxY + 24;
     terms.forEach(term => {
       doc.fontSize(8).fillColor(BLACK).font('Helvetica').text(`•  ${term}`, 315, ty, { width: 225 });
-      ty += 14;
+      ty += doc.heightOfString(`•  ${term}`, { width: 225 }) + TERM_LINE_GAP;
     });
 
   } else if (hasBank) {
@@ -329,7 +337,7 @@ const addTermsAndPayment = (doc, bankDetails, termsRaw, startY, qrBuffer = null,
     let ty = boxY + 24;
     terms.forEach(term => {
       doc.fontSize(8).fillColor(BLACK).font('Helvetica').text(`•  ${term}`, 60, ty, { width: 470 });
-      ty += 14;
+      ty += doc.heightOfString(`•  ${term}`, { width: 470 }) + TERM_LINE_GAP;
     });
   }
 

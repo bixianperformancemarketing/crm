@@ -58,7 +58,7 @@ const LeadDetail = () => {
   const [appointmentForm, setAppointmentForm] = useState({ title: '', startTime: '', endTime: '', type: 'Meeting', location: '', description: '' });
   const [showQuotation, setShowQuotation] = useState(false);
   const emptyQItem = () => ({ description: '', subDescription: '', subItems: [], totalPrice: '' });
-  const [quotationForm, setQuotationForm] = useState({ clientName: '', clientEmail: '', clientPhone: '', clientAddress: '', clientGST: '', gstPercent: 18, terms: [], notes: '', validUntil: '', items: [emptyQItem()] });
+  const [quotationForm, setQuotationForm] = useState({ clientName: '', clientEmail: '', clientPhone: '', clientAddress: '', clientGST: '', gstPercent: 18, terms: [], validUntil: '', items: [emptyQItem()] });
   const [saving, setSaving] = useState(false);
 
   const loadLead = async () => {
@@ -150,7 +150,7 @@ const LeadDetail = () => {
       await quotationsAPI.create({ leadId: parseInt(id), workspaceId: lead.workspaceId, ...quotationForm, terms: JSON.stringify(quotationForm.terms.filter(t => t.trim())), items: validItems });
       toast.success('Quotation created');
       setShowQuotation(false);
-      setQuotationForm({ clientName: '', clientEmail: '', clientPhone: '', clientAddress: '', clientGST: '', gstPercent: 18, terms: [], notes: '', validUntil: '', items: [emptyQItem()] });
+      setQuotationForm({ clientName: '', clientEmail: '', clientPhone: '', clientAddress: '', clientGST: '', gstPercent: 18, terms: [], validUntil: '', items: [emptyQItem()] });
       navigate('/quotations');
     } catch { toast.error('Failed to create quotation'); } finally { setSaving(false); }
   };
@@ -216,7 +216,7 @@ const LeadDetail = () => {
           <button className="btn btn-ghost btn-sm" onClick={() => setShowNote(true)}>📝 Note</button>
           <button className="btn btn-ghost btn-sm" onClick={() => setShowFollowup(true)}>⏰ Followup</button>
           <button className="btn btn-ghost btn-sm" onClick={() => setShowAppointment(true)}>📅 Appointment</button>
-          <button className="btn btn-ghost btn-sm" onClick={() => { setQuotationForm({ clientName: lead.name || '', clientEmail: lead.email || '', clientPhone: lead.phone || '', clientAddress: lead.clientAddress || '', clientGST: lead.clientGST || '', gstPercent: 18, terms: [], notes: '', validUntil: '', items: [emptyQItem()] }); setShowQuotation(true); }}>📋 Quotation</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => { setQuotationForm({ clientName: lead.name || '', clientEmail: lead.email || '', clientPhone: lead.phone || '', clientAddress: lead.clientAddress || '', clientGST: lead.clientGST || '', gstPercent: 18, terms: [], validUntil: '', items: [emptyQItem()] }); setShowQuotation(true); }}>📋 Quotation</button>
           {lead.email && <button className="btn btn-ghost btn-sm" onClick={() => setShowEmail(true)}>✉️ Email</button>}
           {!editing ? <button className="btn btn-primary btn-sm" onClick={() => setEditing(true)}>✏️ Edit</button> : (
             <>
@@ -520,10 +520,7 @@ const LeadDetail = () => {
 
             <div className="q-section">
               <p className="q-section-title">Additional Details</p>
-              <div className="form-row">
-                <div className="form-group" style={{ marginBottom: 0 }}><label className="form-label">Valid Until</label><input className="form-control" type="date" value={quotationForm.validUntil} onChange={(e) => setQuotationForm({ ...quotationForm, validUntil: e.target.value })} /></div>
-                <div className="form-group" style={{ marginBottom: 0 }}><label className="form-label">Notes</label><textarea className="form-control" rows={2} value={quotationForm.notes} onChange={(e) => setQuotationForm({ ...quotationForm, notes: e.target.value })} placeholder="Internal notes or client instructions" /></div>
-              </div>
+              <div className="form-group" style={{ marginBottom: 0 }}><label className="form-label">Valid Until</label><input className="form-control" type="date" value={quotationForm.validUntil} onChange={(e) => setQuotationForm({ ...quotationForm, validUntil: e.target.value })} /></div>
             </div>
 
             <div className="form-group" style={{ marginTop: 16 }}>

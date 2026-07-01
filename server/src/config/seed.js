@@ -387,7 +387,6 @@ const seed = async () => {
       gstAmount: 15300,
       totalAmount: 100300,
       terms: 'Payment due within 30 days of approval.',
-      notes: 'Includes SEO, Social Media Management, and Google Ads for 3 months.',
       validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       sentAt: new Date(),
     });
@@ -418,7 +417,6 @@ const seed = async () => {
       dueAmount: 71600,
       status: 'Partial',
       dueDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000),
-      notes: 'Complete digital marketing retainer for Q1',
       terms: '50% advance, 50% on completion',
     });
 

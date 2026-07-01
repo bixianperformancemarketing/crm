@@ -75,7 +75,7 @@ const createQuotation = async (req, res) => {
   try {
     const { user, workspaceId } = req;
     if (!workspaceId) return res.status(400).json({ success: false, message: 'Workspace context required for this action' });
-    const { leadId, clientName, clientEmail, clientPhone, clientAddress, clientGST, items = [], gstPercent = 18, terms, notes, validUntil, title } = req.body;
+    const { leadId, clientName, clientEmail, clientPhone, clientAddress, clientGST, items = [], gstPercent = 18, terms, validUntil, title } = req.body;
 
     if (!clientName?.trim()) return res.status(400).json({ success: false, message: 'Client name is required' });
     if (!clientPhone?.trim()) return res.status(400).json({ success: false, message: 'Phone number is required' });
@@ -123,7 +123,7 @@ const createQuotation = async (req, res) => {
       clientName: clientName || lead?.name, clientEmail: clientEmail || lead?.email,
       clientPhone: clientPhone || lead?.phone, clientAddress: clientAddress || lead?.clientAddress,
       clientGST: clientGST || lead?.clientGST,
-      status: 'Draft', subtotal, gstPercent, gstAmount, totalAmount, terms, notes, validUntil: validUntil || null,
+      status: 'Draft', subtotal, gstPercent, gstAmount, totalAmount, terms, validUntil: validUntil || null,
       title: title?.trim() || null,
     });
 
@@ -164,7 +164,7 @@ const updateQuotation = async (req, res) => {
     if (!q) return res.status(404).json({ success: false, message: 'Quotation not found' });
     if (q.status === 'Approved') return res.status(400).json({ success: false, message: 'Cannot edit an approved quotation' });
 
-    const { items, gstPercent, terms, notes, validUntil, clientName, clientEmail, clientPhone, clientAddress, clientGST, title } = req.body;
+    const { items, gstPercent, terms, validUntil, clientName, clientEmail, clientPhone, clientAddress, clientGST, title } = req.body;
 
     let updates = {};
     if (title !== undefined) updates.title = title?.trim() || null;
@@ -174,7 +174,6 @@ const updateQuotation = async (req, res) => {
     if (clientAddress) updates.clientAddress = clientAddress;
     if (clientGST) updates.clientGST = clientGST;
     if (terms !== undefined) updates.terms = terms;
-    if (notes !== undefined) updates.notes = notes;
     if (validUntil) updates.validUntil = validUntil;
 
     if (items && items.length) {
@@ -281,7 +280,7 @@ const downloadPDF = async (req, res) => {
     await logUsage(user.organizationId, q.workspaceId, 'pdf_generated');
 
     const dateStr = new Date().toLocaleDateString('en-GB').replace(/\//g, '');
-    const safeName = q.title ? q.title.replace(/[^a-zA-Z0-9]/g, '') : '';
+    const safeName = q.title ? q.title.replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, ' ').trim() : '';
     const pdfName = safeName ? `${safeName}_${q.quotationNumber}_${dateStr}.pdf` : `${q.quotationNumber}_${dateStr}.pdf`;
     res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': `attachment; filename="${pdfName}"` });
     res.send(pdf);

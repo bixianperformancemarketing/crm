@@ -11,7 +11,7 @@ import DateFilter from '../components/common/DateFilter';
 import './Invoices.css';
 
 const emptyItem = () => ({ description: '', subDescription: '', subItems: [], totalPrice: '' });
-const emptyForm = () => ({ title: '', clientName: '', clientEmail: '', clientPhone: '', clientAddress: '', clientGST: '', gstPercent: 18, terms: [], notes: '', dueDate: '', workspaceId: '', items: [emptyItem()] });
+const emptyForm = () => ({ title: '', clientName: '', clientEmail: '', clientPhone: '', clientAddress: '', clientGST: '', gstPercent: 18, terms: [], dueDate: '', workspaceId: '', items: [emptyItem()] });
 const parseTermsArray = (raw) => {
   if (!raw) return [];
   try { const p = JSON.parse(raw); return Array.isArray(p) ? p : (raw ? [raw] : []); }
@@ -160,7 +160,6 @@ const Invoices = () => {
         clientAddress: invData.clientAddress || '',
         clientGST: invData.clientGST || '',
         gstPercent: invData.gstPercent || 18,
-        notes: invData.notes || '',
         dueDate: invData.dueDate ? invData.dueDate.slice(0, 10) : '',
         terms: parseTermsArray(invData.terms),
         items: invData.items?.length
@@ -188,7 +187,7 @@ const Invoices = () => {
     try {
       const termsStr = JSON.stringify((editForm.terms || []).filter(t => t.trim()));
       const payload = hasPayments
-        ? { title: editForm.title, terms: termsStr, notes: editForm.notes, dueDate: editForm.dueDate }
+        ? { title: editForm.title, terms: termsStr, dueDate: editForm.dueDate }
         : { ...editForm, terms: termsStr, items: editForm.items.filter((i) => i.description?.trim()) };
       await invoicesAPI.update(editInvoice.id, payload);
       toast.success('Invoice updated');
@@ -467,7 +466,7 @@ const Invoices = () => {
 
               {hasPayments && (
                 <div style={{ marginBottom: 16, padding: '12px 16px', background: 'rgba(239,68,68,0.08)', borderRadius: 8, border: '1px solid rgba(239,68,68,0.3)', fontSize: 13, color: '#ef4444' }}>
-                  <strong>Payment recorded on this invoice.</strong> Items and amounts are locked. You can only update terms, notes, and due date.
+                  <strong>Payment recorded on this invoice.</strong> Items and amounts are locked. You can only update terms and due date.
                 </div>
               )}
 
