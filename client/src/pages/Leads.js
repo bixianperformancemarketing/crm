@@ -41,6 +41,7 @@ const Leads = () => {
   const [workspaces, setWorkspaces] = useState([]);
   const [importing, setImporting] = useState(false);
   const [importResults, setImportResults] = useState(null);
+  const [importWorkspaceId, setImportWorkspaceId] = useState('');
 
   // bulk action state
   const [selected, setSelected] = useState(new Set());
@@ -122,10 +123,15 @@ const Leads = () => {
   const handleCSVImport = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (user?.role === 'owner' && workspaces.length > 0 && !importWorkspaceId) {
+      toast.error('Please select a workspace before importing');
+      e.target.value = '';
+      return;
+    }
     setImporting(true);
     setImportResults(null);
     try {
-      const { data } = await leadsAPI.importCSV(file);
+      const { data } = await leadsAPI.importCSV(file, importWorkspaceId || undefined);
       if (data.upgradeRequired) { setUpgradeModal(data); return; }
       setImportResults(data);
       toast.success(`Imported ${data.created} leads`);
@@ -256,6 +262,15 @@ const Leads = () => {
       {showImport && (
         <div className="card" style={{ marginBottom: 20 }}>
           <h3 style={{ marginBottom: 16 }}>📁 Import Leads from CSV</h3>
+          {user?.role === 'owner' && workspaces.length > 0 && (
+            <div className="form-group" style={{ maxWidth: 300 }}>
+              <label className="form-label">Workspace *</label>
+              <select className="form-control" value={importWorkspaceId} onChange={(e) => setImportWorkspaceId(e.target.value)}>
+                <option value="">Select Workspace</option>
+                {workspaces.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
+              </select>
+            </div>
+          )}
           <label className="import-area" htmlFor="csv-upload">
             {importing ? <span>⏳ Importing...</span> : <span>📎 Click to select CSV file or drag & drop<br /><small style={{ color: 'var(--text-muted)' }}>Headers: name, phone, email, city, source, campaign (and any custom fields)</small></span>}
           </label>

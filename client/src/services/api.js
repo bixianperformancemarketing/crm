@@ -100,11 +100,12 @@ export const leadsAPI = {
   bulkAssign: (leadIds, assignedTo) => api.put('/leads/bulk-assign', { leadIds, assignedTo }),
   bulkAssignWorkspace: (leadIds, workspaceId) => api.put('/leads/bulk-assign-workspace', { leadIds, workspaceId }),
   bulkDelete: (leadIds) => api.delete('/leads/bulk-delete', { data: { leadIds } }),
-  importCSV: (file, onProgress) => {
+  importCSV: (file, workspaceId, onProgress) => {
     const formData = new FormData();
     formData.append('file', file);
     return api.post('/leads/import/csv', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
+      params: workspaceId ? { workspaceId } : undefined,
       onUploadProgress: onProgress,
     });
   },
