@@ -42,6 +42,7 @@ const Leads = () => {
   const [importing, setImporting] = useState(false);
   const [importResults, setImportResults] = useState(null);
   const [importWorkspaceId, setImportWorkspaceId] = useState('');
+  const [dragActive, setDragActive] = useState(false);
 
   // bulk action state
   const [selected, setSelected] = useState(new Set());
@@ -120,12 +121,14 @@ const Leads = () => {
     } catch { toast.error('Failed to unassign lead'); }
   };
 
-  const handleCSVImport = async (e) => {
-    const file = e.target.files?.[0];
+  const processImportFile = async (file) => {
     if (!file) return;
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+      toast.error('Please select a CSV file');
+      return;
+    }
     if (user?.role === 'owner' && workspaces.length > 0 && !importWorkspaceId) {
       toast.error('Please select a workspace before importing');
-      e.target.value = '';
       return;
     }
     setImporting(true);
@@ -140,7 +143,19 @@ const Leads = () => {
       const d = err.response?.data;
       if (d?.upgradeRequired) { setUpgradeModal(d); return; }
       toast.error(d?.message || 'Import failed');
-    } finally { setImporting(false); e.target.value = ''; }
+    } finally { setImporting(false); }
+  };
+
+  const handleCSVImport = (e) => {
+    processImportFile(e.target.files?.[0]);
+    e.target.value = '';
+  };
+
+  const handleImportDrop = (e) => {
+    e.preventDefault();
+    setDragActive(false);
+    if (importing) return;
+    processImportFile(e.dataTransfer.files?.[0]);
   };
 
   const updateFilter = (key, val) => { lastClickedIndex.current = null; setFilters((f) => ({ ...f, [key]: val, page: 1 })); };
@@ -263,7 +278,7 @@ const Leads = () => {
         <div className="card" style={{ marginBottom: 20 }}>
           <h3 style={{ marginBottom: 16 }}>📁 Import Leads from CSV</h3>
           {user?.role === 'owner' && workspaces.length > 0 && (
-            <div className="form-group" style={{ maxWidth: 300 }}>
+            <div className="form-group import-workspace-select" style={{ maxWidth: 300 }}>
               <label className="form-label">Workspace *</label>
               <select className="form-control" value={importWorkspaceId} onChange={(e) => setImportWorkspaceId(e.target.value)}>
                 <option value="">Select Workspace</option>
@@ -271,9 +286,15 @@ const Leads = () => {
               </select>
             </div>
           )}
-          <label className="import-area" htmlFor="csv-upload">
+          <div
+            className={`import-area${dragActive ? ' drag-active' : ''}`}
+            onClick={() => !importing && document.getElementById('csv-upload').click()}
+            onDragOver={(e) => { e.preventDefault(); if (!importing) setDragActive(true); }}
+            onDragLeave={() => setDragActive(false)}
+            onDrop={handleImportDrop}
+          >
             {importing ? <span>⏳ Importing...</span> : <span>📎 Click to select CSV file or drag & drop<br /><small style={{ color: 'var(--text-muted)' }}>Headers: name, phone, email, city, source, campaign (and any custom fields)</small></span>}
-          </label>
+          </div>
           <input id="csv-upload" type="file" accept=".csv" style={{ display: 'none' }} onChange={handleCSVImport} disabled={importing} />
           {importResults && (
             <div className="import-results">
